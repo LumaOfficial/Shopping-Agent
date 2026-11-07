@@ -69,7 +69,6 @@ function reset() {
   byId("code-filters").hidden = true;
   byId("code-filters").textContent = "";
   byId("copy-all").hidden = true;
-  byId("sample-note").hidden = true;
   byId("wallet-list").hidden = true;
   byId("wallet-list").textContent = "";
   byId("payout-block").hidden = true;
@@ -304,7 +303,6 @@ function renderFilters(alive) {
     ["feed", "Feed", alive.filter((coupon) => coupon.source === "feed").length],
     ["page", "On page", alive.filter((coupon) => coupon.source === "page").length],
     ["saved", "Yours", alive.filter((coupon) => coupon.source === "saved").length],
-    ["sample", "Sample", alive.filter((coupon) => coupon.source === "sample").length],
   ].filter(([, , count]) => count > 0);
 
   if (!groups.some(([value]) => value === state.filterSource)) state.filterSource = "all";
@@ -347,13 +345,6 @@ function renderCoupons() {
         "No codes for this store yet. Connect an offer feed in Settings, or save a code you already have below.";
     }
   }
-
-  const sampleNote = byId("sample-note");
-  const samples = state.codes.some((coupon) => coupon.source === "sample");
-  sampleNote.hidden = !samples;
-  sampleNote.textContent = samples
-    ? "Sample codes are examples so you can try the flow. Connect an offer feed in Settings for live codes."
-    : "";
 
   codes.forEach((coupon, index) =>
     list.appendChild(
@@ -441,16 +432,19 @@ function renderWallet(wallet) {
   byId("wallet-mode").textContent =
     wallet.mode === "service"
       ? "Cards are issued by your payout service."
-      : "Demo wallet — no payout service connected, so cards are examples only.";
+      : "No payout service connected — add one in Settings to cash out.";
 
-  const ready = totals.available > 0 && totals.available >= minimum;
+  const connected = wallet.mode === "service";
+  const ready = connected && totals.available > 0 && totals.available >= minimum;
   const button = byId("cash-out");
   button.disabled = !ready;
-  button.textContent = ready
-    ? "Cash out " + money(totals.available, "USD") + " to a virtual Visa"
-    : minimum > 0
-      ? "Cash out from " + money(minimum, "USD")
-      : "Nothing to cash out yet";
+  button.textContent = !connected
+    ? "Connect a payout service"
+    : ready
+      ? "Cash out " + money(totals.available, "USD") + " to a virtual Visa"
+      : minimum > 0
+        ? "Cash out from " + money(minimum, "USD")
+        : "Nothing to cash out yet";
 
   const note = byId("wallet-note");
   note.hidden = !totals.pending;
@@ -481,15 +475,14 @@ function renderWallet(wallet) {
   byId("payout-block").hidden = !payout;
   if (payout) {
     const card = payout.card || {};
-    byId("payout-title").textContent = card.demo
-      ? "Demo virtual Visa · " + money(payout.amount, payout.currency)
-      : "Virtual Visa" +
-        (card.last4 ? " ···· " + card.last4 : "") +
-        " · " +
-        money(payout.amount, payout.currency);
-    byId("payout-detail").textContent = card.demo
-      ? "Card " + card.reference + " is a demo — it moves no money. Connect a payout service for real virtual Visas."
-      : [card.reference, card.expiresAt ? "expires " + card.expiresAt : null].filter(Boolean).join(" · ");
+    byId("payout-title").textContent =
+      "Virtual Visa" +
+      (card.last4 ? " ···· " + card.last4 : "") +
+      " · " +
+      money(payout.amount, payout.currency);
+    byId("payout-detail").textContent = [card.reference, card.expiresAt ? "expires " + card.expiresAt : null]
+      .filter(Boolean)
+      .join(" · ");
     const link = byId("payout-link");
     link.hidden = !card.redeemUrl;
     if (card.redeemUrl) link.href = card.redeemUrl;
@@ -765,10 +758,7 @@ byId("cash-out").addEventListener("click", async () => {
 
   if (reply && reply.ok) {
     status.className = "status ok";
-    status.textContent =
-      reply.payout && reply.payout.demo
-        ? "Demo card issued. Connect a payout service to receive a real virtual Visa."
-        : "Virtual Visa issued for your cashback balance.";
+    status.textContent = "Virtual Visa issued for your cashback balance.";
     return;
   }
   if (reply && reply.reason === "below-minimum") {

@@ -17,10 +17,9 @@ import {
   balances,
   payOut,
 } from "../partners/cashback-ledger.js";
-import { payoutConfigured, requestVirtualCard, demoVirtualCard } from "../partners/cashback-payout.js";
+import { payoutConfigured, requestVirtualCard } from "../partners/cashback-payout.js";
 import { readSettings, writeSettings } from "../lib/settings.js";
 import { mergeCodes, cleanCode } from "../lib/codes.js";
-import { starterCodes } from "../lib/starter-codes.js";
 
 const FEED_TTL_MS = 10 * 60 * 1000;
 const MAX_VERIFIED = 40;
@@ -72,12 +71,10 @@ async function resolveSite(url, options) {
     ? await cachedOffers(store, settings, options && options.refresh)
     : { status: "off", coupons: [], cashback: null, fetchedAt: null, error: null };
 
-  // Sample codes only stand in for stores the connected feed has nothing for.
   const codes = mergeCodes(
     (verified[store.id] || []).map((entry) => Object.assign({}, entry, { source: "verified" })),
     feed.coupons,
-    (saved[store.id] || []).map((entry) => Object.assign({}, entry, { source: "saved" })),
-    feed.coupons.length ? [] : starterCodes(store.id)
+    (saved[store.id] || []).map((entry) => Object.assign({}, entry, { source: "saved" }))
   );
 
   let cashback = null;
@@ -337,9 +334,7 @@ async function walletSummary() {
   return {
     balances: balances(wallet),
     minimum: Number(settings.payoutMinimum) || 0,
-    // "service" means a payout service issues the card; "demo" means the cards
-    // are examples and move no money.
-    mode: payoutConfigured(settings) ? "service" : "demo",
+     mode: payoutConfigured(settings) ? "service" : "unconfigured",
     entries: wallet.entries.slice(0, 6).map((entry) => ({
       id: entry.id,
       storeName: entry.storeName,
@@ -368,16 +363,10 @@ async function cashOut() {
     .filter((entry) => entry.status === "available")
     .map((entry) => entry.id);
 
-  let card;
-  if (payoutConfigured(settings)) {
-    const reply = await requestVirtualCard(settings, { amount, currency: "USD", earnings });
-    if (!reply.ok) return { ok: false, reason: "declined", error: reply.error, wallet: await walletSummary() };
-    card = reply.card;
-  } else {
-    card = demoVirtualCard(amount);
-  }
+  const reply = await requestVirtualCard(settings, { amount, currency: "USD", earnings });
+  if (!reply.ok) return { ok: false, reason: "declined", error: reply.error, wallet: await walletSummary() };
 
-  const payout = payOut(wallet, amount, "USD", card);
+  const payout = payOut(wallet, amount, "USD", reply.card);
   await writeWallet(wallet);
   return { ok: true, payout, wallet: await walletSummary() };
 }

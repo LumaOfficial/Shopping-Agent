@@ -2,9 +2,7 @@
 // extension asks the service the operator configured and stores what comes
 // back: a reference and, when the service offers one, a redemption link and
 // the last four digits. A full card number is never requested or stored.
-//
-// With no service connected the wallet issues a clearly-labelled demo card so
-// the flow can be used before a provider is set up. A demo card moves no money.
+// With no service connected there is nothing to issue: the cash-out is refused.
 
 export function payoutConfigured(settings) {
   return Boolean(String((settings && settings.payoutUrl) || "").trim());
@@ -62,18 +60,4 @@ export async function requestVirtualCard(settings, request) {
   } catch (error) {
     return { ok: false, error: "Could not reach the payout service: " + String((error && error.message) || error) };
   }
-}
-
-// A demo card: it shows the flow, carries no card number, and is labelled as a
-// demo everywhere it appears.
-export function demoVirtualCard(amount, now) {
-  const at = now || Date.now();
-  return {
-    demo: true,
-    brand: "Visa",
-    last4: null,
-    expiresAt: null,
-    redeemUrl: null,
-    reference: "DEMO-" + at.toString(36).toUpperCase() + "-" + String(amount),
-  };
 }

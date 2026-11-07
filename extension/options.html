@@ -10,10 +10,9 @@
       <h1>Savings settings</h1>
       <p class="muted">
         Live coupon data comes from an authorized offer source you configure here, from codes the
-        store publishes on the page you are viewing, and from codes you save yourself. A small set
-        of sample codes is included so you can try the flow, and every one of them is labelled
-        “sample”. Point the source at a feed you are entitled to use — your own offer feed or your
-        authorized data provider account.
+        store publishes on the page you are viewing, and from codes you save yourself. Point the
+        source at a feed you are entitled to use — your own offer feed or your authorized data
+        provider account.
       </p>
 
       <h2>Authorized data source</h2>
@@ -72,15 +71,15 @@
       <p class="muted">
         Virtual Visa cards are issued by a payout service you run or subscribe to. The extension
         sends it the balance to pay and keeps only the reference and last four digits it returns —
-        never a full card number. With no service connected the wallet issues demo cards and moves
-        no money.
+        never a full card number. Without a connected service there is nothing to issue, so cash
+        out stays unavailable.
       </p>
       <div class="field">
         <label for="payout-url">Payout service endpoint</label>
         <input id="payout-url" type="url" placeholder="https://pay.example.com/payouts" />
         <p class="hint">
           Receives <code>POST {"method":"virtual_visa","amount","currency","earnings"}</code> and
-          answers with a card reference. Blank means demo mode.
+          answers with a card reference. Blank means cash out stays unavailable.
         </p>
       </div>
       <div class="field">

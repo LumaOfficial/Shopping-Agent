@@ -67,14 +67,9 @@ Every code the panel shows is one of:
 | **on page** | a code the store itself publishes on the page you are viewing |
 | **yours** | a code you pasted and saved for that store |
 | **works** | a code this store accepted earlier on this device |
-| **sample** | a bundled example from `src/lib/starter-codes.js` |
 
-Sample codes exist so a fresh install has something to try. They are examples,
-not live offers: they are used only for a store the connected feed has no codes
-for, and every one carries a `sample` chip plus a note under the list. A store
-the feed covers shows only feed codes, and a store with no codes from any source
-shows an empty list — the extension never invents an offer beyond that labelled
-set.
+There is no bundled coupon list: a store with no codes from any source shows an
+empty list, and the extension never invents an offer.
 
 ### What works
 
@@ -119,7 +114,7 @@ set.
   Settings to issue a virtual Visa for the cashable balance and stores the
   reference and, when the service returns them, the last four digits and a
   redemption link. A full card number is never requested or stored. With no
-  service connected the card is marked **demo** and moves no money.
+  service connected there is nothing to issue, so cash out stays unavailable.
 - **Savings record** — total of the order-total drops the page confirmed, number
   of codes that worked, products tracked. Stored locally.
 - **Use on any site** — for stores outside the catalog the panel asks for
@@ -149,7 +144,6 @@ between the shopper, the browser and the merchant.
 | `src/content/page-scan.js` | Published codes, clip coupons, product/price reading |
 | `src/lib/stores.js` | Merchant catalog and host matching |
 | `src/lib/codes.js` | One code shape, de-duplication order, expiry rule |
-| `src/lib/starter-codes.js` | Bundled, clearly-labelled sample codes |
 | `src/lib/settings.js` | Stored settings defaults, shared by worker and options |
 | `src/lib/format.js` | Money (minor units), relative times |
 | `src/lib/copy.js` | All "Partner Platforms" wording |
@@ -158,7 +152,7 @@ between the shopper, the browser and the merchant.
 | `src/partners/offers-feed.js` | Authorized offer feed → normalized codes |
 | `src/partners/cashback-network.js` | Tracked deep-link builder |
 | `src/partners/cashback-ledger.js` | Cashback wallet: pending → cashable → paid, in minor units |
-| `src/partners/cashback-payout.js` | Virtual Visa payout request, and the demo card |
+| `src/partners/cashback-payout.js` | Virtual Visa payout request |
 | `src/partners/price-history.js` | Optional product API 90-day low |
 | `tools/check-catalog.mjs` | Keeps `manifest.json` hosts in sync with the catalog |
 | `tools/build.mjs` | Builds `dist/chromium/` and `dist/firefox/` from this source |
@@ -201,7 +195,7 @@ Options page (`options.html`), stored per device, no credential in the repo.
   ```
   `reference` is required; the rest is optional. The request carries the earning
   ids being paid so the service can verify them before it issues a card. No
-  endpoint means demo mode.
+  endpoint means cash out stays unavailable.
 - **Minimum payout** — cashback below this amount stays in the wallet
   (default $5).
 

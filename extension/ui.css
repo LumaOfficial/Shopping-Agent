@@ -1001,11 +1001,6 @@ body.sidepanel .chip.paid {
   color: #5b4bd6;
 }
 
-body.sidepanel .chip.sample {
-  background: #eef0f4;
-  color: #5d6577;
-}
-
 /* Filter row and per-row actions */
 
 body.sidepanel .head-actions {

@@ -100,14 +100,12 @@ export function payOut(wallet, amount, currency, card, now) {
     amount,
     currency: currency || "USD",
     at,
-    demo: Boolean(card.demo),
     card: {
       brand: card.brand || "Visa",
       last4: card.last4 || null,
       expiresAt: card.expiresAt || null,
       redeemUrl: card.redeemUrl || null,
       reference: card.reference,
-      demo: Boolean(card.demo),
     },
   };
   wallet.payouts.unshift(payout);
