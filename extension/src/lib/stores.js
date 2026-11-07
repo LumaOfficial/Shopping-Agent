@@ -128,6 +128,43 @@ export const STORES = [
   { id: "grove", name: "Grove Collaborative", host: "grove.co", category: "Grocery" },
   { id: "thrivemarket", name: "Thrive Market", host: "thrivemarket.com", category: "Grocery" },
 
+  // Books, tools & auto
+  { id: "barnesandnoble", name: "Barnes & Noble", host: "barnesandnoble.com", category: "Books" },
+  { id: "harborfreight", name: "Harbor Freight", host: "harborfreight.com", category: "Tools" },
+  { id: "autozone", name: "AutoZone", host: "autozone.com", category: "Auto" },
+
+  // More electronics & refurbished
+  { id: "adorama", name: "Adorama", host: "adorama.com", category: "Electronics" },
+  { id: "monoprice", name: "Monoprice", host: "monoprice.com", category: "Electronics" },
+  { id: "anker", name: "Anker", host: "anker.com", category: "Electronics" },
+  { id: "backmarket", name: "Back Market", host: "backmarket.com", category: "Electronics" },
+
+  // More home
+  { id: "cb2", name: "CB2", host: "cb2.com", category: "Home" },
+  { id: "article", name: "Article", host: "article.com", category: "Home" },
+  { id: "surlatable", name: "Sur La Table", host: "surlatable.com", category: "Home" },
+  { id: "purple", name: "Purple", host: "purple.com", category: "Home" },
+
+  // More fashion & shoes
+  { id: "dsw", name: "DSW", host: "dsw.com", category: "Fashion" },
+  { id: "famousfootwear", name: "Famous Footwear", host: "famousfootwear.com", category: "Fashion" },
+  { id: "finishline", name: "Finish Line", host: "finishline.com", category: "Fashion" },
+  { id: "skechers", name: "Skechers", host: "skechers.com", category: "Fashion" },
+  { id: "crocs", name: "Crocs", host: "crocs.com", category: "Fashion" },
+  { id: "converse", name: "Converse", host: "converse.com", category: "Fashion" },
+  { id: "vans", name: "Vans", host: "vans.com", category: "Fashion" },
+  { id: "goat", name: "GOAT", host: "goat.com", category: "Fashion" },
+
+  // Kids & toys
+  { id: "carters", name: "Carter's", host: "carters.com", category: "Kids" },
+  { id: "oshkosh", name: "OshKosh B'gosh", host: "oshkosh.com", category: "Kids" },
+  { id: "buildabear", name: "Build-A-Bear", host: "buildabear.com", category: "Kids" },
+
+  // Deals, pets & grocery
+  { id: "groupon", name: "Groupon", host: "groupon.com", category: "Deals" },
+  { id: "petsuppliesplus", name: "Pet Supplies Plus", host: "petsuppliesplus.com", category: "Pets" },
+  { id: "vitacost", name: "Vitacost", host: "vitacost.com", category: "Grocery" },
+
   // Travel & delivery
   { id: "expedia", name: "Expedia", host: "expedia.com", category: "Travel" },
   { id: "booking", name: "Booking.com", host: "booking.com", category: "Travel" },

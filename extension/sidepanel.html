@@ -83,8 +83,12 @@
       <section class="card c5" id="coupon-block" hidden>
         <h3 style="justify-content: space-between">
           Codes for this store
-          <button class="mini" id="try-all" type="button" hidden>Try all</button>
+          <span class="head-actions">
+            <button class="mini" id="copy-all" type="button" hidden>Copy all</button>
+            <button class="mini" id="try-all" type="button" hidden>Try all</button>
+          </span>
         </h3>
+        <div class="filters" id="code-filters" role="group" aria-label="Filter codes by where they came from" hidden></div>
         <input class="search" id="code-search" type="search" placeholder="Filter codes" aria-label="Filter codes" hidden />
         <div id="coupons" class="coupons"></div>
         <p class="muted tiny empty-note" id="coupon-empty" hidden>No codes for this store yet.</p>
@@ -104,6 +108,7 @@
           <button class="btn" type="submit">Apply</button>
         </form>
         <div class="status" id="add-status" role="status" aria-live="polite" hidden></div>
+        <div class="status" id="codes-status" role="status" aria-live="polite" hidden></div>
       </section>
 
       <section class="card c6" id="price-block" hidden>

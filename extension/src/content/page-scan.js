@@ -6,8 +6,12 @@
 (function (global) {
   "use strict";
 
-  var CODE_CONTEXT_RE =
-    /(?:promo|coupon|voucher|discount|offer|referral|invite|redeem)\s*(?:code)?\s*(?:is|:|-|\u2013|\u2014)?\s*["'\u201c\u201d]?([A-Za-z0-9][A-Za-z0-9._-]{3,23})\b/g;
+  // "promo code: X", "voucher X", "use code X", "coupon X" — the shapes stores
+  // actually publish. Every match still has to pass plausibleCode().
+  var CODE_PATTERNS = [
+    /(?:promo|coupon|voucher|discount|offer|referral|invite|redeem)\s*(?:code)?\s*(?:is|:|-|\u2013|\u2014)?\s*["'\u201c\u201d]?([A-Za-z0-9][A-Za-z0-9._-]{3,23})\b/g,
+    /\bcode\b\s*(?:is|:|-|\u2013|\u2014|=)?\s*["'\u201c\u201d]?([A-Z][A-Z0-9._-]{3,23})\b/g,
+  ];
 
   var STOPWORDS = [
     "CODE", "CODES", "COUPON", "COUPONS", "DISCOUNT", "PROMO", "PROMOS", "VOUCHER", "OFFER",
@@ -78,6 +82,29 @@
     return { code: token, title: context || null, source: "page" };
   }
 
+  function addCandidate(candidate, found, seen) {
+    if (!candidate || seen[candidate.code] || found.length >= 24) return;
+    seen[candidate.code] = true;
+    found.push(candidate);
+  }
+
+  // Pull every code-shaped token out of one piece of text.
+  function codesInText(text, found, seen) {
+    var source = String(text || "").replace(/\s+/g, " ").trim();
+    if (source.length < 6) return;
+    if (source.length > 1200) source = source.slice(0, 1200);
+    for (var index = 0; index < CODE_PATTERNS.length; index += 1) {
+      var pattern = CODE_PATTERNS[index];
+      pattern.lastIndex = 0;
+      var match;
+      while ((match = pattern.exec(source))) {
+        // A lower-case word after "code is" is prose, not a code.
+        if (match[1] !== match[1].toUpperCase()) continue;
+        addCandidate(plausibleCode(match[1], source), found, seen);
+      }
+    }
+  }
+
   function codesFromText() {
     var found = [];
     var seen = {};
@@ -100,38 +127,88 @@
     var node;
     while (budget > 0 && (node = walker.nextNode())) {
       budget -= 1;
-      var text = node.nodeValue;
-      CODE_CONTEXT_RE.lastIndex = 0;
-      var match;
-      while ((match = CODE_CONTEXT_RE.exec(text))) {
-        // The token must be upper-case on the page; a lower-case word after
-        // "code is" is prose, not a code.
-        var raw = match[1];
-        if (raw !== raw.toUpperCase()) continue;
-        var candidate = plausibleCode(raw, text);
-        if (candidate && !seen[candidate.code]) {
-          seen[candidate.code] = true;
-          found.push(candidate);
-        }
-      }
-      if (found.length >= 10) break;
+      codesInText(node.nodeValue, found, seen);
+      if (found.length >= 12) break;
     }
     return found;
   }
 
+  var CODE_ATTRS = ["data-coupon-code", "data-promo-code", "data-discount-code", "data-code"];
+
   function codesFromAttributes() {
     var found = [];
-    queryAll("[data-coupon-code], [data-promo-code], [data-discount-code]").forEach(function (el) {
-      if (!isVisible(el)) return;
-      var value = el.getAttribute("data-coupon-code") || el.getAttribute("data-promo-code") || el.getAttribute("data-discount-code");
-      var candidate = plausibleCode(String(value || "").toUpperCase(), textOf(el));
-      if (candidate) found.push(candidate);
+    var seen = {};
+    var elements = queryAll(
+      "[data-coupon-code], [data-promo-code], [data-discount-code], [data-code], " +
+        '[data-testid*="coupon" i], [data-testid*="promo" i], [class*="coupon-code" i], ' +
+        '[class*="promo-code" i], [id*="coupon" i], [aria-label*="coupon" i], [title*="coupon" i]'
+    );
+    for (var index = 0; index < elements.length && index < 400; index += 1) {
+      var el = elements[index];
+      if (!isVisible(el)) continue;
+      var context = textOf(el).slice(0, 140);
+      for (var attr = 0; attr < CODE_ATTRS.length; attr += 1) {
+        var value = el.getAttribute(CODE_ATTRS[attr]);
+        if (value) addCandidate(plausibleCode(String(value).trim().toUpperCase(), context), found, seen);
+      }
+      ["aria-label", "title"].forEach(function (name) {
+        var label = el.getAttribute(name);
+        if (label) codesInText(label, found, seen);
+      });
+      codesInText(context, found, seen);
+    }
+    return found;
+  }
+
+  // Meta descriptions and Product structured data often spell the promotion out.
+  function codesFromMeta() {
+    var found = [];
+    var seen = {};
+    [
+      'meta[name="description"]',
+      'meta[property="og:description"]',
+      'meta[name="twitter:description"]',
+      'meta[name="keywords"]',
+    ].forEach(function (selector) {
+      var el = document.querySelector(selector);
+      if (el) codesInText(el.getAttribute("content"), found, seen);
     });
     return found;
   }
 
+  function codesFromJsonLd() {
+    var found = [];
+    var seen = {};
+    var scripts = document.querySelectorAll('script[type="application/ld+json"]');
+    for (var index = 0; index < scripts.length && index < 20; index += 1) {
+      var payload;
+      try {
+        payload = JSON.parse(scripts[index].textContent || "null");
+      } catch (_error) {
+        continue;
+      }
+      var queue = Array.isArray(payload) ? payload.slice() : [payload];
+      var budget = 200;
+      while (queue.length && budget > 0) {
+        budget -= 1;
+        var node = queue.shift();
+        if (!node || typeof node !== "object") continue;
+        if (typeof node.description === "string") codesInText(node.description, found, seen);
+        if (typeof node.name === "string") codesInText(node.name, found, seen);
+        if (Array.isArray(node["@graph"])) Array.prototype.push.apply(queue, node["@graph"]);
+        if (node.offers) {
+          Array.prototype.push.apply(queue, Array.isArray(node.offers) ? node.offers : [node.offers]);
+        }
+      }
+    }
+    return found;
+  }
+
   function scanCodes() {
-    var all = codesFromAttributes().concat(codesFromText());
+    var all = codesFromAttributes()
+      .concat(codesFromMeta())
+      .concat(codesFromJsonLd())
+      .concat(codesFromText());
     var seen = {};
     return all
       .filter(function (item) {
@@ -139,7 +216,7 @@
         seen[item.code] = true;
         return true;
       })
-      .slice(0, 8);
+      .slice(0, 10);
   }
 
   // ---- "clip coupon" controls -------------------------------------------

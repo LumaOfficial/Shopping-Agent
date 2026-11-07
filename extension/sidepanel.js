@@ -5,7 +5,16 @@ import { NO_SOURCE_NOTE } from "./src/lib/copy.js";
 
 const byId = (id) => document.getElementById(id);
 
-const state = { tabId: null, url: null, data: null, scan: null, codes: [], filter: "" };
+const state = {
+  tabId: null,
+  url: null,
+  data: null,
+  scan: null,
+  codes: [],
+  filter: "",
+  filterSource: "all",
+  dead: new Set(),
+};
 
 const BLOCKS = [
   "empty",
@@ -52,10 +61,17 @@ function reset() {
   byId("autofill-status").className = "muted tiny";
   byId("autofill-status").textContent =
     "We can't verify this store's security — check the address bar before you pay.";
+  byId("codes-status").hidden = true;
+  byId("codes-status").textContent = "";
+  byId("code-filters").hidden = true;
+  byId("code-filters").textContent = "";
+  byId("copy-all").hidden = true;
   state.data = null;
   state.scan = null;
   state.codes = [];
   state.filter = "";
+  state.filterSource = "all";
+  state.dead = new Set();
 }
 
 function showEmpty(title, text, chips, action) {
@@ -167,7 +183,7 @@ function chipFor(source) {
   return chip;
 }
 
-function couponRow(coupon, index, onDelete) {
+function couponRow(coupon, index, onDelete, onDead) {
   const row = document.createElement("div");
   row.className = "coupon";
   row.dataset.code = coupon.code;
@@ -234,16 +250,65 @@ function couponRow(coupon, index, onDelete) {
     actions.appendChild(remove);
   }
 
+  // Reporting a dead code keeps it out of the list and out of "Try all".
+  const nope = document.createElement("button");
+  nope.className = "mini nope";
+  nope.type = "button";
+  nope.title = "This code did not work — hide it";
+  nope.setAttribute("aria-label", "Mark " + coupon.code + " as not working");
+  nope.textContent = "✕";
+  nope.addEventListener("click", () => onDead && onDead(coupon.code));
+  actions.appendChild(nope);
+
   row.appendChild(actions);
   return row;
 }
 
+function liveCodes() {
+  return state.codes.filter((coupon) => !state.dead.has(coupon.code));
+}
+
 function visibleCodes() {
   const query = state.filter.trim().toUpperCase();
-  if (!query) return state.codes;
-  return state.codes.filter(
-    (coupon) => coupon.code.includes(query) || (coupon.title || "").toUpperCase().includes(query)
-  );
+  return liveCodes().filter((coupon) => {
+    if (state.filterSource !== "all" && coupon.source !== state.filterSource) return false;
+    if (!query) return true;
+    return coupon.code.includes(query) || (coupon.title || "").toUpperCase().includes(query);
+  });
+}
+
+// Provenance filters with live counts, so a shopper can see page codes apart
+// from feed codes and the ones that already worked here.
+function renderFilters(alive) {
+  const box = byId("code-filters");
+  if (alive.length < 2) {
+    box.hidden = true;
+    box.textContent = "";
+    state.filterSource = "all";
+    return;
+  }
+
+  const groups = [
+    ["all", "All", alive.length],
+    ["verified", "Works", alive.filter((coupon) => coupon.source === "verified").length],
+    ["feed", "Feed", alive.filter((coupon) => coupon.source === "feed").length],
+    ["page", "On page", alive.filter((coupon) => coupon.source === "page").length],
+    ["saved", "Yours", alive.filter((coupon) => coupon.source === "saved").length],
+  ].filter(([, , count]) => count > 0);
+
+  if (!groups.some(([value]) => value === state.filterSource)) state.filterSource = "all";
+
+  box.hidden = false;
+  box.textContent = "";
+  groups.forEach(([value, label, count]) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "chip filter";
+    button.dataset.source = value;
+    button.setAttribute("aria-pressed", String(state.filterSource === value));
+    button.textContent = label + " " + count;
+    box.appendChild(button);
+  });
 }
 
 function renderCoupons() {
@@ -252,14 +317,17 @@ function renderCoupons() {
   const list = byId("coupons");
   list.textContent = "";
 
+  const alive = liveCodes();
   const codes = visibleCodes();
+  renderFilters(alive);
   byId("try-all").hidden = codes.length < 2;
-  byId("code-search").hidden = state.codes.length < 4;
+  byId("copy-all").hidden = !alive.length;
+  byId("code-search").hidden = alive.length < 4;
 
   const empty = byId("coupon-empty");
   empty.hidden = codes.length > 0;
   if (!codes.length) {
-    if (state.codes.length) {
+    if (alive.length) {
       empty.textContent = "No code matches that filter.";
     } else if (state.data && state.data.feed && state.data.feed.configured) {
       empty.textContent = "The source has no codes for this store yet.";
@@ -271,13 +339,44 @@ function renderCoupons() {
 
   codes.forEach((coupon, index) =>
     list.appendChild(
-      couponRow(coupon, index, async (code) => {
-        await sendWorker({ type: "codes:delete", storeId: state.data.store.id, code });
-        state.codes = state.codes.filter((item) => item.code !== code);
-        renderCoupons();
-      })
+      couponRow(
+        coupon,
+        index,
+        async (code) => {
+          await sendWorker({ type: "codes:delete", storeId: state.data.store.id, code });
+          state.codes = state.codes.filter((item) => item.code !== code);
+          renderCoupons();
+        },
+        markDead
+      )
     )
   );
+}
+
+// "Didn't work": hidden locally, never tried again for this store. Undoable.
+async function markDead(code, restore) {
+  if (!state.data) return;
+  const storeId = state.data.store.id;
+  await sendWorker({ type: "codes:dead", storeId, code, restore: Boolean(restore) });
+  if (restore) state.dead.delete(code);
+  else state.dead.add(code);
+  renderCoupons();
+
+  const status = byId("codes-status");
+  status.hidden = false;
+  status.className = "status " + (restore ? "ok" : "wait");
+  status.textContent = restore
+    ? code + " is back in the list."
+    : code + " won't be tried on this store again.";
+  if (!restore) {
+    const undo = document.createElement("button");
+    undo.type = "button";
+    undo.className = "mini undo";
+    undo.textContent = "Undo";
+    undo.addEventListener("click", () => markDead(code, true));
+    status.appendChild(document.createTextNode(" "));
+    status.appendChild(undo);
+  }
 }
 
 function markVerified(code) {
@@ -398,6 +497,7 @@ async function refreshCodes() {
   const data = await sendWorker({ type: "offers:refresh", url: state.url });
   if (!data || !data.store) return null;
   state.data = data;
+  state.dead = new Set(Array.isArray(data.dead) ? data.dead : []);
   const pageCodes = ((state.scan && state.scan.codes) || []).map((coupon) =>
     Object.assign({}, coupon, { source: "page" })
   );
@@ -467,6 +567,7 @@ async function render() {
   }
 
   state.data = data;
+  state.dead = new Set(Array.isArray(data.dead) ? data.dead : []);
   const features = data.features || {};
   byId("store-name").textContent = data.store.name + " · " + data.store.category;
 
@@ -601,6 +702,29 @@ byId("try-all").addEventListener("click", async () => {
 byId("code-search").addEventListener("input", (event) => {
   state.filter = event.target.value;
   renderCoupons();
+});
+
+byId("code-filters").addEventListener("click", (event) => {
+  const button = event.target.closest("button[data-source]");
+  if (!button) return;
+  state.filterSource = button.dataset.source;
+  renderCoupons();
+});
+
+byId("copy-all").addEventListener("click", async () => {
+  const codes = visibleCodes().map((coupon) => coupon.code);
+  if (!codes.length) return;
+  const status = byId("codes-status");
+  status.hidden = false;
+  try {
+    await navigator.clipboard.writeText(codes.join("\n"));
+    status.className = "status ok";
+    status.textContent =
+      "Copied " + codes.length + " code" + (codes.length === 1 ? "" : "s") + " to the clipboard.";
+  } catch (_error) {
+    status.className = "status wait";
+    status.textContent = "Copy one code at a time with its Copy button.";
+  }
 });
 
 byId("add-form").addEventListener("submit", async (event) => {

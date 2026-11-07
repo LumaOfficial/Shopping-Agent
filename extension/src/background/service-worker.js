@@ -14,6 +14,7 @@ import { mergeCodes, cleanCode } from "../lib/codes.js";
 const FEED_TTL_MS = 10 * 60 * 1000;
 const MAX_VERIFIED = 40;
 const MAX_SAVED = 60;
+const MAX_DEAD = 60;
 const MAX_POINTS = 120;
 const MAX_PRODUCTS = 300;
 const NINETY_DAYS = 90 * 24 * 60 * 60 * 1000;
@@ -49,7 +50,11 @@ async function resolveSite(url, options) {
   const store = resolveStore(url, settings.enabledSites);
   if (!store) return { store: null };
 
-  const [verified, saved] = await Promise.all([readMap("verified"), readMap("saved")]);
+  const [verified, saved, dead] = await Promise.all([
+    readMap("verified"),
+    readMap("saved"),
+    readMap("dead"),
+  ]);
 
   const feed = settings.enabled.coupons
     ? await cachedOffers(store, settings, options && options.refresh)
@@ -88,6 +93,8 @@ async function resolveSite(url, options) {
     },
     cashback,
     keepa,
+    // Codes the shopper reported as not working on this store.
+    dead: (dead[store.id] || []).map((entry) => entry.code),
     features: settings.enabled,
     counts: {
       saved: (saved[store.id] || []).length,
@@ -116,6 +123,20 @@ async function deleteCode(storeId, input) {
   else delete saved[storeId];
   await writeMap("saved", saved);
   return { ok: true };
+}
+
+// Codes the shopper reported as not working. They stay on this device, are
+// filtered out of the list and are never retried by "Try all".
+async function markDead(storeId, input, restore) {
+  const code = cleanCode(input);
+  if (!storeId || !code) return { ok: false };
+  const dead = await readMap("dead");
+  const entries = (dead[storeId] || []).filter((entry) => entry.code !== code);
+  if (!restore) entries.unshift({ code, at: Date.now() });
+  if (entries.length) dead[storeId] = entries.slice(0, MAX_DEAD);
+  else delete dead[storeId];
+  await writeMap("dead", dead);
+  return { ok: true, dead: entries.map((entry) => entry.code) };
 }
 
 // Codes the shopper's own store accepted — the only codes known to work.
@@ -356,7 +377,7 @@ async function exportData() {
 }
 
 async function clearData() {
-  await chrome.storage.local.remove(["saved", "verified", "prices", "savings"]);
+  await chrome.storage.local.remove(["saved", "verified", "dead", "prices", "savings"]);
   feedCache.clear();
   return { ok: true };
 }
@@ -375,6 +396,8 @@ async function handle(message, sender) {
       return saveCode(message.storeId, message.code, message.title);
     case "codes:delete":
       return deleteCode(message.storeId, message.code);
+    case "codes:dead":
+      return markDead(message.storeId, message.code, message.restore);
     case "price:record":
       return recordPrice(message.product);
     case "price:get":
