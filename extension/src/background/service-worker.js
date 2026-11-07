@@ -315,7 +315,7 @@ async function enableSite(url, tabId) {
       ]);
     }
   } catch (error) {
-    return { ok: false, error: "Chrome refused the content script: " + String((error && error.message) || error) };
+    return { ok: false, error: "The browser refused the content script: " + String((error && error.message) || error) };
   }
 
   const settings = await readSettings();
@@ -446,7 +446,7 @@ chrome.commands.onCommand.addListener(function (command) {
   chrome.windows.getLastFocused({ populate: false }, function (win) {
     if (win && typeof win.id === "number") {
       chrome.sidePanel.open({ windowId: win.id }).catch(function () {
-        /* Chrome only opens it from a user gesture; the command is one. */
+        /* The side panel only opens from a user gesture; the command is one. */
       });
     }
   });

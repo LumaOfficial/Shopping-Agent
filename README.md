@@ -1,8 +1,9 @@
 # Shopping-Agent
 
-## Chrome extension
+## Chrome and Microsoft Edge extension
 
-`extension/` is a Manifest V3 savings extension. The entire UI is a **side panel**
+`extension/` is a Manifest V3 savings extension that runs unchanged in **Chrome**
+and **Microsoft Edge** — one source, both browsers. The entire UI is a **side panel**
 (toolbar click or `Alt+Shift+S` opens it); nothing is injected into the page except
 the small scripts that read the page you are on and fill the store's own promo
 field.
@@ -11,11 +12,34 @@ It is not a web app, so nothing is served on port 3000 for the sandbox preview.
 
 Load it unpacked:
 
-1. Open `chrome://extensions` and enable **Developer mode**.
+1. Open `chrome://extensions` (Chrome) or `edge://extensions` (Edge) and enable
+   **Developer mode**.
 2. **Load unpacked** → select the `extension/` folder.
 3. Open a store (Target, Amazon, Amazfit, …). The panel fills in for that store.
-4. Already had the store tab open? Use **Reload tab** in the panel once — Chrome
-   only injects content scripts into pages loaded after install.
+4. Already had the store tab open? Use **Reload tab** in the panel once — the
+   browser only injects content scripts into pages loaded after install.
+
+The panel names whichever browser you are in where the browser's own autofill is
+involved ("Show Chrome autofill" / "Show Edge autofill"); nothing else differs.
+
+### Microsoft Edge package
+
+Edge 116 or later runs `extension/` as-is, so there is no second copy of the
+code. For the Edge Add-ons store the package is built from the same source, with
+the Chrome-only `minimum_chrome_version` key dropped — the Edge partner center
+validates the manifest itself and reports properties it does not know:
+
+```bash
+cd extension && node tools/build-edge.mjs
+```
+
+That writes `dist/edge/` (not committed). Load it unpacked in `edge://extensions`,
+or zip it and upload the zip to the Microsoft Edge Add-ons partner center.
+
+Two Edge sidebar behaviours to expect: Edge does not reopen the sidebar by itself
+when you switch back to a tab it was open on (MicrosoftEdge-Extensions issue
+#142) — click the toolbar icon or press `Alt+Shift+S`; and if another extension
+already owns that shortcut, reassign it in `edge://extensions/shortcuts`.
 
 ### No bundled offers
 
@@ -74,15 +98,15 @@ extension never invents an offer.
 - **Export / clear** — a JSON copy of local data (never the credentials), and a
   one-click wipe.
 - **Checkout guidance** — when a page shows card fields, the panel offers a
-  "Show Chrome autofill" button that focuses the card field so **Chrome's own**
-  autofill appears. The extension never reads, stores, autofills or submits card
+  "Show Chrome autofill" / "Show Edge autofill" button that focuses the card
+  field so **the browser's own** autofill appears. The extension never reads, stores, autofills or submits card
   numbers, expiry dates or security codes, and it never calls a checkout "safe".
 
 ### Privacy: card data
 
 Payment fields are detected from field *attributes* only (`autocomplete`, `name`,
 `id`, `placeholder`, `aria-label`). No field value is ever read. Card details stay
-between the shopper, Chrome and the merchant.
+between the shopper, the browser and the merchant.
 
 ### Files
 
@@ -98,10 +122,12 @@ between the shopper, Chrome and the merchant.
 | `src/lib/settings.js` | Stored settings defaults, shared by worker and options |
 | `src/lib/format.js` | Money (minor units), relative times |
 | `src/lib/copy.js` | All "Partner Platforms" wording |
+| `src/lib/browser.js` | Chrome or Edge, for the autofill wording |
 | `src/partners/offers-feed.js` | Authorized offer feed → normalized codes |
 | `src/partners/cashback-network.js` | Tracked deep-link builder |
 | `src/partners/price-history.js` | Optional product API 90-day low |
 | `tools/check-catalog.mjs` | Keeps `manifest.json` hosts in sync with the catalog |
+| `tools/build-edge.mjs` | Builds `dist/edge/` (same source, Edge-safe manifest) |
 
 ### Connector configuration
 

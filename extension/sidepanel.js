@@ -2,6 +2,7 @@ import { storeCount } from "./src/lib/stores.js";
 import { mergeCodes, SOURCE_LABEL } from "./src/lib/codes.js";
 import { money, humanAge } from "./src/lib/format.js";
 import { NO_SOURCE_NOTE } from "./src/lib/copy.js";
+import { browserName } from "./src/lib/browser.js";
 
 const byId = (id) => document.getElementById(id);
 
@@ -662,7 +663,9 @@ byId("show-autofill").addEventListener("click", async () => {
   button.disabled = false;
   if (result && result.focused) {
     status.textContent =
-      "Card field ready below — Chrome offers your saved card. You review and submit it yourself.";
+      "Card field ready below — " +
+      browserName() +
+      " offers your saved card. You review and submit it yourself.";
     status.className = "muted tiny ok";
   } else {
     status.textContent = "No card field on this screen yet. Open the payment step and try again.";
@@ -755,4 +758,15 @@ chrome.tabs.onUpdated.addListener((_tabId, info) => {
   if (info.status === "complete" || typeof info.url === "string") render();
 });
 
+// Chrome and Microsoft Edge both run this panel, so name the browser the
+// shopper actually has wherever the browser's own autofill is involved.
+function applyBrowserCopy() {
+  const name = browserName();
+  const slot = byId("checkout-browser");
+  if (slot) slot.textContent = name;
+  const button = byId("show-autofill");
+  if (button) button.textContent = "Show " + name + " autofill";
+}
+
+applyBrowserCopy();
 render();

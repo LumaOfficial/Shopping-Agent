@@ -1,5 +1,5 @@
 // Content script bridge. The side panel asks it to scan the page, apply a code,
-// clip the store's own coupon controls, and find card fields for Chrome's
+// clip the store's own coupon controls, and find card fields for the browser's
 // autofill. All UI lives in the side panel — nothing is injected here.
 //
 // Frames: carts and checkouts are often rendered in an iframe, so this runs in
