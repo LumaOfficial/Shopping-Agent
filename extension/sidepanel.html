@@ -6,81 +6,94 @@
     <link rel="stylesheet" href="ui.css" />
   </head>
   <body class="sidepanel">
-    <div class="aurora" aria-hidden="true"><span></span><span></span><span></span></div>
+    <div class="bloom" aria-hidden="true"></div>
 
-    <header class="topbar">
-      <div class="brand">
-        <span class="mark" aria-hidden="true"><i></i></span>
-        <span class="brand-text">
+    <div class="in">
+      <header class="top">
+        <div class="brand">
           <strong>Savings</strong>
           <em id="store-name">Checking this page…</em>
-        </span>
-      </div>
-      <a class="icon-link" href="options.html" target="_blank" title="Settings" aria-label="Open settings">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" aria-hidden="true">
-          <path d="M4 8h9M18 8h2M4 16h3M12 16h8" />
-          <circle cx="15.5" cy="8" r="2.3" />
-          <circle cx="9.2" cy="16" r="2.3" />
-        </svg>
-      </a>
-    </header>
+        </div>
+        <a class="gear" href="options.html" target="_blank" title="Settings" aria-label="Open settings">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true">
+            <path d="M4 8h9M18 8h2M4 16h3M12 16h8" />
+            <circle cx="15.5" cy="8" r="2.3" />
+            <circle cx="9.2" cy="16" r="2.3" />
+          </svg>
+        </a>
+      </header>
 
-    <main class="panel-body">
-      <section class="card empty" id="empty" hidden>
-        <div class="empty-art" aria-hidden="true">✦</div>
-        <h2 id="empty-title">Open a store to see savings</h2>
-        <p class="muted" id="empty-text">Browse a supported store and this panel fills in.</p>
-        <div class="chips" id="empty-chips"></div>
-        <button class="btn mint" id="empty-action" type="button" hidden></button>
+      <section class="hero">
+        <div class="glow" aria-hidden="true"></div>
+        <div class="num" id="saved-total">—</div>
+        <div class="row">
+          <div>
+            <strong id="saved-count">—</strong>
+            <span>codes worked</span>
+          </div>
+        </div>
+        <div class="rec">Your record on this browser</div>
+        <p class="muted tiny" id="savings-block" hidden><span id="saved-note"></span></p>
       </section>
 
-      <section class="card source" id="source-block" hidden>
-        <div class="source-head">
+      <section class="card empty c1" id="empty" hidden>
+        <img
+          src="https://media.base44.com/images/public/6aee82d0f5a582acbefc3e9c/1729607e8_generated_37aa19bb.jpg"
+          alt="Sheer fabric fold in violet and apricot"
+        />
+        <div class="tx">
+          <h2 id="empty-title">Open a store to see savings</h2>
+          <p class="muted" id="empty-text">Browse a supported store and this panel fills in.</p>
+          <div class="chips" id="empty-chips"></div>
+          <button class="btn soft w" id="empty-action" type="button" hidden></button>
+        </div>
+      </section>
+
+      <section class="card c2" id="source-block" hidden>
+        <div class="src">
           <span class="dot" id="source-dot" aria-hidden="true"></span>
           <span id="source-label">Offer source</span>
           <span class="sep" aria-hidden="true">·</span>
           <span id="source-fresh">—</span>
           <button class="mini" id="refresh" type="button" title="Check for fresh offers">Refresh</button>
         </div>
-        <p class="muted tiny" id="source-note" hidden></p>
-        <div class="source-head" id="reconnect-row" hidden>
+        <p class="muted tiny" id="source-note" style="margin-top: 12px" hidden></p>
+        <div class="src2" id="reconnect-row" hidden>
           <span class="muted tiny">This tab is not connected to the extension.</span>
           <button class="mini" id="reconnect" type="button">Reload tab</button>
         </div>
       </section>
 
-      <section class="card" id="page-block" hidden>
-        <div class="label">
-          Found on this page
-          <span class="chip live" id="page-count" hidden>0</span>
-        </div>
-        <p class="muted small" id="page-note"></p>
-        <button class="btn ghost" id="clip-all" type="button" hidden>Clip coupons</button>
+      <section class="card c3" id="page-block" hidden>
+        <h3>Found on this page <span class="pill" id="page-count" hidden>0</span></h3>
+        <p class="muted" id="page-note"></p>
+        <button class="btn soft w" id="clip-all" type="button" hidden>Clip coupons</button>
         <div class="status" id="clip-status" role="status" aria-live="polite" hidden></div>
       </section>
 
-      <section class="card" id="cashback-block" hidden>
-        <div class="label">Cashback</div>
-        <div class="row">
+      <section class="card c4" id="cashback-block" hidden>
+        <div class="lbl" style="margin-bottom: 10px">Cashback</div>
+        <div class="cb">
           <div class="rate" id="cashback-rate"></div>
-          <button class="btn" id="activate" type="button">Activate</button>
+          <button class="btn apr" id="activate" type="button">Activate</button>
         </div>
-        <p class="muted small" id="cashback-note" hidden>Cashback links are not configured yet.</p>
+        <p class="muted tiny" id="cashback-note" hidden>Cashback links are not configured yet.</p>
       </section>
 
-      <section class="card" id="coupon-block" hidden>
-        <div class="label">
+      <section class="card c5" id="coupon-block" hidden>
+        <h3 style="justify-content: space-between">
           Codes for this store
           <button class="mini" id="try-all" type="button" hidden>Try all</button>
-        </div>
+        </h3>
         <input class="search" id="code-search" type="search" placeholder="Filter codes" aria-label="Filter codes" hidden />
         <div id="coupons" class="coupons"></div>
-        <p class="muted small" id="coupon-empty" hidden>No codes for this store yet.</p>
-        <p class="muted small" id="field-note" hidden>
+        <p class="muted tiny empty-note" id="coupon-empty" hidden>No codes for this store yet.</p>
+        <p class="muted tiny" id="field-note" style="margin-top: 6px" hidden>
           No coupon field visible yet — open your cart or checkout to apply a code.
         </p>
-        <form class="add-code" id="add-form">
+        <form class="adds" id="add-form">
           <input
+            class="addin"
             id="add-code"
             type="text"
             placeholder="Paste a code you have"
@@ -88,86 +101,69 @@
             spellcheck="false"
             aria-label="Coupon code"
           />
-          <button class="btn ghost" type="submit">Apply</button>
+          <button class="btn" type="submit">Apply</button>
         </form>
         <div class="status" id="add-status" role="status" aria-live="polite" hidden></div>
       </section>
 
-      <section class="card" id="price-block" hidden>
-        <div class="label">Price history</div>
-        <div class="price-stats">
+      <section class="card c6" id="price-block" hidden>
+        <div class="lbl" style="margin-bottom: 12px">Price history</div>
+        <div class="stats">
           <div>
             <strong id="price-low">—</strong>
-            <span>low</span>
+            <span class="lbl">low</span>
           </div>
           <div>
             <strong id="price-now">—</strong>
-            <span>current</span>
+            <span class="lbl">current</span>
           </div>
         </div>
-        <div class="meter" aria-hidden="true"><div class="meter-fill" id="price-meter"></div></div>
+        <div class="meter" aria-hidden="true"><i id="price-meter"></i></div>
         <p class="muted tiny" id="price-note"></p>
         <p class="muted tiny" id="price-source"></p>
       </section>
 
-      <section class="card" id="checkout-block" hidden>
-        <div class="checkout-head">
+      <section class="card c7" id="checkout-block" hidden>
+        <div class="chk">
           <span class="shield" aria-hidden="true">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
               <path d="M12 3l7 3v5.4c0 4.3-2.9 7.6-7 9.6-4.1-2-7-5.3-7-9.6V6l7-3z" />
               <path d="M9.2 12l2 2 3.6-3.8" />
             </svg>
           </span>
-          <div style="min-width: 0">
+          <div>
             <strong>Paying here?</strong>
-            <p class="muted small" id="checkout-copy">
+            <p class="muted" id="checkout-copy">
               This page asks for card details. Chrome fills them — we never read, store or send them.
             </p>
           </div>
         </div>
-        <button class="btn mint" id="show-autofill" type="button">Show Chrome autofill</button>
-        <p class="muted tiny" id="autofill-status" role="status" aria-live="polite" style="margin-top: 9px">
+        <button class="btn w" id="show-autofill" type="button">Show Chrome autofill</button>
+        <p class="muted tiny" id="autofill-status" role="status" aria-live="polite">
           We can't verify this store's security — check the address bar before you pay.
         </p>
       </section>
 
-      <section class="card" id="savings-block" hidden>
-        <div class="label">Your record on this browser</div>
-        <div class="price-stats">
-          <div>
-            <strong id="saved-total">—</strong>
-            <span>saved</span>
-          </div>
-          <div>
-            <strong id="saved-count">—</strong>
-            <span>codes worked</span>
-          </div>
-        </div>
-        <p class="muted tiny" id="saved-note"></p>
+      <section class="card trust c8" id="trust-block">
+        <div class="lbl" style="margin-bottom: 14px">Your data</div>
+        <p>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+            <rect x="4" y="10" width="16" height="10" rx="2.5" />
+            <path d="M8 10V7.5a4 4 0 018 0V10" />
+          </svg>
+          Card numbers, expiry dates and security codes are never read, stored or sent.
+        </p>
+        <p style="margin: 0">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+            <circle cx="12" cy="12" r="8.5" />
+            <path d="M8.4 12.2l2.5 2.4 4.7-4.9" />
+          </svg>
+          <span id="access-line">Codes are applied only in the store's own promo field.</span>
+        </p>
       </section>
+    </div>
 
-      <section class="card trust" id="trust-block">
-        <div class="label">Your data</div>
-        <div class="trust-list">
-          <p class="trust-item">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-              <rect x="4" y="10" width="16" height="10" rx="2.5" />
-              <path d="M8 10V7.5a4 4 0 018 0V10" />
-            </svg>
-            Card numbers, expiry dates and security codes are never read, stored or sent.
-          </p>
-          <p class="trust-item">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-              <circle cx="12" cy="12" r="8.5" />
-              <path d="M8.4 12.2l2.5 2.4 4.7-4.9" />
-            </svg>
-            <span id="access-line">Codes are applied only in the store's own promo field.</span>
-          </p>
-        </div>
-      </section>
-    </main>
-
-    <footer class="partner" id="partner-line"></footer>
+    <footer class="foot" id="partner-line"></footer>
 
     <script type="module" src="sidepanel.js"></script>
   </body>
