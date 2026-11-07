@@ -31,6 +31,7 @@
         <h2 id="empty-title">Open a store to see savings</h2>
         <p class="muted" id="empty-text">Browse a supported store and this panel fills in.</p>
         <div class="chips" id="empty-chips"></div>
+        <button class="btn mint" id="empty-action" type="button" hidden></button>
       </section>
 
       <section class="card source" id="source-block" hidden>
@@ -42,6 +43,20 @@
           <button class="mini" id="refresh" type="button" title="Check for fresh offers">Refresh</button>
         </div>
         <p class="muted tiny" id="source-note" hidden></p>
+        <div class="source-head" id="reconnect-row" hidden>
+          <span class="muted tiny">This tab is not connected to the extension.</span>
+          <button class="mini" id="reconnect" type="button">Reload tab</button>
+        </div>
+      </section>
+
+      <section class="card" id="page-block" hidden>
+        <div class="label">
+          Found on this page
+          <span class="chip live" id="page-count" hidden>0</span>
+        </div>
+        <p class="muted small" id="page-note"></p>
+        <button class="btn ghost" id="clip-all" type="button" hidden>Clip coupons</button>
+        <div class="status" id="clip-status" role="status" aria-live="polite" hidden></div>
       </section>
 
       <section class="card" id="cashback-block" hidden>
@@ -55,10 +70,10 @@
 
       <section class="card" id="coupon-block" hidden>
         <div class="label">
-          Codes that work
-          <span class="chip demo" id="demo-chip" hidden>demo</span>
+          Codes for this store
           <button class="mini" id="try-all" type="button" hidden>Try all</button>
         </div>
+        <input class="search" id="code-search" type="search" placeholder="Filter codes" aria-label="Filter codes" hidden />
         <div id="coupons" class="coupons"></div>
         <p class="muted small" id="coupon-empty" hidden>No codes for this store yet.</p>
         <p class="muted small" id="field-note" hidden>
@@ -83,7 +98,7 @@
         <div class="price-stats">
           <div>
             <strong id="price-low">—</strong>
-            <span>90-day low</span>
+            <span>low</span>
           </div>
           <div>
             <strong id="price-now">—</strong>
@@ -92,9 +107,10 @@
         </div>
         <div class="meter" aria-hidden="true"><div class="meter-fill" id="price-meter"></div></div>
         <p class="muted tiny" id="price-note"></p>
+        <p class="muted tiny" id="price-source"></p>
       </section>
 
-      <section class="card checkout" id="checkout-block" hidden>
+      <section class="card" id="checkout-block" hidden>
         <div class="checkout-head">
           <span class="shield" aria-hidden="true">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
@@ -113,6 +129,21 @@
         <p class="muted tiny" id="autofill-status" role="status" aria-live="polite" style="margin-top: 9px">
           We can't verify this store's security — check the address bar before you pay.
         </p>
+      </section>
+
+      <section class="card" id="savings-block" hidden>
+        <div class="label">Your record on this browser</div>
+        <div class="price-stats">
+          <div>
+            <strong id="saved-total">—</strong>
+            <span>saved</span>
+          </div>
+          <div>
+            <strong id="saved-count">—</strong>
+            <span>codes worked</span>
+          </div>
+        </div>
+        <p class="muted tiny" id="saved-note"></p>
       </section>
 
       <section class="card trust" id="trust-block">

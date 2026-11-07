@@ -11,5 +11,7 @@ export function partnerSummary(members) {
   return `Coupons, cashback and price data from ${PARTNER_LABEL} — ${clean}+ members combined.`;
 }
 
-export const DEMO_NOTE =
-  "Demo catalog: these codes are examples, not live offers. Connect an offer feed in Settings for real ones.";
+// Shown wherever the panel would otherwise have codes to show and has none. No
+// bundled examples: a code the store never issued is worse than no code.
+export const NO_SOURCE_NOTE =
+  "No coupon source is connected, so no codes are shown. Connect your authorized offer feed in Settings, or save a code you have.";

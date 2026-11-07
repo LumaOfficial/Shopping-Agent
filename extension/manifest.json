@@ -1,21 +1,36 @@
 {
   "manifest_version": 3,
   "name": "Shopping-Agent Savings",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Finds coupon codes, cashback offers and price history from Partner Platforms while you shop. Never reads card details.",
   "minimum_chrome_version": "116",
-  "permissions": ["storage", "tabs", "sidePanel"],
-  "host_permissions": [
-    "https://api.keepa.com/*",
-    "https://api.linksynergy.com/*"
+  "permissions": [
+    "storage",
+    "tabs",
+    "sidePanel",
+    "scripting"
   ],
-  "optional_host_permissions": ["https://*/*"],
+  "host_permissions": [
+    "https://api.keepa.com/*"
+  ],
+  "optional_host_permissions": [
+    "*://*/*"
+  ],
   "background": {
     "service_worker": "src/background/service-worker.js",
     "type": "module"
   },
   "action": {
     "default_title": "Open savings"
+  },
+  "commands": {
+    "open-panel": {
+      "suggested_key": {
+        "default": "Alt+Shift+S",
+        "mac": "Alt+Shift+S"
+      },
+      "description": "Open the Savings side panel"
+    }
   },
   "side_panel": {
     "default_path": "sidepanel.html"
@@ -25,7 +40,19 @@
     {
       "matches": [
         "*://*.amazon.com/*",
+        "*://*.amazon.co.uk/*",
+        "*://*.amazon.de/*",
+        "*://*.amazon.ca/*",
+        "*://*.amazon.com.au/*",
+        "*://*.amazon.co.jp/*",
+        "*://*.amazon.fr/*",
+        "*://*.amazon.it/*",
+        "*://*.amazon.es/*",
         "*://*.ebay.com/*",
+        "*://*.ebay.co.uk/*",
+        "*://*.ebay.de/*",
+        "*://*.ebay.ca/*",
+        "*://*.ebay.com.au/*",
         "*://*.etsy.com/*",
         "*://*.aliexpress.com/*",
         "*://*.temu.com/*",
@@ -35,6 +62,8 @@
         "*://*.jcpenney.com/*",
         "*://*.costco.com/*",
         "*://*.samsclub.com/*",
+        "*://*.woot.com/*",
+        "*://*.zulily.com/*",
         "*://*.bestbuy.com/*",
         "*://*.newegg.com/*",
         "*://*.bhphotovideo.com/*",
@@ -46,6 +75,8 @@
         "*://*.hp.com/*",
         "*://*.lenovo.com/*",
         "*://*.logitech.com/*",
+        "*://*.amazfit.com/*",
+        "*://*.garmin.com/*",
         "*://*.homedepot.com/*",
         "*://*.lowes.com/*",
         "*://*.wayfair.com/*",
@@ -60,6 +91,12 @@
         "*://*.dyson.com/*",
         "*://*.nespresso.com/*",
         "*://*.ashleyfurniture.com/*",
+        "*://*.menards.com/*",
+        "*://*.acehardware.com/*",
+        "*://*.tractorsupply.com/*",
+        "*://*.brooklinen.com/*",
+        "*://*.casper.com/*",
+        "*://*.ruggable.com/*",
         "*://*.macys.com/*",
         "*://*.nordstrom.com/*",
         "*://*.nordstromrack.com/*",
@@ -84,6 +121,26 @@
         "*://*.freepeople.com/*",
         "*://*.ae.com/*",
         "*://*.abercrombie.com/*",
+        "*://*.zappos.com/*",
+        "*://*.6pm.com/*",
+        "*://*.newbalance.com/*",
+        "*://*.puma.com/*",
+        "*://*.reebok.com/*",
+        "*://*.victoriassecret.com/*",
+        "*://*.warbyparker.com/*",
+        "*://*.ray-ban.com/*",
+        "*://*.thredup.com/*",
+        "*://*.poshmark.com/*",
+        "*://*.stockx.com/*",
+        "*://*.rei.com/*",
+        "*://*.dickssportinggoods.com/*",
+        "*://*.onepeloton.com/*",
+        "*://*.backcountry.com/*",
+        "*://*.cabelas.com/*",
+        "*://*.basspro.com/*",
+        "*://*.patagonia.com/*",
+        "*://*.thenorthface.com/*",
+        "*://*.columbia.com/*",
         "*://*.sephora.com/*",
         "*://*.ulta.com/*",
         "*://*.glossier.com/*",
@@ -91,15 +148,15 @@
         "*://*.chewy.com/*",
         "*://*.petco.com/*",
         "*://*.petsmart.com/*",
-        "*://*.rei.com/*",
-        "*://*.dickssportinggoods.com/*",
-        "*://*.onepeloton.com/*",
         "*://*.kroger.com/*",
         "*://*.instacart.com/*",
         "*://*.walgreens.com/*",
         "*://*.cvs.com/*",
         "*://*.staples.com/*",
         "*://*.officedepot.com/*",
+        "*://*.iherb.com/*",
+        "*://*.grove.co/*",
+        "*://*.thrivemarket.com/*",
         "*://*.expedia.com/*",
         "*://*.booking.com/*",
         "*://*.hotels.com/*",
@@ -107,8 +164,13 @@
         "*://*.grubhub.com/*",
         "*://*.ubereats.com/*"
       ],
-      "js": ["src/lib/coupon-engine.js", "src/content/content.js"],
-      "run_at": "document_idle"
+      "js": [
+        "src/content/coupon-engine.js",
+        "src/content/page-scan.js",
+        "src/content/content.js"
+      ],
+      "run_at": "document_idle",
+      "all_frames": true
     }
   ]
 }

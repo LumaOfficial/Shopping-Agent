@@ -9,9 +9,10 @@
     <form class="sheet" id="settings-form">
       <h1>Savings settings</h1>
       <p class="muted">
-        The extension ships with a demo catalog so the panel works out of the box. Point it at an
-        authorized data source you are entitled to use — your own offer feed or your Oxylabs
-        account — to serve live coupons, cashback rates and price history.
+        The extension ships with no coupon data. Codes come from an authorized offer source you
+        configure here, from codes the store publishes on the page you are viewing, and from codes
+        you save yourself. Point the source at a feed you are entitled to use — your own offer feed
+        or your authorized data provider account.
       </p>
 
       <h2>Authorized data source</h2>
@@ -36,12 +37,12 @@
       </div>
       <div class="field" id="feed-user-field" hidden>
         <label for="feed-user">Source username</label>
-        <input id="feed-user" type="text" autocomplete="off" placeholder="Your Oxylabs username" />
+        <input id="feed-user" type="text" autocomplete="off" placeholder="Your provider username" />
       </div>
       <div class="field">
         <label for="feed-key" id="feed-key-label">Source token</label>
         <input id="feed-key" type="password" autocomplete="off" placeholder="Bearer token" />
-        <p class="hint">Blank means the bundled demo catalog is used and marked demo in the panel.</p>
+        <p class="hint">Blank means no feed: the panel then shows only page-published and saved codes.</p>
       </div>
       <div class="actions" style="margin-top: 4px; padding-top: 0; border-top: 0">
         <button class="btn ghost" id="test-source" type="button">Test connection</button>
@@ -70,7 +71,10 @@
       <div class="field">
         <label for="price-key">Product API key</label>
         <input id="price-key" type="password" autocomplete="off" placeholder="API key" />
-        <p class="hint">Used for 90-day lows on product pages. Leave empty to hide that section.</p>
+        <p class="hint">
+          Optional. Local price tracking works without a key: every product page you visit records
+          the price you saw, on this device, and the panel reports the lowest one it has seen.
+        </p>
       </div>
 
       <h2>Partner wording</h2>
@@ -88,12 +92,27 @@
         <label class="toggle"><input id="toggle-coupons" type="checkbox" /> Coupon codes</label>
         <label class="toggle"><input id="toggle-cashback" type="checkbox" /> Cashback offers</label>
         <label class="toggle"><input id="toggle-price" type="checkbox" /> Price history</label>
+        <label class="toggle"><input id="toggle-clip" type="checkbox" /> Clip on-page coupons</label>
+        <label class="toggle"><input id="toggle-tracking" type="checkbox" /> Track prices locally</label>
       </div>
 
       <div class="actions">
         <button class="btn" type="submit">Save settings</button>
         <span class="saved" id="saved" hidden>Saved</span>
       </div>
+
+      <h2>Data on this device</h2>
+      <p class="muted" id="data-stats">Reading local data…</p>
+      <p class="muted small" id="site-list" hidden></p>
+      <div class="actions">
+        <button class="btn ghost" id="export-data" type="button">Export a copy</button>
+        <button class="btn ghost" id="clear-data" type="button">Clear saved codes and history</button>
+        <span class="saved" id="data-status" hidden></span>
+      </div>
+      <p class="hint">
+        Everything above lives in this browser profile. Nothing is uploaded, sold or shared, and
+        card details are never read.
+      </p>
     </form>
 
     <script type="module" src="options.js"></script>

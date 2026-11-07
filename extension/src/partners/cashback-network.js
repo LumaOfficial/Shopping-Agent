@@ -16,3 +16,9 @@ export function buildCashbackLink(pageUrl, cashback, settings) {
   // A feed may already hand over a fully tracked link.
   return cashback.trackingUrl || null;
 }
+
+// "$12 back" is only shown for a rate the feed actually published.
+export function cashbackLabel(cashback) {
+  const rate = String((cashback && cashback.rate) || "").trim();
+  return rate || null;
+}

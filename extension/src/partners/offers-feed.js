@@ -1,18 +1,7 @@
-// Offer connector. Coupons and cashback rates arrive as one normalized payload,
-// either from a live offer feed the operator configures (the aggregator side of
-// the Partner Platforms) or from the bundled demo catalog.
-import { DEMO_NOTE } from "../lib/copy.js";
-
-let samplePromise = null;
-
-function loadSample() {
-  if (!samplePromise) {
-    samplePromise = fetch(chrome.runtime.getURL("src/data/sample-offers.json")).then((response) =>
-      response.json()
-    );
-  }
-  return samplePromise;
-}
+// Offer connector. Coupons and cashback rates come from the one authorized feed
+// the operator configures. There is no bundled catalog: when no feed is
+// configured this returns nothing, and the panel says so.
+import { normalizeCode, isExpired } from "../lib/codes.js";
 
 export function feedEndpoint(feedUrl, storeId) {
   return String(feedUrl || "").split("{store}").join(encodeURIComponent(storeId));
@@ -39,68 +28,64 @@ export function sourceLabel(feedUrl) {
   }
 }
 
-function normalizeCoupon(raw) {
-  if (!raw) return null;
-  const code = String(raw.code || raw.couponCode || "").trim();
-  if (!code) return null;
-  return {
-    code,
-    title: String(raw.title || raw.description || "").trim() || null,
-    expires: raw.expires || null,
-  };
-}
-
-export function normalizeOffer(entry, source) {
-  const coupons = (entry && Array.isArray(entry.coupons) ? entry.coupons : [])
-    .map(normalizeCoupon)
-    .filter(Boolean);
-  const cashback = entry && entry.cashback ? entry.cashback : null;
-  return {
-    coupons,
-    cashback: cashback
-      ? { rate: cashback.rate || null, url: cashback.url || null, trackingUrl: cashback.trackingUrl || null }
-      : null,
-    source,
-  };
-}
-
-async function fromFeed(store, settings) {
-  const response = await fetch(feedEndpoint(settings.feedUrl, store.id), {
-    headers: feedHeaders(settings),
-  });
-  if (response.status === 401 || response.status === 403) {
-    throw new Error("the source rejected the credentials (HTTP " + response.status + ")");
+// Accepted payload shapes, in the order the README documents them.
+function pickEntry(payload, storeId) {
+  if (!payload) return null;
+  if (Array.isArray(payload)) {
+    return payload.find((item) => item && (item.store === storeId || item.id === storeId)) || null;
   }
-  if (!response.ok) throw new Error("offer feed returned HTTP " + response.status);
-  const payload = await response.json();
-  const entry = Array.isArray(payload)
-    ? payload.find((item) => item && item.store === store.id)
-    : (payload.stores && payload.stores[store.id]) || payload;
-  return { ...normalizeOffer(entry, "live"), note: "", fetchedAt: Date.now() };
+  if (payload.stores && payload.stores[storeId]) return payload.stores[storeId];
+  if (payload.coupons || payload.cashback) return payload;
+  return null;
 }
+
+function normalizeEntry(entry) {
+  const coupons = (Array.isArray(entry && entry.coupons) ? entry.coupons : [])
+    .map((raw) => normalizeCode(raw, "feed"))
+    .filter(Boolean)
+    .filter((coupon) => !isExpired(coupon));
+  const cashback = entry && entry.cashback
+    ? {
+        rate: entry.cashback.rate || null,
+        trackingUrl: entry.cashback.trackingUrl || entry.cashback.url || null,
+      }
+    : null;
+  return { coupons, cashback };
+}
+
+const EMPTY = { coupons: [], cashback: null, fetchedAt: null, error: null };
 
 export async function getOffers(store, settings) {
-  if (settings.feedUrl) {
-    try {
-      return await fromFeed(store, settings);
-    } catch (error) {
-      console.warn("[savings] offer feed failed:", error);
-      return {
-        ...(await demoOffers(store, settings)),
-        note: "Authorized source unavailable (" + String(error.message || error) + ") — showing demo catalog.",
-      };
+  if (!settings.feedUrl) return Object.assign({}, EMPTY, { status: "unconfigured" });
+
+  try {
+    const response = await fetch(feedEndpoint(settings.feedUrl, store.id), {
+      headers: feedHeaders(settings),
+      cache: "no-store",
+    });
+    if (response.status === 401 || response.status === 403) {
+      return Object.assign({}, EMPTY, {
+        status: "denied",
+        error: "The source rejected the credentials (HTTP " + response.status + ").",
+      });
     }
+    if (!response.ok) {
+      return Object.assign({}, EMPTY, { status: "error", error: "The source answered HTTP " + response.status + "." });
+    }
+    const payload = await response.json();
+    const entry = pickEntry(payload, store.id);
+    const normalized = normalizeEntry(entry);
+    return {
+      coupons: normalized.coupons,
+      cashback: normalized.cashback,
+      status: "ok",
+      fetchedAt: Date.now(),
+      error: entry ? null : "The source has no entry for this store.",
+    };
+  } catch (error) {
+    return Object.assign({}, EMPTY, {
+      status: "unreachable",
+      error: "Could not reach the source: " + String((error && error.message) || error),
+    });
   }
-
-  return demoOffers(store, settings);
-}
-
-async function demoOffers(store, settings) {
-  const sample = await loadSample();
-  const entry = (sample.stores && sample.stores[store.id]) || null;
-  return {
-    ...normalizeOffer(entry, "demo"),
-    fetchedAt: Date.now(),
-    note: settings.feedUrl ? "Offer feed unavailable — showing demo catalog." : DEMO_NOTE,
-  };
 }

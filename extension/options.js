@@ -1,14 +1,4 @@
-const DEFAULTS = {
-  feedUrl: "",
-  feedAuth: "bearer",
-  feedUser: "",
-  feedKey: "",
-  cashbackTemplate: "",
-  cashbackSiteId: "",
-  priceHistoryKey: "",
-  partnerMembers: "",
-  enabled: { coupons: true, cashback: true, priceHistory: true },
-};
+import { withDefaults } from "./src/lib/settings.js";
 
 const byId = (id) => document.getElementById(id);
 
@@ -24,6 +14,8 @@ function fill(settings) {
   byId("toggle-coupons").checked = settings.enabled.coupons;
   byId("toggle-cashback").checked = settings.enabled.cashback;
   byId("toggle-price").checked = settings.enabled.priceHistory;
+  byId("toggle-clip").checked = settings.enabled.clipOffers;
+  byId("toggle-tracking").checked = settings.enabled.priceTracking;
   syncAuthFields();
 }
 
@@ -32,7 +24,7 @@ function syncAuthFields() {
   const basic = byId("feed-auth").value === "basic";
   byId("feed-user-field").hidden = !basic;
   byId("feed-key-label").textContent = basic ? "Source password" : "Source token";
-  byId("feed-key").placeholder = basic ? "Your Oxylabs password" : "Bearer token";
+  byId("feed-key").placeholder = basic ? "Your provider password" : "Bearer token";
 }
 
 function collect() {
@@ -49,6 +41,8 @@ function collect() {
       coupons: byId("toggle-coupons").checked,
       cashback: byId("toggle-cashback").checked,
       priceHistory: byId("toggle-price").checked,
+      clipOffers: byId("toggle-clip").checked,
+      priceTracking: byId("toggle-tracking").checked,
     },
   };
 }
@@ -67,22 +61,55 @@ async function ensureFeedHost(feedUrl) {
 }
 
 async function save() {
-  const settings = collect();
+  const stored = await chrome.storage.local.get("settings");
+  const settings = withDefaults(Object.assign({}, stored.settings, collect()));
   const granted = await ensureFeedHost(settings.feedUrl);
   await chrome.storage.local.set({ settings });
-  const saved = byId("saved");
-  saved.hidden = false;
-  setTimeout(() => {
-    saved.hidden = true;
-  }, 2000);
   return granted;
 }
 
 async function load() {
   const stored = await chrome.storage.local.get("settings");
-  const settings = Object.assign({}, DEFAULTS, stored.settings || {});
-  settings.enabled = Object.assign({}, DEFAULTS.enabled, settings.enabled || {});
-  fill(settings);
+  fill(withDefaults(stored.settings));
+  loadData();
+}
+
+async function loadData() {
+  const [stats, settings] = await Promise.all([
+    chrome.runtime.sendMessage({ type: "stats:get" }).catch(() => null),
+    chrome.storage.local.get("settings").then((stored) => withDefaults(stored.settings)),
+  ]);
+
+  if (!stats) {
+    byId("data-stats").textContent = "Could not read local data.";
+    return;
+  }
+
+  const savings = stats.savings || { total: 0, count: 0 };
+  byId("data-stats").textContent =
+    stats.saved +
+    " saved code" +
+    (stats.saved === 1 ? "" : "s") +
+    " · " +
+    stats.verified +
+    " verified code" +
+    (stats.verified === 1 ? "" : "s") +
+    " · " +
+    stats.products +
+    " product" +
+    (stats.products === 1 ? "" : "s") +
+    " tracked · " +
+    savings.count +
+    " confirmed application" +
+    (savings.count === 1 ? "" : "s") +
+    " worth $" +
+    ((savings.total || 0) / 100).toFixed(2) +
+    " in total drops.";
+
+  const list = byId("site-list");
+  const sites = settings.enabledSites || [];
+  list.hidden = !sites.length;
+  list.textContent = sites.length ? "Enabled on: " + sites.join(", ") : "";
 }
 
 byId("feed-auth").addEventListener("change", syncAuthFields);
@@ -90,13 +117,12 @@ byId("feed-auth").addEventListener("change", syncAuthFields);
 byId("settings-form").addEventListener("submit", async (event) => {
   event.preventDefault();
   const granted = await save();
-  if (!granted) {
-    const saved = byId("saved");
-    saved.textContent = "Saved, but access to that source host was denied.";
-    saved.hidden = false;
-  } else {
-    byId("saved").textContent = "Saved";
-  }
+  const saved = byId("saved");
+  saved.textContent = granted ? "Saved" : "Saved, but access to that source host was denied.";
+  saved.hidden = false;
+  setTimeout(() => {
+    saved.hidden = true;
+  }, 2400);
 });
 
 byId("test-source").addEventListener("click", async () => {
@@ -117,11 +143,48 @@ byId("test-source").addEventListener("click", async () => {
     return;
   }
 
-  const reply = await chrome.runtime.sendMessage({ type: "source:test" });
+  const reply = await chrome.runtime.sendMessage({ type: "source:test" }).catch(() => null);
   result.className = "test-line " + (reply && reply.ok ? "ok" : "bad");
   result.textContent = (reply && reply.message) || "No answer from the extension worker.";
   button.disabled = false;
   button.textContent = "Test connection";
+});
+
+byId("export-data").addEventListener("click", async () => {
+  const status = byId("data-status");
+  const dump = await chrome.runtime.sendMessage({ type: "data:export" }).catch(() => null);
+  if (!dump) {
+    status.textContent = "Export failed.";
+    status.hidden = false;
+    return;
+  }
+  const blob = new Blob([JSON.stringify(dump, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = "savings-backup.json";
+  link.click();
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
+  status.textContent = "Exported";
+  status.hidden = false;
+  setTimeout(() => {
+    status.hidden = true;
+  }, 2400);
+});
+
+byId("clear-data").addEventListener("click", async () => {
+  const status = byId("data-status");
+  const confirmed = window.confirm(
+    "Delete the codes you saved, the codes you verified, and the prices tracked on this device?"
+  );
+  if (!confirmed) return;
+  await chrome.runtime.sendMessage({ type: "data:clear" }).catch(() => null);
+  status.textContent = "Cleared";
+  status.hidden = false;
+  await loadData();
+  setTimeout(() => {
+    status.hidden = true;
+  }, 2400);
 });
 
 load();
