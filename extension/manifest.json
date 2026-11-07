@@ -1,0 +1,10 @@
+{
+  "manifest_version": 3,
+  "name": "Hi",
+  "version": "1.0.0",
+  "description": "Says hi.",
+  "action": {
+    "default_title": "Hi",
+    "default_popup": "popup.html"
+  }
+}
