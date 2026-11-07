@@ -10,6 +10,9 @@ function fill(settings) {
   byId("cashback-template").value = settings.cashbackTemplate;
   byId("cashback-site").value = settings.cashbackSiteId;
   byId("payout-url").value = settings.payoutUrl;
+  byId("payout-account").value = settings.payoutAccount;
+  byId("payout-customer").value = settings.payoutCustomer;
+  byId("payout-utid").value = settings.payoutUtid;
   byId("payout-key").value = settings.payoutKey;
   byId("payout-minimum").value = settings.payoutMinimum ? settings.payoutMinimum / 100 : "";
   byId("price-key").value = settings.priceHistoryKey;
@@ -39,6 +42,9 @@ function collect() {
     cashbackTemplate: byId("cashback-template").value.trim(),
     cashbackSiteId: byId("cashback-site").value.trim(),
     payoutUrl: byId("payout-url").value.trim(),
+    payoutAccount: byId("payout-account").value.trim(),
+    payoutCustomer: byId("payout-customer").value.trim(),
+    payoutUtid: byId("payout-utid").value.trim(),
     payoutKey: byId("payout-key").value.trim(),
     payoutMinimum: toMinor(byId("payout-minimum").value, 500),
     priceHistoryKey: byId("price-key").value.trim(),

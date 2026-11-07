@@ -110,11 +110,13 @@ empty list, and the extension never invents an offer.
   **pending** for the 30-day return window, then becomes **cashable**; a payout
   marks those entries **paid**, so the same cashback can never be cashed twice.
   The ledger lives on this device under `chrome.storage.local` key `cashback`.
-- **Virtual Visa payouts** — the wallet asks the payout service configured in
-  Settings to issue a virtual Visa for the cashable balance and stores the
-  reference and, when the service returns them, the last four digits and a
-  redemption link. A full card number is never requested or stored. With no
-  service connected there is nothing to issue, so cash out stays unavailable.
+- **Virtual Visa payouts** — the wallet asks your payout proxy, which fronts
+  Tango Card's order API, to issue a virtual Visa for the cashable balance. The
+  order uses `deliveryMethod: "NONE"` so Tango returns a redemption link for the
+  panel instead of emailing the shopper; the wallet stores the Tango
+  `referenceOrderID` and that link. A full card number is never requested or
+  stored, and Tango Card platform credentials stay on the proxy. With no proxy
+  connected there is nothing to issue, so cash out stays unavailable.
 - **Savings record** — total of the order-total drops the page confirmed, number
   of codes that worked, products tracked. Stored locally.
 - **Use on any site** — for stores outside the catalog the panel asks for
@@ -152,7 +154,7 @@ between the shopper, the browser and the merchant.
 | `src/partners/offers-feed.js` | Authorized offer feed → normalized codes |
 | `src/partners/cashback-network.js` | Tracked deep-link builder |
 | `src/partners/cashback-ledger.js` | Cashback wallet: pending → cashable → paid, in minor units |
-| `src/partners/cashback-payout.js` | Virtual Visa payout request |
+| `src/partners/cashback-payout.js` | Tango Card order request through your payout proxy |
 | `src/partners/price-history.js` | Optional product API 90-day low |
 | `tools/check-catalog.mjs` | Keeps `manifest.json` hosts in sync with the catalog |
 | `tools/build.mjs` | Builds `dist/chromium/` and `dist/firefox/` from this source |
@@ -186,16 +188,31 @@ Options page (`options.html`), stored per device, no credential in the repo.
   `https://click.example-network.com/deeplink?id={siteId}&murl={url}`. With no
   template the Activate button says "Not configured" instead of pretending.
 - **Product API key** — optional; adds the 90-day low from the documented API.
-- **Payout service endpoint** — receives
-  `POST {"method":"virtual_visa","amount","currency","earnings":["e_…"]}` with
-  the bearer token, and answers:
+- **Payout proxy endpoint** — your hosted proxy in front of Tango Card's
+  `POST /raas/v2/orders`. The extension sends it a Tango Card order body with the
+  proxy token:
   ```json
-  { "card": { "reference": "PO-77", "brand": "Visa", "last4": "4123",
-              "expiresAt": "03/29", "redeemUrl": "https://…" } }
+  { "externalRefID": "savings-e_lx2k3ab-800", "customerIdentifier": "your-customer",
+    "accountIdentifier": "your-account", "utid": "U1234", "amount": 8,
+    "deliveryMethod": "NONE", "notes": "Savings cashback payout" }
   ```
-  `reference` is required; the rest is optional. The request carries the earning
-  ids being paid so the service can verify them before it issues a card. No
-  endpoint means cash out stays unavailable.
+  The proxy adds your Tango Card platform credentials (Basic auth or OAuth) and
+  forwards the order to `https://api.tangocard.com/raas/v2/orders`, then returns
+  Tango's order response unchanged:
+  ```json
+  { "referenceOrderID": "…", "rewardName": "Visa® Virtual Account",
+    "reward": { "credentials": { "redemptionUrl": "https://…", "expirationDate": "…" },
+                "credentialList": [ … ] } }
+  ```
+  The extension keeps `referenceOrderID` and the redemption link, and shows
+  Tango's `errors[].message` when the order is refused (401/403, 402 for an
+  unfunded account, 429, validation). `deliveryMethod: "NONE"` fulfils the
+  reward without emailing a recipient; `externalRefID` is stable per cashable
+  balance, so a retry is idempotent. No endpoint means cash out stays
+  unavailable.
+- **Payout settings** — the Tango Card account identifier, customer identifier
+  and the virtual Visa reward's UTID. The extension holds only your proxy token;
+  Tango Card platform credentials never leave the proxy.
 - **Minimum payout** — cashback below this amount stays in the wallet
   (default $5).
 

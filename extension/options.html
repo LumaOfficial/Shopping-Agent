@@ -69,23 +69,43 @@
 
       <h2>Cashback payouts</h2>
       <p class="muted">
-        Virtual Visa cards are issued by a payout service you run or subscribe to. The extension
-        sends it the balance to pay and keeps only the reference and last four digits it returns —
-        never a full card number. Without a connected service there is nothing to issue, so cash
-        out stays unavailable.
+        Virtual Visa cards are issued through your proxy to Tango Card's order API. The proxy holds
+        your Tango Card platform credentials; the extension sends it the order and keeps only the
+        reference and redemption link it returns — never a full card number. Without a connected
+        proxy there is nothing to issue, so cash out stays unavailable.
       </p>
       <div class="field">
-        <label for="payout-url">Payout service endpoint</label>
-        <input id="payout-url" type="url" placeholder="https://pay.example.com/payouts" />
+        <label for="payout-url">Payout proxy endpoint</label>
+        <input id="payout-url" type="url" placeholder="https://pay.example.com/tango/orders" />
         <p class="hint">
-          Receives <code>POST {"method":"virtual_visa","amount","currency","earnings"}</code> and
-          answers with a card reference. Blank means cash out stays unavailable.
+          Receives a Tango Card order body (<code>externalRefID</code>, <code>customerIdentifier</code>,
+          <code>accountIdentifier</code>, <code>utid</code>, <code>amount</code>,
+          <code>deliveryMethod: "NONE"</code>) and adds your platform credentials before forwarding
+          it to <code>POST /raas/v2/orders</code>. Blank means cash out stays unavailable.
         </p>
       </div>
       <div class="field">
-        <label for="payout-key">Payout service token</label>
+        <label for="payout-account">Tango Card account identifier</label>
+        <input id="payout-account" type="text" autocomplete="off" placeholder="your-account" />
+        <p class="hint">The funded account the order is charged to.</p>
+      </div>
+      <div class="field">
+        <label for="payout-customer">Tango Card customer identifier</label>
+        <input id="payout-customer" type="text" autocomplete="off" placeholder="your-customer" />
+        <p class="hint">The customer the account belongs to.</p>
+      </div>
+      <div class="field">
+        <label for="payout-utid">Virtual Visa reward template (UTID)</label>
+        <input id="payout-utid" type="text" autocomplete="off" placeholder="U1234" />
+        <p class="hint">The UTID of the virtual Visa reward in your Tango Card catalog.</p>
+      </div>
+      <div class="field">
+        <label for="payout-key">Payout proxy token</label>
         <input id="payout-key" type="password" autocomplete="off" placeholder="Bearer token" />
-        <p class="hint">Sent only to the endpoint above, stored in this browser profile.</p>
+        <p class="hint">
+          Authenticates the extension to your proxy only, stored in this browser profile. Tango Card
+          platform credentials stay on the proxy.
+        </p>
       </div>
       <div class="field">
         <label for="payout-minimum">Minimum payout (USD)</label>
