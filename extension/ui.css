@@ -220,6 +220,79 @@ footer.partner {
   display: none !important;
 }
 
+/* Side panel: the whole UI, so it owns the full height of the panel */
+body.sidepanel {
+  width: 100%;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.sidepanel .bar {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--surface);
+}
+
+.sidepanel .panel-body {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.mini {
+  margin-left: auto;
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--accent);
+  font: 600 11px/1 system-ui, sans-serif;
+  cursor: pointer;
+  padding: 3px 5px;
+  border-radius: 6px;
+}
+
+.mini:hover {
+  background: var(--sunken);
+}
+
+.mini[disabled] {
+  color: var(--muted);
+  cursor: default;
+}
+
+.add-code {
+  display: flex;
+  gap: 6px;
+  margin-top: 11px;
+}
+
+.add-code input {
+  flex: 1;
+  min-width: 0;
+  padding: 7px 9px;
+  border: 1px solid #dbe3ec;
+  border-radius: 8px;
+  font: 12px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: var(--ink);
+}
+
+.add-code input:focus {
+  outline: 2px solid #c7d7ee;
+  border-color: #94b3d9;
+}
+
+.chip.verified {
+  background: #dcfce7;
+  color: #15803d;
+}
+
 /* Options page */
 body.options {
   background: #f1f5f9;

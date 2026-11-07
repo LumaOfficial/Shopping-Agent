@@ -2,16 +2,16 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <title>Shopping-Agent Savings</title>
+    <title>Savings</title>
     <link rel="stylesheet" href="ui.css" />
   </head>
-  <body class="popup">
+  <body class="sidepanel">
     <header class="bar">
       <div class="brand">Savings <span id="store-name"></span></div>
       <a class="icon-link" href="options.html" target="_blank" title="Settings">⚙</a>
     </header>
 
-    <div id="body">
+    <div class="panel-body">
       <section class="block" id="empty" hidden>
         <p class="muted" id="empty-text">Open a supported store to see savings.</p>
       </section>
@@ -22,13 +22,25 @@
           <div class="rate" id="cashback-rate"></div>
           <button class="btn" id="activate" type="button">Activate</button>
         </div>
-        <p class="muted" id="cashback-note" hidden></p>
+        <p class="muted" id="cashback-note" hidden>Cashback links are not configured yet.</p>
       </section>
 
       <section class="block" id="coupon-block" hidden>
-        <div class="label">Coupon codes <span class="chip" id="demo-chip" hidden>demo</span></div>
+        <div class="label">
+          Coupon codes
+          <span class="chip" id="demo-chip" hidden>demo</span>
+          <button class="mini" id="try-all" type="button" hidden>Try all</button>
+        </div>
         <div id="coupons"></div>
         <p class="muted" id="coupon-empty" hidden>No codes for this store yet.</p>
+        <p class="muted" id="field-note" hidden>
+          No coupon field visible yet — open your cart or checkout to apply a code.
+        </p>
+        <form class="add-code" id="add-form">
+          <input id="add-code" type="text" placeholder="Add a code you have" autocomplete="off" spellcheck="false" />
+          <button class="btn ghost" type="submit">Apply</button>
+        </form>
+        <div class="status" id="add-status" hidden></div>
       </section>
 
       <section class="block" id="price-block" hidden>
@@ -48,6 +60,6 @@
 
     <footer class="partner" id="partner-line"></footer>
 
-    <script type="module" src="popup.js"></script>
+    <script type="module" src="sidepanel.js"></script>
   </body>
 </html>

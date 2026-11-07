@@ -1,6 +1,6 @@
 // Service worker: the only place that talks to Partner Platform endpoints.
-// Content script and popup both ask it the same question, so the page and the
-// toolbar always show identical data.
+// The side panel asks it for offers and records codes that actually applied, so
+// a code that worked once is offered again next time.
 import { resolveStore } from "../lib/stores.js";
 import { partnerSummary } from "../lib/copy.js";
 import { getOffers } from "../partners/offers-feed.js";
@@ -18,6 +18,7 @@ const DEFAULTS = {
 };
 
 const CACHE_TTL_MS = 10 * 60 * 1000;
+const MAX_VERIFIED = 40;
 const cache = new Map();
 
 async function readSettings() {
@@ -25,6 +26,21 @@ async function readSettings() {
   const settings = Object.assign({}, DEFAULTS, stored.settings || {});
   settings.enabled = Object.assign({}, DEFAULTS.enabled, settings.enabled || {});
   return settings;
+}
+
+async function readVerified() {
+  const stored = await chrome.storage.local.get("verified");
+  return stored.verified || {};
+}
+
+// Codes the shopper's own store accepted — the only codes known to work.
+function withVerified(storeId, offers, verified) {
+  const remembered = verified[storeId] || [];
+  const known = new Set(offers.coupons.map((coupon) => coupon.code.toUpperCase()));
+  const extra = remembered
+    .filter((entry) => entry && entry.code && !known.has(entry.code.toUpperCase()))
+    .map((entry) => ({ code: entry.code, title: "Worked on this store before", verified: true }));
+  return extra.concat(offers.coupons);
 }
 
 async function resolveSite(url, options) {
@@ -36,6 +52,7 @@ async function resolveSite(url, options) {
   if (!refresh && cached && Date.now() - cached.at < CACHE_TTL_MS) return cached.payload;
 
   const settings = await readSettings();
+  const verified = await readVerified();
 
   const offers = settings.enabled.coupons
     ? await getOffers(store, settings)
@@ -54,7 +71,7 @@ async function resolveSite(url, options) {
   const payload = {
     store: { id: store.id, name: store.name, category: store.category },
     offers: {
-      coupons: offers.coupons,
+      coupons: withVerified(store.id, offers, verified),
       source: offers.source,
       note: offers.note,
       cashback,
@@ -65,6 +82,20 @@ async function resolveSite(url, options) {
 
   cache.set(url, { at: Date.now(), payload });
   return payload;
+}
+
+async function recordVerified(storeId, code) {
+  if (!storeId || !code) return { ok: false };
+  const stored = await chrome.storage.local.get("verified");
+  const verified = stored.verified || {};
+  const entries = (verified[storeId] || []).filter(
+    (entry) => entry.code.toUpperCase() !== code.toUpperCase()
+  );
+  entries.unshift({ code, at: Date.now() });
+  verified[storeId] = entries.slice(0, MAX_VERIFIED);
+  await chrome.storage.local.set({ verified });
+  cache.clear();
+  return { ok: true };
 }
 
 async function activateCashback(url) {
@@ -89,6 +120,8 @@ async function handle(message) {
       return resolveSite(message.url, { refresh: true });
     case "cashback:activate":
       return activateCashback(message.url);
+    case "verified:record":
+      return recordVerified(message.storeId, message.code);
     case "settings:get":
       return readSettings();
     default:
@@ -103,4 +136,11 @@ chrome.runtime.onMessage.addListener(function (message, _sender, sendResponse) {
       sendResponse({ error: String((error && error.message) || error) });
     });
   return true;
+});
+
+chrome.runtime.onInstalled.addListener(function () {
+  // Toolbar click opens the side panel — the whole UI lives there.
+  chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true }).catch(function (error) {
+    console.warn("[savings] side panel setup failed:", error);
+  });
 });

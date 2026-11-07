@@ -1,14 +1,14 @@
 // Classic (non-module) script loaded as a content script before content.js.
 // Exposes window.CouponEngine: finds the store's promo field, types a code into
 // it through native setters + real events, submits it, then reads the page's
-// own confirmation/error text to decide whether the code took.
+// own confirmation/error text and the order total to decide whether it took.
 (function (global) {
   "use strict";
 
   var FIELD_RE = /(coupon|promo|promotion|discount|voucher|offer\s*code|gift\s*card|source\s*code)/i;
   var APPLY_RE = /^(apply|redeem|submit|use\s*code|add\s*code|apply\s*code|apply\s*coupon|continue|go)$/i;
   var ERROR_RE =
-    /(invalid|not\s+valid|isn'?t\s+valid|expired|no\s+longer|didn'?t\s+work|could\s+not\s+be\s+applied|cannot\s+be\s+applied|not\s+recognized|use\s+a\s+different)/i;
+    /(invalid|not\s+valid|isn'?t\s+valid|expired|no\s+longer|didn'?t\s+work|could\s+not\s+be\s+applied|cannot\s+be\s+applied|not\s+recognized|use\s+a\s+different|minimum|does\s+not\s+apply)/i;
   var SUCCESS_RE =
     /(applied|you\s+saved|savings|discount\s+of|code\s+accepted|has\s+been\s+added|success)/i;
 
@@ -125,7 +125,7 @@
   var TOTAL_SELECTOR =
     '[class*="total" i], [data-testid*="total" i], [data-testid*="price" i], [id*="total" i], [class*="order-total" i]';
 
-  function totalSnapshot() {
+  function totalText() {
     var nodes = Array.prototype.slice.call(document.querySelectorAll(TOTAL_SELECTOR)).slice(0, 12);
     return nodes
       .map(function (node) {
@@ -135,9 +135,22 @@
       .slice(0, 600);
   }
 
+  // Largest amount on the page is the most reliable "order total" signal; a
+  // numeric drop after submitting is proof the code was accepted.
+  function orderTotal() {
+    var amounts = (totalText().match(/-?\$?\d[\d,]*\.\d{2}/g) || [])
+      .map(function (raw) {
+        return parseFloat(raw.replace(/[^0-9.\-]/g, ""));
+      })
+      .filter(function (value) {
+        return isFinite(value);
+      });
+    return amounts.length ? Math.max.apply(null, amounts) : null;
+  }
+
   /**
    * Types `code` into the store's promo field and submits it.
-   * Resolves to {status, message, priceChanged}. status is one of
+   * Resolves to {status, message, totalBefore, totalAfter}. status is one of
    * "applied" | "rejected" | "unverified" | "no-field".
    */
   async function applyCode(code, options) {
@@ -145,11 +158,11 @@
     var timeout = opts.timeout || 5000;
     var field = opts.field || findFields()[0];
     if (!field) {
-      return { status: "no-field", message: "No coupon field found on this page.", priceChanged: false };
+      return { status: "no-field", message: "No coupon field on this page." };
     }
 
     var before = feedbackNodes(field);
-    var beforeTotal = totalSnapshot();
+    var totalBefore = orderTotal();
     var button = findApplyButton(field);
 
     field.scrollIntoView({ block: "center", behavior: "smooth" });
@@ -168,6 +181,15 @@
       var fresh = messages.filter(function (text) {
         return before.indexOf(text) === -1;
       });
+      var totalAfter = orderTotal();
+      if (totalBefore !== null && totalAfter !== null && totalAfter < totalBefore - 0.005) {
+        return {
+          status: "applied",
+          message: "Order total dropped to $" + totalAfter.toFixed(2),
+          totalBefore: totalBefore,
+          totalAfter: totalAfter,
+        };
+      }
       var matched = fresh.find(function (text) {
         return ERROR_RE.test(text) || SUCCESS_RE.test(text);
       });
@@ -176,7 +198,8 @@
         return {
           status: rejected ? "rejected" : "applied",
           message: matched,
-          priceChanged: totalSnapshot() !== beforeTotal,
+          totalBefore: totalBefore,
+          totalAfter: totalAfter,
         };
       }
       // Stores often repeat the identical error text, so a new string may never
@@ -190,7 +213,8 @@
           return {
             status: "rejected",
             message: visibleError,
-            priceChanged: totalSnapshot() !== beforeTotal,
+            totalBefore: totalBefore,
+            totalAfter: totalAfter,
           };
         }
       }
@@ -198,8 +222,9 @@
 
     return {
       status: "unverified",
-      message: "No confirmation from the store appeared — check your order total before paying.",
-      priceChanged: totalSnapshot() !== beforeTotal,
+      message: "No confirmation from the store appeared — check your total before paying.",
+      totalBefore: totalBefore,
+      totalAfter: orderTotal(),
     };
   }
 
@@ -207,6 +232,6 @@
     applyCode: applyCode,
     findFields: findFields,
     findApplyButton: findApplyButton,
-    totalSnapshot: totalSnapshot,
+    orderTotal: orderTotal,
   };
 })(window);
