@@ -3,6 +3,7 @@
 // same code is offered again next time. There is no bundled offer data — codes
 // come from the operator's authorized feed, from what the shopper saved, or
 // from codes the store itself published on the page.
+import "../lib/compat.js";
 import { resolveStore } from "../lib/stores.js";
 import { partnerSummary } from "../lib/copy.js";
 import { getOffers, feedEndpoint, feedHeaders, sourceLabel } from "../partners/offers-feed.js";
@@ -20,6 +21,7 @@ const MAX_PRODUCTS = 300;
 const NINETY_DAYS = 90 * 24 * 60 * 60 * 1000;
 
 const CONTENT_FILES = [
+  "src/lib/compat.js",
   "src/content/coupon-engine.js",
   "src/content/page-scan.js",
   "src/content/content.js",
@@ -436,22 +438,53 @@ chrome.storage.onChanged.addListener(function (changes, area) {
   if (area === "local" && changes.settings) feedCache.clear();
 });
 
-// Toolbar click opens the side panel — the whole UI lives there.
-chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true }).catch(function (error) {
-  console.warn("[savings] side panel setup failed:", error);
+// Toolbar click opens the panel — the whole UI lives there. Chromium browsers
+// have the Side Panel API, Firefox has its sidebar, and a browser with neither
+// gets the panel in a small window.
+const HAS_SIDE_PANEL = !!(chrome.sidePanel && chrome.sidePanel.open);
+const HAS_SIDEBAR = !!(chrome.sidebarAction && chrome.sidebarAction.open);
+
+function openPanel(windowId) {
+  if (HAS_SIDE_PANEL) {
+    return chrome.sidePanel.open({ windowId }).catch(function () {
+      /* Only opens from a user gesture; a click or a command is one. */
+    });
+  }
+  if (HAS_SIDEBAR) {
+    return chrome.sidebarAction.open().catch(function () {
+      /* Firefox opens it from the toolbar button or its own shortcut. */
+    });
+  }
+  return chrome.windows
+    .create({
+      url: chrome.runtime.getURL("sidepanel.html"),
+      type: "popup",
+      width: 400,
+      height: 760,
+    })
+    .catch(function () {});
+}
+
+function openPanelOnActionClick() {
+  if (!HAS_SIDE_PANEL) return;
+  chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true }).catch(function (error) {
+    console.warn("[savings] side panel setup failed:", error);
+  });
+}
+
+openPanelOnActionClick();
+
+// Only fires where the click does not already open the side panel: Firefox and
+// any Chromium browser without the Side Panel API.
+chrome.action.onClicked.addListener(function () {
+  openPanel();
 });
 
 chrome.commands.onCommand.addListener(function (command) {
   if (command !== "open-panel") return;
   chrome.windows.getLastFocused({ populate: false }, function (win) {
-    if (win && typeof win.id === "number") {
-      chrome.sidePanel.open({ windowId: win.id }).catch(function () {
-        /* The side panel only opens from a user gesture; the command is one. */
-      });
-    }
+    if (win && typeof win.id === "number") openPanel(win.id);
   });
 });
 
-chrome.runtime.onInstalled.addListener(function () {
-  chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true }).catch(function () {});
-});
+chrome.runtime.onInstalled.addListener(openPanelOnActionClick);

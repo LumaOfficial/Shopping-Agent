@@ -1,45 +1,61 @@
 # Shopping-Agent
 
-## Chrome and Microsoft Edge extension
+## Browser support
 
-`extension/` is a Manifest V3 savings extension that runs unchanged in **Chrome**
-and **Microsoft Edge** — one source, both browsers. The entire UI is a **side panel**
-(toolbar click or `Alt+Shift+S` opens it); nothing is injected into the page except
-the small scripts that read the page you are on and fill the store's own promo
-field.
+`extension/` is one Manifest V3 savings extension for every browser that can run
+one. The entire UI is a panel (toolbar click or `Alt+Shift+S`); nothing is
+injected into the page except the small scripts that read the page you are on and
+fill the store's own promo field.
 
-It is not a web app, so nothing is served on port 3000 for the sandbox preview.
+| Browser | Package | Where the panel lives |
+| --- | --- | --- |
+| Chrome, Edge, Brave, Opera, Vivaldi, Arc, Chromium | `dist/chromium` | the browser's side panel |
+| Firefox 128+ | `dist/firefox` | Firefox's sidebar |
+| any other Chromium build, including older ones | `dist/chromium` | the panel in a small window |
 
-Load it unpacked:
+Safari needs Apple's Xcode conversion of a WebExtension package and is not
+packaged here.
 
-1. Open `chrome://extensions` (Chrome) or `edge://extensions` (Edge) and enable
-   **Developer mode**.
-2. **Load unpacked** → select the `extension/` folder.
+### Build
+
+```bash
+cd extension && node tools/build.mjs                     # both packages
+cd extension && node tools/build.mjs --target firefox    # just one
+```
+
+`dist/` is not committed. Upload `dist/chromium` to the Chrome Web Store, and the
+same package to the Edge Add-ons and Opera stores; upload `dist/firefox` to
+addons.mozilla.org.
+
+Only the Firefox manifest differs, because Manifest V3 in Firefox has no
+background service worker (the same file is loaded as an event page) and no Side
+Panel API (the panel is declared as a `sidebar_action` instead). AMO also
+requires a `browser_specific_settings.gecko.id` — replace the placeholder with
+your own. `data_collection_permissions` is declared as `browsingActivity` because
+the offer request carries the store you are on to the feed you configured; set it
+to `none` if your feed never receives anything about the page. `web-ext lint`
+reports no errors on the package — its three warnings are the guarded Side Panel
+calls, which never run outside Chromium.
+
+Firefox does not reopen the sidebar by itself when you switch back to a tab it was
+open on, so click the toolbar button or press `Alt+Shift+S`; if another extension
+owns that shortcut, reassign it in `about:addons` → gear → **Manage Extension
+Shortcuts**.
+
+### Load it unpacked
+
+1. Open `chrome://extensions`, `edge://extensions`, `brave://extensions` or
+   `opera://extensions` and enable **Developer mode**; in Firefox open
+   `about:debugging#/runtime/this-firefox` → **Load Temporary Add-on** →
+   `dist/firefox/manifest.json`.
+2. Elsewhere: **Load unpacked** → select the `extension/` folder (or the built
+   `dist/chromium`).
 3. Open a store (Target, Amazon, Amazfit, …). The panel fills in for that store.
 4. Already had the store tab open? Use **Reload tab** in the panel once — the
    browser only injects content scripts into pages loaded after install.
 
 The panel names whichever browser you are in where the browser's own autofill is
-involved ("Show Chrome autofill" / "Show Edge autofill"); nothing else differs.
-
-### Microsoft Edge package
-
-Edge 116 or later runs `extension/` as-is, so there is no second copy of the
-code. For the Edge Add-ons store the package is built from the same source, with
-the Chrome-only `minimum_chrome_version` key dropped — the Edge partner center
-validates the manifest itself and reports properties it does not know:
-
-```bash
-cd extension && node tools/build-edge.mjs
-```
-
-That writes `dist/edge/` (not committed). Load it unpacked in `edge://extensions`,
-or zip it and upload the zip to the Microsoft Edge Add-ons partner center.
-
-Two Edge sidebar behaviours to expect: Edge does not reopen the sidebar by itself
-when you switch back to a tab it was open on (MicrosoftEdge-Extensions issue
-#142) — click the toolbar icon or press `Alt+Shift+S`; and if another extension
-already owns that shortcut, reassign it in `edge://extensions/shortcuts`.
+involved ("Show Edge autofill", "Show Firefox autofill", …); nothing else differs.
 
 ### No bundled offers
 
@@ -122,12 +138,13 @@ between the shopper, the browser and the merchant.
 | `src/lib/settings.js` | Stored settings defaults, shared by worker and options |
 | `src/lib/format.js` | Money (minor units), relative times |
 | `src/lib/copy.js` | All "Partner Platforms" wording |
-| `src/lib/browser.js` | Chrome or Edge, for the autofill wording |
+| `src/lib/browser.js` | Which browser is running, for the autofill wording |
+| `src/lib/compat.js` | Points `chrome` at `browser` where only that is promise-based |
 | `src/partners/offers-feed.js` | Authorized offer feed → normalized codes |
 | `src/partners/cashback-network.js` | Tracked deep-link builder |
 | `src/partners/price-history.js` | Optional product API 90-day low |
 | `tools/check-catalog.mjs` | Keeps `manifest.json` hosts in sync with the catalog |
-| `tools/build-edge.mjs` | Builds `dist/edge/` (same source, Edge-safe manifest) |
+| `tools/build.mjs` | Builds `dist/chromium/` and `dist/firefox/` from this source |
 
 ### Connector configuration
 

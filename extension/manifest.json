@@ -190,6 +190,7 @@
         "*://*.zulily.com/*"
       ],
       "js": [
+        "src/lib/compat.js",
         "src/content/coupon-engine.js",
         "src/content/page-scan.js",
         "src/content/content.js"
