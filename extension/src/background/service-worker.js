@@ -3,13 +3,16 @@
 // a code that worked once is offered again next time.
 import { resolveStore } from "../lib/stores.js";
 import { partnerSummary } from "../lib/copy.js";
-import { getOffers } from "../partners/offers-feed.js";
+import { getOffers, feedEndpoint, feedHeaders, sourceLabel } from "../partners/offers-feed.js";
 import { buildCashbackLink } from "../partners/cashback-network.js";
 import { getPriceHistory } from "../partners/price-history.js";
 
 const DEFAULTS = {
   feedUrl: "",
+  feedAuth: "bearer",
+  feedUser: "",
   feedKey: "",
+  sourceCheckedAt: 0,
   cashbackTemplate: "",
   cashbackSiteId: "",
   priceHistoryKey: "",
@@ -76,6 +79,12 @@ async function resolveSite(url, options) {
       note: offers.note,
       cashback,
     },
+    source: {
+      kind: offers.source,
+      label: settings.feedUrl ? sourceLabel(settings.feedUrl) : "Demo catalog",
+      fetchedAt: offers.fetchedAt || Date.now(),
+      note: offers.note || "",
+    },
     price,
     footer: partnerSummary(settings.partnerMembers),
   };
@@ -96,6 +105,51 @@ async function recordVerified(storeId, code) {
   await chrome.storage.local.set({ verified });
   cache.clear();
   return { ok: true };
+}
+
+// Validates the operator's authorized data source: it either answers with the
+// expected offer shape or the reason it did not. Nothing is scraped here — the
+// endpoint is whatever access the operator is entitled to.
+async function testSource() {
+  const settings = await readSettings();
+  if (!settings.feedUrl) {
+    return { ok: false, message: "No authorized source configured yet. Add its endpoint below." };
+  }
+
+  try {
+    const response = await fetch(feedEndpoint(settings.feedUrl, "target"), {
+      headers: feedHeaders(settings),
+    });
+    if (response.status === 401 || response.status === 403) {
+      return {
+        ok: false,
+        message: "Authorization rejected (HTTP " + response.status + "). Check the credentials for this source.",
+      };
+    }
+    if (!response.ok) {
+      return { ok: false, message: "Source answered HTTP " + response.status + "." };
+    }
+
+    const payload = await response.json();
+    const stores = payload && payload.stores
+      ? Object.keys(payload.stores).length
+      : Array.isArray(payload)
+        ? payload.length
+        : 0;
+    const checkedAt = Date.now();
+    await chrome.storage.local.set({ settings: Object.assign({}, settings, { sourceCheckedAt: checkedAt }) });
+    cache.clear();
+    return {
+      ok: true,
+      storeCount: stores,
+      checkedAt,
+      message:
+        "Connected — " +
+        (stores ? stores + " store offers available." : "the source answered, but no store offers were found."),
+    };
+  } catch (error) {
+    return { ok: false, message: "Could not reach the source: " + String((error && error.message) || error) };
+  }
 }
 
 async function activateCashback(url) {
@@ -124,6 +178,8 @@ async function handle(message) {
       return recordVerified(message.storeId, message.code);
     case "settings:get":
       return readSettings();
+    case "source:test":
+      return testSource();
     default:
       return { error: "unknown message: " + (message && message.type) };
   }

@@ -1,5 +1,7 @@
 const DEFAULTS = {
   feedUrl: "",
+  feedAuth: "bearer",
+  feedUser: "",
   feedKey: "",
   cashbackTemplate: "",
   cashbackSiteId: "",
@@ -12,6 +14,8 @@ const byId = (id) => document.getElementById(id);
 
 function fill(settings) {
   byId("feed-url").value = settings.feedUrl;
+  byId("feed-auth").value = settings.feedAuth;
+  byId("feed-user").value = settings.feedUser;
   byId("feed-key").value = settings.feedKey;
   byId("cashback-template").value = settings.cashbackTemplate;
   byId("cashback-site").value = settings.cashbackSiteId;
@@ -20,11 +24,22 @@ function fill(settings) {
   byId("toggle-coupons").checked = settings.enabled.coupons;
   byId("toggle-cashback").checked = settings.enabled.cashback;
   byId("toggle-price").checked = settings.enabled.priceHistory;
+  syncAuthFields();
+}
+
+// Basic auth (Oxylabs style) needs a username; a bearer token does not.
+function syncAuthFields() {
+  const basic = byId("feed-auth").value === "basic";
+  byId("feed-user-field").hidden = !basic;
+  byId("feed-key-label").textContent = basic ? "Source password" : "Source token";
+  byId("feed-key").placeholder = basic ? "Your Oxylabs password" : "Bearer token";
 }
 
 function collect() {
   return {
     feedUrl: byId("feed-url").value.trim(),
+    feedAuth: byId("feed-auth").value === "basic" ? "basic" : "bearer",
+    feedUser: byId("feed-user").value.trim(),
     feedKey: byId("feed-key").value.trim(),
     cashbackTemplate: byId("cashback-template").value.trim(),
     cashbackSiteId: byId("cashback-site").value.trim(),
@@ -51,6 +66,18 @@ async function ensureFeedHost(feedUrl) {
   return chrome.permissions.request({ origins: [origin] });
 }
 
+async function save() {
+  const settings = collect();
+  const granted = await ensureFeedHost(settings.feedUrl);
+  await chrome.storage.local.set({ settings });
+  const saved = byId("saved");
+  saved.hidden = false;
+  setTimeout(() => {
+    saved.hidden = true;
+  }, 2000);
+  return granted;
+}
+
 async function load() {
   const stored = await chrome.storage.local.get("settings");
   const settings = Object.assign({}, DEFAULTS, stored.settings || {});
@@ -58,22 +85,43 @@ async function load() {
   fill(settings);
 }
 
-document.getElementById("settings-form").addEventListener("submit", async (event) => {
+byId("feed-auth").addEventListener("change", syncAuthFields);
+
+byId("settings-form").addEventListener("submit", async (event) => {
   event.preventDefault();
-  const settings = collect();
-  const granted = await ensureFeedHost(settings.feedUrl);
+  const granted = await save();
   if (!granted) {
-    byId("saved").textContent = "Saved, but access to that feed host was denied.";
-    byId("saved").hidden = false;
+    const saved = byId("saved");
+    saved.textContent = "Saved, but access to that source host was denied.";
+    saved.hidden = false;
+  } else {
+    byId("saved").textContent = "Saved";
+  }
+});
+
+byId("test-source").addEventListener("click", async () => {
+  const button = byId("test-source");
+  const result = byId("test-result");
+  button.disabled = true;
+  button.textContent = "Testing…";
+  result.hidden = false;
+  result.className = "test-line wait";
+  result.textContent = "Contacting the source…";
+
+  const granted = await save();
+  if (!granted) {
+    result.className = "test-line bad";
+    result.textContent = "Access to that source host was denied, so it cannot be tested.";
+    button.disabled = false;
+    button.textContent = "Test connection";
     return;
   }
-  await chrome.storage.local.set({ settings });
-  const saved = byId("saved");
-  saved.textContent = "Saved";
-  saved.hidden = false;
-  setTimeout(() => {
-    saved.hidden = true;
-  }, 2000);
+
+  const reply = await chrome.runtime.sendMessage({ type: "source:test" });
+  result.className = "test-line " + (reply && reply.ok ? "ok" : "bad");
+  result.textContent = (reply && reply.message) || "No answer from the extension worker.";
+  button.disabled = false;
+  button.textContent = "Test connection";
 });
 
 load();

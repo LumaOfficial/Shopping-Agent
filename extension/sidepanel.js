@@ -4,11 +4,29 @@ const byId = (id) => document.getElementById(id);
 
 const current = { tabId: null, url: null, data: null };
 
-const BLOCKS = ["empty", "cashback-block", "coupon-block", "price-block"];
+const BLOCKS = [
+  "empty",
+  "source-block",
+  "cashback-block",
+  "coupon-block",
+  "price-block",
+  "checkout-block",
+];
 
 function money(value) {
   if (typeof value !== "number" || !isFinite(value)) return "—";
   return "$" + (value / 100).toFixed(2);
+}
+
+function humanAge(timestamp) {
+  if (!timestamp) return "not checked yet";
+  const seconds = Math.max(0, Math.round((Date.now() - timestamp) / 1000));
+  if (seconds < 45) return "checked just now";
+  const minutes = Math.round(seconds / 60);
+  if (minutes < 60) return "checked " + minutes + " min ago";
+  const hours = Math.round(minutes / 60);
+  if (hours < 24) return "checked " + hours + " h ago";
+  return "checked " + Math.round(hours / 24) + " d ago";
 }
 
 function sendWorker(message) {
@@ -26,9 +44,18 @@ function hideBlocks() {
   });
 }
 
-function showEmpty(text) {
+function showEmpty(title, text, chips) {
   byId("empty").hidden = false;
+  byId("empty-title").textContent = title;
   byId("empty-text").textContent = text;
+  const row = byId("empty-chips");
+  row.textContent = "";
+  (chips || []).forEach((label) => {
+    const chip = document.createElement("span");
+    chip.className = "chip";
+    chip.textContent = label;
+    row.appendChild(chip);
+  });
 }
 
 // Sends the code to the content script, which drives the store's own promo
@@ -78,6 +105,7 @@ function couponRow(coupon, index) {
   const row = document.createElement("div");
   row.className = "coupon";
   row.dataset.code = coupon.code;
+  row.style.animationDelay = index * 55 + "ms";
 
   const main = document.createElement("div");
   main.className = "coupon-main";
@@ -114,6 +142,23 @@ function couponRow(coupon, index) {
   return row;
 }
 
+// Where the offers came from and how fresh they are — never invented.
+function renderSource(source) {
+  if (!source) return;
+  byId("source-block").hidden = false;
+  const live = source.kind === "live";
+  const dot = byId("source-dot");
+  dot.className = "dot " + (live ? "live" : "demo");
+  byId("source-label").textContent = live
+    ? "Authorized feed · " + (source.label || "connected")
+    : "Demo catalog";
+  byId("source-fresh").textContent = live ? humanAge(source.fetchedAt) : "examples only";
+
+  const note = byId("source-note");
+  note.textContent = source.note || "";
+  note.hidden = !source.note;
+}
+
 function renderCashback(data) {
   const cashback = data.offers.cashback;
   if (!cashback) return;
@@ -123,7 +168,7 @@ function renderCashback(data) {
   rate.textContent = cashback.rate || "Offer";
   if (cashback.rate) {
     const unit = document.createElement("small");
-    unit.textContent = " back";
+    unit.textContent = "back";
     rate.appendChild(unit);
   }
 
@@ -157,6 +202,32 @@ function renderPrice(price) {
   byId("price-block").hidden = false;
   byId("price-low").textContent = money(price.low90);
   byId("price-now").textContent = money(price.current);
+
+  const meter = byId("price-meter");
+  const note = byId("price-note");
+  if (typeof price.low90 === "number" && typeof price.current === "number" && price.current > 0) {
+    const ratio = Math.max(0.06, Math.min(1, price.low90 / price.current));
+    meter.style.width = Math.round(ratio * 100) + "%";
+    note.textContent =
+      price.current <= price.low90
+        ? "You are at the 90-day low."
+        : "Current price is " + Math.round((price.current / price.low90 - 1) * 100) + "% above the 90-day low.";
+  } else {
+    meter.style.width = "0%";
+    note.textContent = "";
+  }
+}
+
+// Checkout guidance only. The extension never reads card values; the content
+// script reports whether card fields exist from field metadata alone.
+function renderCheckout(probe) {
+  if (!probe || !probe.hasPaymentFields) return;
+  byId("checkout-block").hidden = false;
+}
+
+async function probeCheckout() {
+  const probe = await toTab({ type: "checkout:probe" });
+  renderCheckout(probe);
 }
 
 async function render() {
@@ -170,23 +241,39 @@ async function render() {
   byId("store-name").textContent = "";
   byId("field-note").hidden = true;
   byId("add-status").hidden = true;
+  byId("access-line").textContent = "Codes are applied only in the store's own promo field.";
 
   if (!current.url || !/^https?:/i.test(current.url)) {
-    showEmpty("Open a supported store to see savings.");
+    byId("store-name").textContent = "No store open";
+    showEmpty(
+      "Open a store to see savings",
+      "Browse any supported store and this panel fills in with codes, cashback and price history.",
+      [storeCount() + " stores", "No card data", "Free"]
+    );
     byId("partner-line").textContent = "";
     return;
   }
 
+  byId("store-name").textContent = "Looking up this page…";
   const data = await sendWorker({ type: "site:resolve", url: current.url });
 
   if (!data || !data.store) {
-    showEmpty("Not a supported store yet. Savings works on " + storeCount() + " stores.");
+    byId("store-name").textContent = "Not a supported store";
+    showEmpty(
+      "Not a supported store yet",
+      "Savings works on " + storeCount() + " stores. Open one of them to see codes and cashback.",
+      ["Add stores in Settings"]
+    );
     byId("partner-line").textContent = "Coupons, cashback and price data from Partner Platforms.";
     return;
   }
 
   current.data = data;
-  byId("store-name").textContent = "· " + data.store.name;
+  byId("store-name").textContent = data.store.name + " · " + data.store.category;
+  byId("access-line").textContent =
+    storeCount() + " stores supported. Only the store's own promo field is touched.";
+
+  renderSource(data.source);
   renderCashback(data);
   renderCoupons(data);
   renderPrice(data.price);
@@ -196,7 +283,38 @@ async function render() {
   if (probe && probe.hasField === false) {
     byId("field-note").hidden = false;
   }
+  await probeCheckout();
 }
+
+byId("refresh").addEventListener("click", async () => {
+  if (!current.url) return;
+  const button = byId("refresh");
+  button.disabled = true;
+  button.textContent = "Checking…";
+  const data = await sendWorker({ type: "offers:refresh", url: current.url });
+  button.disabled = false;
+  button.textContent = "Refresh";
+  if (data && data.store) {
+    current.data = data;
+    renderSource(data.source);
+    renderCoupons(data);
+  }
+});
+
+byId("show-autofill").addEventListener("click", async () => {
+  const button = byId("show-autofill");
+  const status = byId("autofill-status");
+  button.disabled = true;
+  const result = await toTab({ type: "checkout:focus" });
+  button.disabled = false;
+  if (result && result.focused) {
+    status.textContent =
+      "Card field ready below — Chrome offers your saved card. You review and submit it yourself.";
+    status.className = "muted tiny ok";
+  } else {
+    status.textContent = "No card field on this screen yet. Open the payment step and try again.";
+  }
+});
 
 byId("try-all").addEventListener("click", async () => {
   const button = byId("try-all");

@@ -33,14 +33,27 @@ It is not a web app, so nothing is served on port 3000 for the sandbox preview.
   attributed to the shopper. Cashback is paid by the network, never claimed by
   the extension.
 - **Price history** — 90-day low and current price on product pages.
+- **Offer provenance** — the panel shows which source answered (authorized feed or
+  demo catalog) and when it was fetched, with a Refresh button; it never presents
+  a demo code as a live offer.
+- **Checkout guidance** — when a page shows card fields, the panel offers a
+  "Show Chrome autofill" button that focuses the card field so **Chrome's own**
+  autofill appears. The extension never reads, stores, autofills or submits card
+  numbers, expiry dates or security codes, and it never calls a checkout "safe".
+
+### Privacy: card data
+
+Payment fields are detected from field *attributes* only (`autocomplete`, `name`,
+`id`, `placeholder`, `aria-label`). No field value is ever read. Card details stay
+between the shopper, Chrome and the merchant.
 
 ### Files
 
 | File | Role |
 | --- | --- |
 | `sidepanel.html` / `sidepanel.js` | The whole UI |
-| `src/background/service-worker.js` | Only code that calls partner endpoints; caches per page; stores verified codes |
-| `src/content/content.js` | Thin bridge: `coupon:probe`, `coupon:apply` |
+| `src/background/service-worker.js` | Only code that calls partner endpoints; caches per page; validates the source; stores verified codes |
+| `src/content/content.js` | Thin bridge: `coupon:probe`, `coupon:apply`, `checkout:probe`, `checkout:focus` (attributes only, never field values) |
 | `src/lib/coupon-engine.js` | Promo-field autofill + outcome detection |
 | `src/partners/offers-feed.js` | Coupons + cashback rates from a live feed, else the demo catalog |
 | `src/partners/cashback-network.js` | Tracked deep-link builder |
@@ -52,7 +65,7 @@ It is not a web app, so nothing is served on port 3000 for the sandbox preview.
 
 Options page (`options.html`), stored per device, no credential in the repo.
 
-- **Offer feed URL** — JSON, `{store}` substituted:
+- **Source endpoint** — JSON you are authorized to query, `{store}` substituted:
   ```json
   {
     "stores": {
@@ -65,6 +78,14 @@ Options page (`options.html`), stored per device, no credential in the repo.
   ```
   Without a feed the bundled `src/data/sample-offers.json` is used and every code
   is marked **demo** in the panel. Those codes are examples and stores reject them.
+- **Authentication** — `Bearer token`, or `Basic` (username + password, the form
+  Oxylabs uses). Credentials stay in `chrome.storage.local` on the device and are
+  sent only to the configured host, which is why saving asks for optional host
+  access to that origin.
+- **Test connection** — sends one request to the source and reports what came
+  back: connected and how many store offers, credentials rejected (401/403), an
+  HTTP error, or unreachable. A source that is not configured says so instead of
+  quietly falling back to demo data.
 - **Tracked link template** — e.g.
   `https://click.example-network.com/deeplink?id={siteId}&murl={url}`. With no
   template the Activate button says "Not configured" instead of pretending.
@@ -81,7 +102,15 @@ pages are the only sites the extension runs on.
 The extension does not scrape partner services. Their coupon/cashback data comes
 from private endpoints behind their terms of service, so re-selling or
 redistributing it from a browser extension is unauthorized access, and it breaks
-whenever they change anything. A real deployment needs an affiliate/aggregator
+whenever they change anything.
+
+Oxylabs is supported as an **authorized data-access provider**, not as permission
+to reach any particular merchant: the extension sends its own request to the
+endpoint you configure, with the credentials you provide, and it makes no attempt
+to bypass a site's access controls. Because Oxylabs' scraping API answers
+asynchronously by query id, the connector expects an endpoint that returns the
+JSON shape above (your own proxy/service in front of it is the usual way to do
+that). A real deployment needs an affiliate/aggregator
 agreement that returns the feed and tracked-link template above; those two
 settings are the only integration points. Price history uses the documented
 product API and works as soon as a key is entered. The member count in the footer

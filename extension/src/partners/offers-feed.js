@@ -14,6 +14,31 @@ function loadSample() {
   return samplePromise;
 }
 
+export function feedEndpoint(feedUrl, storeId) {
+  return String(feedUrl || "").split("{store}").join(encodeURIComponent(storeId));
+}
+
+// Credentials live in chrome.storage.local and are only ever sent to the host
+// the operator configured. Oxylabs-style access uses HTTP Basic.
+export function feedHeaders(settings) {
+  const headers = { accept: "application/json" };
+  if (!settings.feedKey) return headers;
+  if (settings.feedAuth === "basic" && settings.feedUser) {
+    headers.authorization = "Basic " + btoa(settings.feedUser + ":" + settings.feedKey);
+  } else {
+    headers.authorization = "Bearer " + settings.feedKey;
+  }
+  return headers;
+}
+
+export function sourceLabel(feedUrl) {
+  try {
+    return new URL(String(feedUrl).replace("{store}", "example")).host;
+  } catch (_error) {
+    return "configured source";
+  }
+}
+
 function normalizeCoupon(raw) {
   if (!raw) return null;
   const code = String(raw.code || raw.couponCode || "").trim();
@@ -40,16 +65,18 @@ export function normalizeOffer(entry, source) {
 }
 
 async function fromFeed(store, settings) {
-  const headers = { accept: "application/json" };
-  if (settings.feedKey) headers.authorization = "Bearer " + settings.feedKey;
-  const endpoint = settings.feedUrl.split("{store}").join(encodeURIComponent(store.id));
-  const response = await fetch(endpoint, { headers });
+  const response = await fetch(feedEndpoint(settings.feedUrl, store.id), {
+    headers: feedHeaders(settings),
+  });
+  if (response.status === 401 || response.status === 403) {
+    throw new Error("the source rejected the credentials (HTTP " + response.status + ")");
+  }
   if (!response.ok) throw new Error("offer feed returned HTTP " + response.status);
   const payload = await response.json();
   const entry = Array.isArray(payload)
     ? payload.find((item) => item && item.store === store.id)
     : (payload.stores && payload.stores[store.id]) || payload;
-  return { ...normalizeOffer(entry, "live"), note: "" };
+  return { ...normalizeOffer(entry, "live"), note: "", fetchedAt: Date.now() };
 }
 
 export async function getOffers(store, settings) {
@@ -58,15 +85,22 @@ export async function getOffers(store, settings) {
       return await fromFeed(store, settings);
     } catch (error) {
       console.warn("[savings] offer feed failed:", error);
+      return {
+        ...(await demoOffers(store, settings)),
+        note: "Authorized source unavailable (" + String(error.message || error) + ") — showing demo catalog.",
+      };
     }
   }
 
+  return demoOffers(store, settings);
+}
+
+async function demoOffers(store, settings) {
   const sample = await loadSample();
   const entry = (sample.stores && sample.stores[store.id]) || null;
   return {
     ...normalizeOffer(entry, "demo"),
-    note: settings.feedUrl
-      ? "Offer feed unavailable — showing demo catalog."
-      : DEMO_NOTE,
+    fetchedAt: Date.now(),
+    note: settings.feedUrl ? "Offer feed unavailable — showing demo catalog." : DEMO_NOTE,
   };
 }

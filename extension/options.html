@@ -9,24 +9,44 @@
     <form class="sheet" id="settings-form">
       <h1>Savings settings</h1>
       <p class="muted">
-        The extension ships with a demo catalog so the panel works out of the box. Point it at your
-        Partner Platform endpoints to serve live coupons, cashback rates and price history.
+        The extension ships with a demo catalog so the panel works out of the box. Point it at an
+        authorized data source you are entitled to use — your own offer feed or your Oxylabs
+        account — to serve live coupons, cashback rates and price history.
       </p>
 
-      <h2>Offers</h2>
+      <h2>Authorized data source</h2>
       <div class="field">
-        <label for="feed-url">Offer feed URL</label>
+        <label for="feed-url">Source endpoint</label>
         <input id="feed-url" type="url" placeholder="https://offers.example.com/store/{store}" />
         <p class="hint">
-          JSON endpoint. <code>{store}</code> is replaced with the store id (e.g.
-          <code>target</code>). See the README for the response shape.
+          JSON endpoint you are authorized to query. <code>{store}</code> is replaced with the store
+          id (e.g. <code>target</code>). See the README for the response shape.
         </p>
       </div>
       <div class="field">
-        <label for="feed-key">Offer feed token</label>
-        <input id="feed-key" type="password" autocomplete="off" placeholder="Bearer token" />
-        <p class="hint">Sent as <code>Authorization: Bearer …</code>. Stored only on this device.</p>
+        <label for="feed-auth">Authentication</label>
+        <select id="feed-auth">
+          <option value="bearer">Bearer token</option>
+          <option value="basic">Basic — username &amp; password (Oxylabs style)</option>
+        </select>
+        <p class="hint">
+          Credentials stay on this device in <code>chrome.storage.local</code> and are sent only to
+          the host above. Use an account you control and only query data you are allowed to access.
+        </p>
       </div>
+      <div class="field" id="feed-user-field" hidden>
+        <label for="feed-user">Source username</label>
+        <input id="feed-user" type="text" autocomplete="off" placeholder="Your Oxylabs username" />
+      </div>
+      <div class="field">
+        <label for="feed-key" id="feed-key-label">Source token</label>
+        <input id="feed-key" type="password" autocomplete="off" placeholder="Bearer token" />
+        <p class="hint">Blank means the bundled demo catalog is used and marked demo in the panel.</p>
+      </div>
+      <div class="actions" style="margin-top: 4px; padding-top: 0; border-top: 0">
+        <button class="btn ghost" id="test-source" type="button">Test connection</button>
+      </div>
+      <p class="test-line" id="test-result" role="status" aria-live="polite" hidden></p>
 
       <h2>Cashback</h2>
       <div class="field">
