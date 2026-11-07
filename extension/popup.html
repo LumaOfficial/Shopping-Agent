@@ -2,24 +2,52 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <title>Hi</title>
-    <style>
-      body {
-        margin: 0;
-        width: 200px;
-        height: 120px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
-        font-size: 40px;
-        font-weight: 600;
-        color: #1f2937;
-        background: #f9fafb;
-      }
-    </style>
+    <title>Shopping-Agent Savings</title>
+    <link rel="stylesheet" href="ui.css" />
   </head>
-  <body>
-    hi
+  <body class="popup">
+    <header class="bar">
+      <div class="brand">Savings <span id="store-name"></span></div>
+      <a class="icon-link" href="options.html" target="_blank" title="Settings">⚙</a>
+    </header>
+
+    <div id="body">
+      <section class="block" id="empty" hidden>
+        <p class="muted" id="empty-text">Open a supported store to see savings.</p>
+      </section>
+
+      <section class="block" id="cashback-block" hidden>
+        <div class="label">Cashback</div>
+        <div class="row">
+          <div class="rate" id="cashback-rate"></div>
+          <button class="btn" id="activate" type="button">Activate</button>
+        </div>
+        <p class="muted" id="cashback-note" hidden></p>
+      </section>
+
+      <section class="block" id="coupon-block" hidden>
+        <div class="label">Coupon codes <span class="chip" id="demo-chip" hidden>demo</span></div>
+        <div id="coupons"></div>
+        <p class="muted" id="coupon-empty" hidden>No codes for this store yet.</p>
+      </section>
+
+      <section class="block" id="price-block" hidden>
+        <div class="label">Price history</div>
+        <div class="grid">
+          <div>
+            <strong id="price-low">—</strong>
+            <span>90-day low</span>
+          </div>
+          <div>
+            <strong id="price-now">—</strong>
+            <span>current</span>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <footer class="partner" id="partner-line"></footer>
+
+    <script type="module" src="popup.js"></script>
   </body>
 </html>

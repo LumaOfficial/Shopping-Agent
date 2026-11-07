@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Savings settings</title>
+    <link rel="stylesheet" href="ui.css" />
+  </head>
+  <body class="options">
+    <form class="sheet" id="settings-form">
+      <h1>Savings settings</h1>
+      <p class="muted">
+        The extension ships with a demo catalog so the panel works out of the box. Point it at your
+        Partner Platform endpoints to serve live coupons, cashback rates and price history.
+      </p>
+
+      <h2>Offers</h2>
+      <div class="field">
+        <label for="feed-url">Offer feed URL</label>
+        <input id="feed-url" type="url" placeholder="https://offers.example.com/store/{store}" />
+        <p class="hint">
+          JSON endpoint. <code>{store}</code> is replaced with the store id (e.g.
+          <code>target</code>). See the README for the response shape.
+        </p>
+      </div>
+      <div class="field">
+        <label for="feed-key">Offer feed token</label>
+        <input id="feed-key" type="password" autocomplete="off" placeholder="Bearer token" />
+        <p class="hint">Sent as <code>Authorization: Bearer …</code>. Stored only on this device.</p>
+      </div>
+
+      <h2>Cashback</h2>
+      <div class="field">
+        <label for="cashback-template">Tracked link template</label>
+        <input
+          id="cashback-template"
+          type="text"
+          placeholder="https://click.example-network.com/deeplink?id={siteId}&murl={url}"
+        />
+        <p class="hint">
+          Cashback is paid by the cashback network, not by this extension. The template hands the
+          visit to your network so the purchase is attributed to the user's account.
+        </p>
+      </div>
+      <div class="field">
+        <label for="cashback-site">Network site id</label>
+        <input id="cashback-site" type="text" placeholder="Fills {siteId}" />
+      </div>
+
+      <h2>Price history</h2>
+      <div class="field">
+        <label for="price-key">Product API key</label>
+        <input id="price-key" type="password" autocomplete="off" placeholder="API key" />
+        <p class="hint">Used for 90-day lows on product pages. Leave empty to hide that section.</p>
+      </div>
+
+      <h2>Partner wording</h2>
+      <div class="field">
+        <label for="members">Verified member count</label>
+        <input id="members" type="text" placeholder="e.g. 2.1 billion" />
+        <p class="hint">
+          Shown as “Partner Platforms — N+ members combined”. Leave empty to state the partner
+          relationship without a number — only enter a figure you can substantiate.
+        </p>
+      </div>
+
+      <h2>Features</h2>
+      <div class="toggles">
+        <label class="toggle"><input id="toggle-coupons" type="checkbox" /> Coupon codes</label>
+        <label class="toggle"><input id="toggle-cashback" type="checkbox" /> Cashback offers</label>
+        <label class="toggle"><input id="toggle-price" type="checkbox" /> Price history</label>
+      </div>
+
+      <div class="actions">
+        <button class="btn" type="submit">Save settings</button>
+        <span class="saved" id="saved" hidden>Saved</span>
+      </div>
+    </form>
+
+    <script type="module" src="options.js"></script>
+  </body>
+</html>

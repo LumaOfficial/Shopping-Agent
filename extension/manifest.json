@@ -1,10 +1,48 @@
 {
   "manifest_version": 3,
-  "name": "Hi",
-  "version": "1.0.0",
-  "description": "Says hi.",
+  "name": "Shopping-Agent Savings",
+  "version": "0.1.0",
+  "description": "Finds coupon codes, cashback offers and price history from Partner Platforms while you shop.",
+  "minimum_chrome_version": "116",
+  "permissions": ["storage", "activeTab"],
+  "host_permissions": [
+    "https://api.keepa.com/*",
+    "https://api.linksynergy.com/*"
+  ],
+  "optional_host_permissions": ["https://*/*"],
+  "background": {
+    "service_worker": "src/background/service-worker.js",
+    "type": "module"
+  },
   "action": {
-    "default_title": "Hi",
+    "default_title": "Shopping-Agent Savings",
     "default_popup": "popup.html"
-  }
+  },
+  "options_page": "options.html",
+  "content_scripts": [
+    {
+      "matches": [
+        "*://*.amazon.com/*",
+        "*://*.target.com/*",
+        "*://*.walmart.com/*",
+        "*://*.bestbuy.com/*",
+        "*://*.homedepot.com/*",
+        "*://*.lowes.com/*",
+        "*://*.macys.com/*",
+        "*://*.nordstrom.com/*",
+        "*://*.sephora.com/*",
+        "*://*.chewy.com/*",
+        "*://*.wayfair.com/*",
+        "*://*.nike.com/*",
+        "*://*.adidas.com/*",
+        "*://*.ikea.com/*",
+        "*://*.expedia.com/*",
+        "*://*.etsy.com/*",
+        "*://*.ebay.com/*",
+        "*://*.booking.com/*"
+      ],
+      "js": ["src/lib/coupon-engine.js", "src/content/content.js"],
+      "run_at": "document_idle"
+    }
+  ]
 }
