@@ -80,6 +80,31 @@
         <p class="muted tiny" id="cashback-note" hidden>Cashback links are not configured yet.</p>
       </section>
 
+      <section class="card c4b wallet" id="wallet-block" hidden>
+        <div class="lbl" style="margin-bottom: 10px">Cashback wallet</div>
+        <div class="bal" id="wallet-available">$0.00</div>
+        <p class="muted tiny" id="wallet-mode"></p>
+        <div class="stats wallet-stats">
+          <div>
+            <strong id="wallet-pending">$0.00</strong>
+            <span class="lbl">pending</span>
+          </div>
+          <div>
+            <strong id="wallet-paid">$0.00</strong>
+            <span class="lbl">paid out</span>
+          </div>
+        </div>
+        <button class="btn w" id="cash-out" type="button">Cash out to a virtual Visa</button>
+        <p class="muted tiny" id="wallet-note" hidden></p>
+        <ul class="ledger" id="wallet-list" hidden></ul>
+        <div class="payout" id="payout-block" hidden>
+          <strong id="payout-title"></strong>
+          <p class="muted tiny" id="payout-detail"></p>
+          <a class="btn ghost" id="payout-link" target="_blank" rel="noreferrer" hidden>Open card</a>
+        </div>
+        <div class="status" id="wallet-status" role="status" aria-live="polite" hidden></div>
+      </section>
+
       <section class="card c5" id="coupon-block" hidden>
         <h3 style="justify-content: space-between">
           Codes for this store
@@ -92,6 +117,7 @@
         <input class="search" id="code-search" type="search" placeholder="Filter codes" aria-label="Filter codes" hidden />
         <div id="coupons" class="coupons"></div>
         <p class="muted tiny empty-note" id="coupon-empty" hidden>No codes for this store yet.</p>
+        <p class="muted tiny" id="sample-note" style="margin-top: 12px" hidden></p>
         <p class="muted tiny" id="field-note" style="margin-top: 6px" hidden>
           No coupon field visible yet — open your cart or checkout to apply a code.
         </p>

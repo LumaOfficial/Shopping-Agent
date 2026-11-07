@@ -57,9 +57,9 @@ Shortcuts**.
 The panel names whichever browser you are in where the browser's own autofill is
 involved ("Show Edge autofill", "Show Firefox autofill", …); nothing else differs.
 
-### No bundled offers
+### Where codes come from
 
-There is no sample catalog in this repository. Every code the panel shows is one of:
+Every code the panel shows is one of:
 
 | Source | Where it comes from |
 | --- | --- |
@@ -67,15 +67,19 @@ There is no sample catalog in this repository. Every code the panel shows is one
 | **on page** | a code the store itself publishes on the page you are viewing |
 | **yours** | a code you pasted and saved for that store |
 | **works** | a code this store accepted earlier on this device |
+| **sample** | a bundled example from `src/lib/starter-codes.js` |
 
-With none of those, the panel says so and shows no codes. A store page with no
-configured feed and no published code legitimately shows an empty list — the
-extension never invents an offer.
+Sample codes exist so a fresh install has something to try. They are examples,
+not live offers: they are used only for a store the connected feed has no codes
+for, and every one carries a `sample` chip plus a note under the list. A store
+the feed covers shows only feed codes, and a store with no codes from any source
+shows an empty list — the extension never invents an offer beyond that labelled
+set.
 
 ### What works
 
 - **Codes only for the store you are on.** The panel resolves the tab's host
-  against a catalog of **112 stores / 124 host patterns** (including regional
+  against a catalog of **359 stores / 371 host patterns** (including regional
   Amazon, eBay and other domains). Any other page shows an empty state, plus an
   option to enable the extension on that site.
 - **Coupon apply** — the side panel sends the code to the content script, which
@@ -106,6 +110,16 @@ extension never invents an offer.
 - **Cashback** — builds the network's tracked deep link so the purchase is
   attributed to the shopper. Cashback is paid by the network, never claimed by
   the extension.
+- **Cashback wallet** — activating a cashback offer records the store's published
+  rate against the cart total the page actually showed. The amount stays
+  **pending** for the 30-day return window, then becomes **cashable**; a payout
+  marks those entries **paid**, so the same cashback can never be cashed twice.
+  The ledger lives on this device under `chrome.storage.local` key `cashback`.
+- **Virtual Visa payouts** — the wallet asks the payout service configured in
+  Settings to issue a virtual Visa for the cashable balance and stores the
+  reference and, when the service returns them, the last four digits and a
+  redemption link. A full card number is never requested or stored. With no
+  service connected the card is marked **demo** and moves no money.
 - **Savings record** — total of the order-total drops the page confirmed, number
   of codes that worked, products tracked. Stored locally.
 - **Use on any site** — for stores outside the catalog the panel asks for
@@ -135,6 +149,7 @@ between the shopper, the browser and the merchant.
 | `src/content/page-scan.js` | Published codes, clip coupons, product/price reading |
 | `src/lib/stores.js` | Merchant catalog and host matching |
 | `src/lib/codes.js` | One code shape, de-duplication order, expiry rule |
+| `src/lib/starter-codes.js` | Bundled, clearly-labelled sample codes |
 | `src/lib/settings.js` | Stored settings defaults, shared by worker and options |
 | `src/lib/format.js` | Money (minor units), relative times |
 | `src/lib/copy.js` | All "Partner Platforms" wording |
@@ -142,6 +157,8 @@ between the shopper, the browser and the merchant.
 | `src/lib/compat.js` | Points `chrome` at `browser` where only that is promise-based |
 | `src/partners/offers-feed.js` | Authorized offer feed → normalized codes |
 | `src/partners/cashback-network.js` | Tracked deep-link builder |
+| `src/partners/cashback-ledger.js` | Cashback wallet: pending → cashable → paid, in minor units |
+| `src/partners/cashback-payout.js` | Virtual Visa payout request, and the demo card |
 | `src/partners/price-history.js` | Optional product API 90-day low |
 | `tools/check-catalog.mjs` | Keeps `manifest.json` hosts in sync with the catalog |
 | `tools/build.mjs` | Builds `dist/chromium/` and `dist/firefox/` from this source |
@@ -175,6 +192,18 @@ Options page (`options.html`), stored per device, no credential in the repo.
   `https://click.example-network.com/deeplink?id={siteId}&murl={url}`. With no
   template the Activate button says "Not configured" instead of pretending.
 - **Product API key** — optional; adds the 90-day low from the documented API.
+- **Payout service endpoint** — receives
+  `POST {"method":"virtual_visa","amount","currency","earnings":["e_…"]}` with
+  the bearer token, and answers:
+  ```json
+  { "card": { "reference": "PO-77", "brand": "Visa", "last4": "4123",
+              "expiresAt": "03/29", "redeemUrl": "https://…" } }
+  ```
+  `reference` is required; the rest is optional. The request carries the earning
+  ids being paid so the service can verify them before it issues a card. No
+  endpoint means demo mode.
+- **Minimum payout** — cashback below this amount stays in the wallet
+  (default $5).
 
 ### Adding merchants
 
@@ -195,6 +224,11 @@ with jsdom (kept out of the repo): the coupon engine is driven against fixture
 cart pages — success, rejection, shadow DOM, no field, ignored search/gift-card
 inputs — and the service worker and side panel are exercised against a stubbed
 `chrome` API.
+
+The cashback wallet has its own Node test (also kept out of the repo): rate
+parsing, the 30-day hold, pending → cashable → paid, and the payout request
+against a local stub service — request body, bearer header, 401, a response with
+no card, and an unreachable host.
 
 ```bash
 cd extension && node tools/check-catalog.mjs

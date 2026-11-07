@@ -9,8 +9,18 @@ import { partnerSummary } from "../lib/copy.js";
 import { getOffers, feedEndpoint, feedHeaders, sourceLabel } from "../partners/offers-feed.js";
 import { buildCashbackLink } from "../partners/cashback-network.js";
 import { getPriceHistory } from "../partners/price-history.js";
+import {
+  normalizeWallet,
+  settle,
+  estimate,
+  addEarning,
+  balances,
+  payOut,
+} from "../partners/cashback-ledger.js";
+import { payoutConfigured, requestVirtualCard, demoVirtualCard } from "../partners/cashback-payout.js";
 import { readSettings, writeSettings } from "../lib/settings.js";
 import { mergeCodes, cleanCode } from "../lib/codes.js";
+import { starterCodes } from "../lib/starter-codes.js";
 
 const FEED_TTL_MS = 10 * 60 * 1000;
 const MAX_VERIFIED = 40;
@@ -62,10 +72,12 @@ async function resolveSite(url, options) {
     ? await cachedOffers(store, settings, options && options.refresh)
     : { status: "off", coupons: [], cashback: null, fetchedAt: null, error: null };
 
+  // Sample codes only stand in for stores the connected feed has nothing for.
   const codes = mergeCodes(
     (verified[store.id] || []).map((entry) => Object.assign({}, entry, { source: "verified" })),
     feed.coupons,
-    (saved[store.id] || []).map((entry) => Object.assign({}, entry, { source: "saved" }))
+    (saved[store.id] || []).map((entry) => Object.assign({}, entry, { source: "saved" })),
+    feed.coupons.length ? [] : starterCodes(store.id)
   );
 
   let cashback = null;
@@ -271,17 +283,103 @@ async function testSource() {
   }
 }
 
-async function activateCashback(url) {
-  const store = resolveStore(url, (await readSettings()).enabledSites);
+async function activateCashback(url, total, currency) {
+  const settings = await readSettings();
+  const store = resolveStore(url, settings.enabledSites);
   if (!store) return { ok: false, reason: "unsupported" };
 
-  const settings = await readSettings();
   const offers = await cachedOffers(store, settings, false);
   const link = buildCashbackLink(url, offers.cashback, settings);
   if (!link) return { ok: false, reason: "unconfigured" };
 
   await chrome.tabs.create({ url: link });
-  return { ok: true, url: link };
+
+  // The wallet tracks the store's published rate against the cart total the
+  // panel last saw on the page, so the figure is one the page actually showed.
+  // It stays pending until the return window has passed.
+  const wallet = await readWallet();
+  const amount = estimate(total, offers.cashback && offers.cashback.rate);
+  const recentlyTracked = wallet.entries.some(
+    (entry) => entry.storeId === store.id && Date.now() - entry.at < 10 * 60 * 1000
+  );
+  let tracked = false;
+  if (amount && !recentlyTracked) {
+    tracked = Boolean(
+      addEarning(wallet, {
+        storeId: store.id,
+        storeName: store.name,
+        total,
+        rate: offers.cashback.rate,
+        currency: currency || "USD",
+      })
+    );
+    if (tracked) await writeWallet(wallet);
+  }
+
+  return { ok: true, url: link, tracked, wallet: await walletSummary() };
+}
+
+// ---- cashback wallet ----------------------------------------------------
+async function readWallet() {
+  const stored = await chrome.storage.local.get("cashback");
+  return normalizeWallet(stored.cashback);
+}
+
+async function writeWallet(wallet) {
+  await chrome.storage.local.set({ cashback: wallet });
+}
+
+async function walletSummary() {
+  const settings = await readSettings();
+  const wallet = await readWallet();
+  if (settle(wallet)) await writeWallet(wallet);
+
+  return {
+    balances: balances(wallet),
+    minimum: Number(settings.payoutMinimum) || 0,
+    // "service" means a payout service issues the card; "demo" means the cards
+    // are examples and move no money.
+    mode: payoutConfigured(settings) ? "service" : "demo",
+    entries: wallet.entries.slice(0, 6).map((entry) => ({
+      id: entry.id,
+      storeName: entry.storeName,
+      amount: entry.amount,
+      currency: entry.currency,
+      status: entry.status,
+      at: entry.at,
+    })),
+    payouts: wallet.payouts.slice(0, 3),
+  };
+}
+
+async function cashOut() {
+  const settings = await readSettings();
+  const wallet = await readWallet();
+  settle(wallet);
+
+  const totals = balances(wallet);
+  const minimum = Number(settings.payoutMinimum) || 0;
+  if (!totals.available || totals.available < minimum) {
+    return { ok: false, reason: "below-minimum", wallet: await walletSummary() };
+  }
+
+  const amount = totals.available;
+  const earnings = wallet.entries
+    .filter((entry) => entry.status === "available")
+    .map((entry) => entry.id);
+
+  let card;
+  if (payoutConfigured(settings)) {
+    const reply = await requestVirtualCard(settings, { amount, currency: "USD", earnings });
+    if (!reply.ok) return { ok: false, reason: "declined", error: reply.error, wallet: await walletSummary() };
+    card = reply.card;
+  } else {
+    card = demoVirtualCard(amount);
+  }
+
+  const payout = payOut(wallet, amount, "USD", card);
+  await writeWallet(wallet);
+  return { ok: true, payout, wallet: await walletSummary() };
 }
 
 // Lets the shopper use the extension on a store that is not in the catalog.
@@ -338,11 +436,15 @@ async function enableSite(url, tabId) {
 }
 
 async function stats() {
-  const [saved, verified, prices, stored] = await Promise.all([
+  const [saved, verified, prices, stored, wallet] = await Promise.all([
     readMap("saved"),
     readMap("verified"),
     readMap("prices"),
     chrome.storage.local.get("savings"),
+    readWallet().then((loaded) => {
+      settle(loaded);
+      return loaded;
+    }),
   ]);
   const countCodes = (map) =>
     Object.keys(map).reduce((total, key) => total + (map[key] || []).length, 0);
@@ -351,21 +453,24 @@ async function stats() {
     verified: countCodes(verified),
     products: Object.keys(prices).length,
     savings: stored.savings || { total: 0, count: 0 },
+    wallet: balances(wallet),
   };
 }
 
 async function exportData() {
-  const [saved, verified, prices, stored, settings] = await Promise.all([
+  const [saved, verified, prices, stored, settings, wallet] = await Promise.all([
     readMap("saved"),
     readMap("verified"),
     readMap("prices"),
     chrome.storage.local.get("savings"),
     readSettings(),
+    readWallet(),
   ]);
   const safeSettings = Object.assign({}, settings);
   // Credentials stay on the device they were entered on.
   delete safeSettings.feedKey;
   delete safeSettings.feedUser;
+  delete safeSettings.payoutKey;
   return {
     app: "shopping-agent-savings",
     version: 1,
@@ -375,11 +480,12 @@ async function exportData() {
     verified,
     prices,
     savings: stored.savings || null,
+    cashback: wallet,
   };
 }
 
 async function clearData() {
-  await chrome.storage.local.remove(["saved", "verified", "dead", "prices", "savings"]);
+  await chrome.storage.local.remove(["saved", "verified", "dead", "prices", "savings", "cashback"]);
   feedCache.clear();
   return { ok: true };
 }
@@ -391,7 +497,11 @@ async function handle(message, sender) {
     case "offers:refresh":
       return resolveSite(message.url, { refresh: true });
     case "cashback:activate":
-      return activateCashback(message.url);
+      return activateCashback(message.url, message.total, message.currency);
+    case "cashback:wallet":
+      return walletSummary();
+    case "cashback:cashout":
+      return cashOut();
     case "verified:record":
       return recordVerified(message.storeId, message.code, message.saving);
     case "codes:save":

@@ -9,6 +9,9 @@ function fill(settings) {
   byId("feed-key").value = settings.feedKey;
   byId("cashback-template").value = settings.cashbackTemplate;
   byId("cashback-site").value = settings.cashbackSiteId;
+  byId("payout-url").value = settings.payoutUrl;
+  byId("payout-key").value = settings.payoutKey;
+  byId("payout-minimum").value = settings.payoutMinimum ? settings.payoutMinimum / 100 : "";
   byId("price-key").value = settings.priceHistoryKey;
   byId("members").value = settings.partnerMembers;
   byId("toggle-coupons").checked = settings.enabled.coupons;
@@ -35,6 +38,9 @@ function collect() {
     feedKey: byId("feed-key").value.trim(),
     cashbackTemplate: byId("cashback-template").value.trim(),
     cashbackSiteId: byId("cashback-site").value.trim(),
+    payoutUrl: byId("payout-url").value.trim(),
+    payoutKey: byId("payout-key").value.trim(),
+    payoutMinimum: toMinor(byId("payout-minimum").value, 500),
     priceHistoryKey: byId("price-key").value.trim(),
     partnerMembers: byId("members").value.trim(),
     enabled: {
@@ -47,12 +53,20 @@ function collect() {
   };
 }
 
-// Fetching a user-supplied feed host needs an optional host permission.
-async function ensureFeedHost(feedUrl) {
-  if (!feedUrl) return true;
+// The minimum is typed in dollars and stored in minor units, like every other
+// amount in the extension.
+function toMinor(value, fallback) {
+  const dollars = Number(String(value).replace(/[^0-9.]/g, ""));
+  if (!isFinite(dollars) || dollars <= 0) return fallback;
+  return Math.round(dollars * 100);
+}
+
+// Fetching a user-supplied host needs an optional host permission.
+async function ensureHost(endpoint) {
+  if (!endpoint) return true;
   let origin;
   try {
-    origin = new URL(feedUrl.replace("{store}", "example")).origin + "/*";
+    origin = new URL(endpoint.replace("{store}", "example")).origin + "/*";
   } catch {
     return true;
   }
@@ -63,9 +77,10 @@ async function ensureFeedHost(feedUrl) {
 async function save() {
   const stored = await chrome.storage.local.get("settings");
   const settings = withDefaults(Object.assign({}, stored.settings, collect()));
-  const granted = await ensureFeedHost(settings.feedUrl);
+  const granted = await ensureHost(settings.feedUrl);
+  const payoutGranted = await ensureHost(settings.payoutUrl);
   await chrome.storage.local.set({ settings });
-  return granted;
+  return granted && payoutGranted;
 }
 
 async function load() {
@@ -104,7 +119,16 @@ async function loadData() {
     (savings.count === 1 ? "" : "s") +
     " worth $" +
     ((savings.total || 0) / 100).toFixed(2) +
-    " in total drops.";
+    " in total drops." +
+    (stats.wallet
+      ? " Cashback wallet: $" +
+        ((stats.wallet.available || 0) / 100).toFixed(2) +
+        " available, $" +
+        ((stats.wallet.pending || 0) / 100).toFixed(2) +
+        " pending, $" +
+        ((stats.wallet.paid || 0) / 100).toFixed(2) +
+        " paid out."
+      : "");
 
   const list = byId("site-list");
   const sites = settings.enabledSites || [];
@@ -175,7 +199,7 @@ byId("export-data").addEventListener("click", async () => {
 byId("clear-data").addEventListener("click", async () => {
   const status = byId("data-status");
   const confirmed = window.confirm(
-    "Delete the codes you saved, the codes you verified, and the prices tracked on this device?"
+    "Delete the codes you saved, the codes you verified, the prices tracked on this device and the cashback wallet?"
   );
   if (!confirmed) return;
   await chrome.runtime.sendMessage({ type: "data:clear" }).catch(() => null);

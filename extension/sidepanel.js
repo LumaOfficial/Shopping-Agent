@@ -3,6 +3,7 @@ import { mergeCodes, SOURCE_LABEL } from "./src/lib/codes.js";
 import { money, humanAge } from "./src/lib/format.js";
 import { NO_SOURCE_NOTE } from "./src/lib/copy.js";
 import { browserName } from "./src/lib/browser.js";
+import { HOLD_DAYS } from "./src/partners/cashback-ledger.js";
 
 const byId = (id) => document.getElementById(id);
 
@@ -22,6 +23,7 @@ const BLOCKS = [
   "source-block",
   "page-block",
   "cashback-block",
+  "wallet-block",
   "coupon-block",
   "price-block",
   "checkout-block",
@@ -67,6 +69,13 @@ function reset() {
   byId("code-filters").hidden = true;
   byId("code-filters").textContent = "";
   byId("copy-all").hidden = true;
+  byId("sample-note").hidden = true;
+  byId("wallet-list").hidden = true;
+  byId("wallet-list").textContent = "";
+  byId("payout-block").hidden = true;
+  byId("payout-link").hidden = true;
+  byId("wallet-status").hidden = true;
+  byId("wallet-note").hidden = true;
   state.data = null;
   state.scan = null;
   state.codes = [];
@@ -295,6 +304,7 @@ function renderFilters(alive) {
     ["feed", "Feed", alive.filter((coupon) => coupon.source === "feed").length],
     ["page", "On page", alive.filter((coupon) => coupon.source === "page").length],
     ["saved", "Yours", alive.filter((coupon) => coupon.source === "saved").length],
+    ["sample", "Sample", alive.filter((coupon) => coupon.source === "sample").length],
   ].filter(([, , count]) => count > 0);
 
   if (!groups.some(([value]) => value === state.filterSource)) state.filterSource = "all";
@@ -337,6 +347,13 @@ function renderCoupons() {
         "No codes for this store yet. Connect an offer feed in Settings, or save a code you already have below.";
     }
   }
+
+  const sampleNote = byId("sample-note");
+  const samples = state.codes.some((coupon) => coupon.source === "sample");
+  sampleNote.hidden = !samples;
+  sampleNote.textContent = samples
+    ? "Sample codes are examples so you can try the flow. Connect an offer feed in Settings for live codes."
+    : "";
 
   codes.forEach((coupon, index) =>
     list.appendChild(
@@ -408,6 +425,80 @@ async function loadSavings() {
     " product" +
     (stats.products === 1 ? "" : "s") +
     " tracked. Stored on this device only.";
+}
+
+// ---- cashback wallet ----------------------------------------------------
+function renderWallet(wallet) {
+  if (!wallet || !wallet.balances) return;
+  byId("wallet-block").hidden = false;
+
+  const totals = wallet.balances;
+  const minimum = wallet.minimum || 0;
+  byId("wallet-available").textContent = money(totals.available, "USD");
+  byId("wallet-pending").textContent = money(totals.pending, "USD");
+  byId("wallet-paid").textContent = money(totals.paid, "USD");
+
+  byId("wallet-mode").textContent =
+    wallet.mode === "service"
+      ? "Cards are issued by your payout service."
+      : "Demo wallet — no payout service connected, so cards are examples only.";
+
+  const ready = totals.available > 0 && totals.available >= minimum;
+  const button = byId("cash-out");
+  button.disabled = !ready;
+  button.textContent = ready
+    ? "Cash out " + money(totals.available, "USD") + " to a virtual Visa"
+    : minimum > 0
+      ? "Cash out from " + money(minimum, "USD")
+      : "Nothing to cash out yet";
+
+  const note = byId("wallet-note");
+  note.hidden = !totals.pending;
+  note.textContent = totals.pending
+    ? "Pending cashback becomes cashable " +
+      HOLD_DAYS +
+      " days after the visit, once the store confirms the order."
+    : "";
+
+  const list = byId("wallet-list");
+  list.textContent = "";
+  (wallet.entries || []).forEach((entry) => {
+    const row = document.createElement("li");
+    const name = document.createElement("span");
+    name.textContent = entry.storeName || "Store";
+    const amount = document.createElement("span");
+    amount.className = "amt";
+    amount.textContent = money(entry.amount, entry.currency);
+    const state = document.createElement("span");
+    state.className = "chip " + entry.status;
+    state.textContent = entry.status;
+    row.append(name, amount, state);
+    list.appendChild(row);
+  });
+  list.hidden = !(wallet.entries || []).length;
+
+  const payout = (wallet.payouts || [])[0];
+  byId("payout-block").hidden = !payout;
+  if (payout) {
+    const card = payout.card || {};
+    byId("payout-title").textContent = card.demo
+      ? "Demo virtual Visa · " + money(payout.amount, payout.currency)
+      : "Virtual Visa" +
+        (card.last4 ? " ···· " + card.last4 : "") +
+        " · " +
+        money(payout.amount, payout.currency);
+    byId("payout-detail").textContent = card.demo
+      ? "Card " + card.reference + " is a demo — it moves no money. Connect a payout service for real virtual Visas."
+      : [card.reference, card.expiresAt ? "expires " + card.expiresAt : null].filter(Boolean).join(" · ");
+    const link = byId("payout-link");
+    link.hidden = !card.redeemUrl;
+    if (card.redeemUrl) link.href = card.redeemUrl;
+  }
+}
+
+async function loadWallet() {
+  const wallet = await sendWorker({ type: "cashback:wallet" });
+  if (wallet) renderWallet(wallet);
 }
 
 function renderPrice(tracked, keepa) {
@@ -605,6 +696,7 @@ async function render() {
   byId("checkout-block").hidden = !(checkout && checkout.hasPaymentFields);
 
   loadSavings();
+  loadWallet();
 }
 
 // ---- wiring -------------------------------------------------------------
@@ -649,10 +741,43 @@ byId("clip-all").addEventListener("click", async () => {
 
 byId("activate").addEventListener("click", async () => {
   const button = byId("activate");
+  const product = state.scan && state.scan.product;
   button.disabled = true;
   button.textContent = "Opening…";
-  const reply = await sendWorker({ type: "cashback:activate", url: state.url });
+  const reply = await sendWorker({
+    type: "cashback:activate",
+    url: state.url,
+    total: product ? product.price : null,
+    currency: (product && product.currency) || "USD",
+  });
   button.textContent = reply && reply.ok ? "Activated" : "Not configured";
+  if (reply && reply.wallet) renderWallet(reply.wallet);
+});
+
+byId("cash-out").addEventListener("click", async () => {
+  const status = byId("wallet-status");
+  status.hidden = false;
+  status.className = "status wait";
+  status.textContent = "Requesting your virtual Visa…";
+
+  const reply = await sendWorker({ type: "cashback:cashout" });
+  if (reply && reply.wallet) renderWallet(reply.wallet);
+
+  if (reply && reply.ok) {
+    status.className = "status ok";
+    status.textContent =
+      reply.payout && reply.payout.demo
+        ? "Demo card issued. Connect a payout service to receive a real virtual Visa."
+        : "Virtual Visa issued for your cashback balance.";
+    return;
+  }
+  if (reply && reply.reason === "below-minimum") {
+    status.className = "status wait";
+    status.textContent = "Cashback has to reach the payout minimum before it can be cashed out.";
+    return;
+  }
+  status.className = "status bad";
+  status.textContent = (reply && reply.error) || "The payout did not go through.";
 });
 
 byId("show-autofill").addEventListener("click", async () => {

@@ -515,6 +515,7 @@ body.sidepanel .c5 { animation-delay: 0.6s; }
 body.sidepanel .c6 { animation-delay: 0.7s; }
 body.sidepanel .c7 { animation-delay: 0.8s; }
 body.sidepanel .c8 { animation-delay: 0.9s; }
+body.sidepanel .c4b { animation-delay: 0.55s; }
 
 body.sidepanel .card h3 {
   margin: 0 0 12px;
@@ -757,6 +758,70 @@ body.sidepanel .rate small {
   margin-left: 6px;
 }
 
+/* ---------- Cashback wallet ---------- */
+
+body.sidepanel .wallet .bal {
+  font-weight: 200;
+  font-size: 56px;
+  line-height: 1;
+  letter-spacing: -0.04em;
+  color: #2a2440;
+}
+
+body.sidepanel .wallet-stats {
+  margin: 18px 0;
+  gap: 36px;
+}
+
+body.sidepanel .wallet-stats strong {
+  font-size: 34px;
+}
+
+body.sidepanel .ledger {
+  list-style: none;
+  margin: 18px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+body.sidepanel .ledger li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 0;
+  border-top: 1px solid #f1ecfc;
+  font-size: 13.5px;
+  color: #4a4268;
+}
+
+body.sidepanel .ledger .amt {
+  margin-left: auto;
+  font-variant-numeric: tabular-nums;
+  color: #2a2440;
+}
+
+body.sidepanel .payout {
+  margin-top: 16px;
+  padding: 16px 18px;
+  border-radius: 20px;
+  background: linear-gradient(135deg, #f6f2ff, #fff4e4);
+  border: 1px solid #ece4ff;
+}
+
+body.sidepanel .payout strong {
+  display: block;
+  font-weight: 400;
+  font-size: 15px;
+  color: #2a2440;
+}
+
+body.sidepanel .payout .btn {
+  margin-top: 10px;
+  display: inline-flex;
+  text-decoration: none;
+}
+
 /* ---------- Inputs ---------- */
 
 body.sidepanel .search,
@@ -919,6 +984,26 @@ body.sidepanel .chip.own,
 body.sidepanel .chip.live {
   background: #fff1db;
   color: #8a5a12;
+}
+
+body.sidepanel .chip.pending {
+  background: #fff1db;
+  color: #8a5a12;
+}
+
+body.sidepanel .chip.available {
+  background: #e2f4e8;
+  color: #2f7a52;
+}
+
+body.sidepanel .chip.paid {
+  background: #efeafd;
+  color: #5b4bd6;
+}
+
+body.sidepanel .chip.sample {
+  background: #eef0f4;
+  color: #5d6577;
 }
 
 /* Filter row and per-row actions */
