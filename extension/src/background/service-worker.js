@@ -14,9 +14,11 @@ import {
   settle,
   estimate,
   addEarning,
+  addSponsoredEarning,
   balances,
   payOut,
 } from "../partners/cashback-ledger.js";
+import { getSponsoredOffers, claimOffer, sponsorConfigured } from "../partners/sponsor-offers.js";
 import { payoutConfigured, requestVirtualCard } from "../partners/cashback-payout.js";
 import { readSettings, writeSettings } from "../lib/settings.js";
 import { mergeCodes, cleanCode } from "../lib/codes.js";
@@ -424,6 +426,29 @@ async function enableSite(url, tabId) {
   return { ok: true, host };
 }
 
+// Sponsored offers: the sponsor service lists the ads and books what each visit
+// pays. Only what the sponsor confirms reaches the wallet.
+async function sponsoredOffers() {
+  const settings = await readSettings();
+  const payload = await getSponsoredOffers(settings);
+  return Object.assign({}, payload, { configured: sponsorConfigured(settings) });
+}
+
+async function claimSponsoredOffer(offerId) {
+  const settings = await readSettings();
+  const reply = await claimOffer(settings, offerId);
+  if (!reply.ok) return reply;
+
+  const wallet = await readWallet();
+  settle(wallet);
+  const entry = addSponsoredEarning(wallet, reply.earning);
+  if (!entry) {
+    return { ok: false, error: "This offer is already in your wallet.", wallet: await walletSummary() };
+  }
+  await writeWallet(wallet);
+  return { ok: true, entry, wallet: await walletSummary() };
+}
+
 async function stats() {
   const [saved, verified, prices, stored, wallet] = await Promise.all([
     readMap("saved"),
@@ -459,6 +484,7 @@ async function exportData() {
   // Credentials stay on the device they were entered on.
   delete safeSettings.feedKey;
   delete safeSettings.feedUser;
+  delete safeSettings.sponsorKey;
   delete safeSettings.payoutKey;
   return {
     app: "shopping-agent-savings",
@@ -491,6 +517,10 @@ async function handle(message, sender) {
       return walletSummary();
     case "cashback:cashout":
       return cashOut();
+    case "sponsor:offers":
+      return sponsoredOffers();
+    case "sponsor:claim":
+      return claimSponsoredOffer(message.offerId);
     case "verified:record":
       return recordVerified(message.storeId, message.code, message.saving);
     case "codes:save":

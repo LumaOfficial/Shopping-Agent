@@ -14,6 +14,8 @@ function fill(settings) {
   byId("payout-customer").value = settings.payoutCustomer;
   byId("payout-utid").value = settings.payoutUtid;
   byId("payout-key").value = settings.payoutKey;
+  byId("sponsor-url").value = settings.sponsorUrl;
+  byId("sponsor-key").value = settings.sponsorKey;
   byId("payout-minimum").value = settings.payoutMinimum ? settings.payoutMinimum / 100 : "";
   byId("price-key").value = settings.priceHistoryKey;
   byId("members").value = settings.partnerMembers;
@@ -47,6 +49,8 @@ function collect() {
     payoutUtid: byId("payout-utid").value.trim(),
     payoutKey: byId("payout-key").value.trim(),
     payoutMinimum: toMinor(byId("payout-minimum").value, 500),
+    sponsorUrl: byId("sponsor-url").value.trim(),
+    sponsorKey: byId("sponsor-key").value.trim(),
     priceHistoryKey: byId("price-key").value.trim(),
     partnerMembers: byId("members").value.trim(),
     enabled: {
@@ -85,8 +89,9 @@ async function save() {
   const settings = withDefaults(Object.assign({}, stored.settings, collect()));
   const granted = await ensureHost(settings.feedUrl);
   const payoutGranted = await ensureHost(settings.payoutUrl);
+  const sponsorGranted = await ensureHost(settings.sponsorUrl);
   await chrome.storage.local.set({ settings });
-  return granted && payoutGranted;
+  return granted && payoutGranted && sponsorGranted;
 }
 
 async function load() {

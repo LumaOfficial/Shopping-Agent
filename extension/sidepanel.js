@@ -24,6 +24,7 @@ const BLOCKS = [
   "page-block",
   "cashback-block",
   "wallet-block",
+  "sponsor-block",
   "coupon-block",
   "price-block",
   "checkout-block",
@@ -76,6 +77,11 @@ function reset() {
   byId("wallet-list").textContent = "";
   byId("payout-block").hidden = true;
   byId("payout-link").hidden = true;
+  byId("sponsor-list").hidden = true;
+  byId("sponsor-list").textContent = "";
+  byId("sponsor-note").textContent = "";
+  byId("sponsor-status").hidden = true;
+  byId("sponsor-status").textContent = "";
   byId("wallet-status").hidden = true;
   byId("wallet-note").hidden = true;
   state.data = null;
@@ -507,6 +513,74 @@ async function loadWallet() {
   if (wallet) renderWallet(wallet);
 }
 
+// ---- sponsored offers ---------------------------------------------------
+// Advertisers and their rewards come from the sponsor service in Settings. The
+// panel shows what it returns and records only what the sponsor books.
+function renderSponsor(payload) {
+  if (!payload || !payload.configured) return;
+  byId("sponsor-block").hidden = false;
+
+  const offers = payload.offers || [];
+  byId("sponsor-note").textContent = offers.length
+    ? "Sponsored offers pay the amount shown into your cashback wallet."
+    : payload.error || "No sponsored offers right now.";
+
+  const list = byId("sponsor-list");
+  list.textContent = "";
+  list.hidden = !offers.length;
+  offers.forEach((offer) => {
+    const row = document.createElement("li");
+    const name = document.createElement("span");
+    name.textContent = offer.advertiser;
+    if (offer.title) name.title = offer.title;
+    const amount = document.createElement("span");
+    amount.className = "amt";
+    amount.textContent = money(offer.reward, offer.currency);
+    const open = document.createElement("button");
+    open.type = "button";
+    open.className = "mini";
+    open.textContent = "Open";
+    open.addEventListener("click", () => openSponsorOffer(offer, open));
+    row.append(name, amount, open);
+    list.appendChild(row);
+  });
+}
+
+async function loadSponsor() {
+  const payload = await sendWorker({ type: "sponsor:offers" });
+  if (payload) renderSponsor(payload);
+}
+
+// The shopper opens the advertiser themselves; the sponsor decides the reward.
+async function openSponsorOffer(offer, button) {
+  const status = byId("sponsor-status");
+  button.disabled = true;
+  button.textContent = "Opening…";
+  await chrome.tabs.create({ url: offer.url });
+
+  status.hidden = false;
+  status.className = "status wait";
+  status.textContent = "Checking what " + offer.advertiser + " booked for this visit…";
+
+  const reply = await sendWorker({ type: "sponsor:claim", offerId: offer.id });
+  if (reply && reply.wallet) renderWallet(reply.wallet);
+
+  if (reply && reply.ok) {
+    status.className = "status ok";
+    status.textContent =
+      money(reply.entry.amount, reply.entry.currency) +
+      " added to your wallet as " +
+      reply.entry.status +
+      ".";
+    button.textContent = "Opened";
+    return;
+  }
+  status.className = "status bad";
+  status.textContent = (reply && reply.error) || "The sponsor did not confirm a reward.";
+  button.disabled = false;
+  button.textContent = "Open";
+}
+
 function renderPrice(tracked, keepa) {
   const hasTracked = tracked && typeof tracked.current === "number";
   const hasKeepa = keepa && keepa.status === "ok" && typeof keepa.current === "number";
@@ -703,6 +777,7 @@ async function render() {
 
   loadSavings();
   loadWallet();
+  loadSponsor();
 }
 
 // ---- wiring -------------------------------------------------------------

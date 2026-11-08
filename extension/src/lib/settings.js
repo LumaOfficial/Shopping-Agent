@@ -13,6 +13,8 @@ export const DEFAULTS = {
   payoutCustomer: "",
   payoutUtid: "",
   payoutMinimum: 500,
+  sponsorUrl: "",
+  sponsorKey: "",
   priceHistoryKey: "",
   partnerMembers: "",
   enabledSites: [],

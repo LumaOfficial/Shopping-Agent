@@ -77,6 +77,35 @@ export function addEarning(wallet, earning, now) {
   return entry;
 }
 
+// Sponsored offers pay a fixed amount the sponsor booked. One credit per offer,
+// and the amount always comes from the sponsor — opening an ad never puts money
+// in the wallet by itself.
+export function addSponsoredEarning(wallet, earning, now) {
+  const at = now || Date.now();
+  const offerId = String((earning && earning.offerId) || "").trim();
+  const amount = Math.round(Number(earning && earning.amount));
+  if (!offerId || !isFinite(amount) || amount <= 0) return null;
+  if (wallet.entries.some((entry) => entry.offerId === offerId)) return null;
+
+  const status = earning.status === "available" ? "available" : "pending";
+  const entry = {
+    id: "s_" + at.toString(36) + Math.random().toString(36).slice(2, 6),
+    offerId,
+    storeId: "sponsored",
+    storeName: String(earning.advertiser || "Sponsored offer").slice(0, 60),
+    amount,
+    currency: String(earning.currency || "USD").slice(0, 3).toUpperCase(),
+    sponsored: true,
+    status,
+    at,
+    confirmAt: status === "pending" ? Number(earning.confirmAt) || at + HOLD_DAYS * DAY_MS : null,
+  };
+
+  wallet.entries.unshift(entry);
+  wallet.entries = wallet.entries.slice(0, MAX_ENTRIES);
+  return entry;
+}
+
 export function balances(wallet) {
   const totals = { pending: 0, available: 0, paid: 0 };
   wallet.entries.forEach((entry) => {

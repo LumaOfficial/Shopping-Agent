@@ -113,6 +113,29 @@
         <p class="hint">Cashback below this amount stays in the wallet.</p>
       </div>
 
+      <h2>Sponsored offers</h2>
+      <p class="muted">
+        Shoppers can earn a small amount for visiting an advertiser, paid into the same cashback
+        wallet. Point this at a sponsor or ad programme you are entitled to use: the extension shows
+        only the offers it returns and records only the amount it books for a visit. Incentivising
+        clicks on ordinary display ads breaks most ad networks' terms — use a programme that pays
+        for these visits itself.
+      </p>
+      <div class="field">
+        <label for="sponsor-url">Sponsor endpoint</label>
+        <input id="sponsor-url" type="url" placeholder="https://ads.example.com/offers" />
+        <p class="hint">
+          <code>GET</code> returns the offers; <code>POST</code> with
+          <code>{"offerId": "…"}</code> books a visit. See the README for both shapes. Blank hides
+          the Earn extra block.
+        </p>
+      </div>
+      <div class="field">
+        <label for="sponsor-key">Sponsor token</label>
+        <input id="sponsor-key" type="password" autocomplete="off" placeholder="Bearer ******" />
+        <p class="hint">Sent only to the endpoint above, and never exported.</p>
+      </div>
+
       <h2>Price history</h2>
       <div class="field">
         <label for="price-key">Product API key</label>

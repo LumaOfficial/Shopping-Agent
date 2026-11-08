@@ -121,6 +121,14 @@ empty list, and the extension never invents an offer.
   `referenceOrderID` and that link. A full card number is never requested or
   stored, and Tango Card platform credentials stay on the proxy. With no proxy
   connected there is nothing to issue, so cash out stays unavailable.
+- **Earn extra (sponsored offers)** — an **Earn extra** block lists the sponsored
+  offers your ad partner returns. Opening one takes the shopper to the
+  advertiser in a new tab and asks the sponsor what it books for the visit; only
+  the amount the sponsor confirms is added to the cashback wallet, as pending,
+  once per offer. The panel never pays for a click on its own, and with no
+  sponsor endpoint the block is hidden. Incentivising clicks on ordinary display
+  ads breaks most ad networks' terms, so this must be a programme that pays for
+  these visits itself.
 - **Savings record** — total of the order-total drops the page confirmed, number
   of codes that worked, products tracked. Stored locally.
 - **Use on any site** — for stores outside the catalog the panel asks for
@@ -159,6 +167,7 @@ between the shopper, the browser and the merchant.
 | `src/partners/cashback-network.js` | Tracked deep-link builder |
 | `src/partners/cashback-ledger.js` | Cashback wallet: pending → cashable → paid, in minor units |
 | `src/partners/cashback-payout.js` | Tango Card order request through your payout proxy |
+| `src/partners/sponsor-offers.js` | Sponsored offers → normalized ads, and the sponsor's booked reward |
 | `src/partners/price-history.js` | Optional product API 90-day low |
 | `tools/check-catalog.mjs` | Keeps `manifest.json` hosts in sync with the catalog |
 | `tools/build.mjs` | Builds `dist/chromium/` and `dist/firefox/` from this source |
@@ -219,6 +228,22 @@ Options page (`options.html`), stored per device, no credential in the repo.
   Tango Card platform credentials never leave the proxy.
 - **Minimum payout** — cashback below this amount stays in the wallet
   (default $5).
+- **Sponsor endpoint** — the service that lists the ads and books what a visit
+  pays. One URL, two calls, `reward` and `amount` in minor units:
+  ```json
+  GET  -> { "offers": [ { "id": "ad_12", "advertiser": "Nordic Outdoors",
+                          "title": "New season", "reward": 25, "currency": "USD",
+                          "url": "https://…", "expiresAt": "2026-12-01" } ] }
+  POST { "offerId": "ad_12" }
+       -> { "amount": 25, "currency": "USD", "status": "pending",
+            "confirmAt": 1767225600000 }
+  ```
+  The sponsor decides what a visit is worth: a POST reply with no positive
+  `amount` pays nothing and the panel says so. The extension adds one wallet
+  entry per `offerId` and never values a click itself. An expired offer is not
+  shown; `status: "available"` skips the hold, anything else stays pending until
+  `confirmAt`. Credentials are a bearer token in `chrome.storage.local`, sent
+  only to the configured host, and are left out of the export.
 
 ### Adding merchants
 
