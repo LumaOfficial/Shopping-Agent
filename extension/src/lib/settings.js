@@ -9,6 +9,8 @@ export const DEFAULTS = {
   cashbackSiteId: "",
   payoutUrl: "",
   payoutKey: "",
+  payoutPlatform: "",
+  payoutPlatformKey: "",
   payoutAccount: "",
   payoutCustomer: "",
   payoutUtid: "",

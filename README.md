@@ -123,8 +123,9 @@ empty list, and the extension never invents an offer.
   order uses `deliveryMethod: "NONE"` so Tango returns a redemption link for the
   panel instead of emailing the shopper; the wallet stores the Tango
   `referenceOrderID` and that link. A full card number is never requested or
-  stored, and Tango Card platform credentials stay on the proxy. With no proxy
-  connected there is nothing to issue, so cash out stays unavailable.
+  stored, and the Tango Card platform credentials live in the extension settings
+  or on the proxy — never in an export. With no proxy connected there is nothing
+  to issue, so cash out stays unavailable.
 - **Earn extra (sponsored offers)** — an **Earn extra** block lists the sponsored
   offers your ad partner returns. Opening one takes the shopper to the
   advertiser in a new tab and asks the sponsor what it books for the visit; only
@@ -212,11 +213,15 @@ feed below only adds more of them.
   ```json
   { "externalRefID": "savings-e_lx2k3ab-800", "customerIdentifier": "your-customer",
     "accountIdentifier": "your-account", "utid": "U1234", "amount": 8,
-    "deliveryMethod": "NONE", "notes": "Savings cashback payout" }
+    "deliveryMethod": "NONE", "notes": "Savings cashback payout",
+    "platformName": "your-platform", "platformKey": "…" }
   ```
-  The proxy adds your Tango Card platform credentials (Basic auth or OAuth) and
-  forwards the order to `https://api.tangocard.com/raas/v2/orders`, then returns
-  Tango's order response unchanged:
+  `platformName` and `platformKey` are included only when you enter them in the
+  settings; they go to that one proxy endpoint over HTTPS and nowhere else. The
+  proxy authenticates to Tango Card with them — or with its own credentials when
+  they are left blank — and forwards the order to
+  `https://api.tangocard.com/raas/v2/orders`, then returns Tango's order response
+  unchanged:
   ```json
   { "referenceOrderID": "…", "rewardName": "Visa® Virtual Account",
     "reward": { "credentials": { "redemptionUrl": "https://…", "expirationDate": "…" },
@@ -228,9 +233,12 @@ feed below only adds more of them.
   reward without emailing a recipient; `externalRefID` is stable per cashable
   balance, so a retry is idempotent. No endpoint means cash out stays
   unavailable.
-- **Payout settings** — the Tango Card account identifier, customer identifier
-  and the virtual Visa reward's UTID. The extension holds only your proxy token;
-  Tango Card platform credentials never leave the proxy.
+- **Payout settings** — the Tango Card platform name and platform key, plus the
+  account identifier, customer identifier and the virtual Visa reward's UTID. The
+  platform key is a password field held in `chrome.storage.local`, sent only to an
+  `https://` proxy endpoint (saving is refused for a plain-`http://` address) and
+  stripped from every export. Leave it blank if your proxy keeps its own
+  credentials.
 - **Minimum payout** — cashback below this amount stays in the wallet
   (default $5).
 - **Sponsor endpoint** — the service that lists the ads and books what a visit

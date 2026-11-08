@@ -486,6 +486,7 @@ async function exportData() {
   delete safeSettings.feedUser;
   delete safeSettings.sponsorKey;
   delete safeSettings.payoutKey;
+  delete safeSettings.payoutPlatformKey;
   return {
     app: "shopping-agent-savings",
     version: 1,

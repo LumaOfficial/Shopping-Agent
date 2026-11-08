@@ -72,10 +72,10 @@
 
       <h2>Cashback payouts</h2>
       <p class="muted">
-        Virtual Visa cards are issued through your proxy to Tango Card's order API. The proxy holds
-        your Tango Card platform credentials; the extension sends it the order and keeps only the
-        reference and redemption link it returns — never a full card number. Without a connected
-        proxy there is nothing to issue, so cash out stays unavailable.
+        Virtual Visa cards are issued through your proxy to Tango Card's order API. Enter your
+        production platform credentials below, or leave them on the proxy; either way the extension
+        keeps only the reference and redemption link it gets back — never a full card number. Without
+        a connected proxy there is nothing to issue, so cash out stays unavailable.
       </p>
       <div class="field">
         <label for="payout-url">Payout proxy endpoint</label>
@@ -85,6 +85,25 @@
           <code>accountIdentifier</code>, <code>utid</code>, <code>amount</code>,
           <code>deliveryMethod: "NONE"</code>) and adds your platform credentials before forwarding
           it to <code>POST /raas/v2/orders</code>. Blank means cash out stays unavailable.
+        </p>
+      </div>
+      <div class="field">
+        <label for="payout-platform">Tango Card platform name</label>
+        <input id="payout-platform" type="text" autocomplete="off" placeholder="your-platform" />
+        <p class="hint">The platform name your proxy authenticates with.</p>
+      </div>
+      <div class="field">
+        <label for="payout-platform-key">Tango Card platform key</label>
+        <input
+          id="payout-platform-key"
+          type="password"
+          autocomplete="new-password"
+          placeholder="Platform key"
+        />
+        <p class="hint">
+          Production platform key. It stays in this browser profile, is sent only to an
+          <code>https://</code> payout proxy, and is left out of every export. Leave both blank if your
+          proxy holds the credentials itself.
         </p>
       </div>
       <div class="field">

@@ -6,7 +6,9 @@
 //
 //   POST <payoutUrl>
 //   { externalRefID, customerIdentifier, accountIdentifier, utid, amount,
-//     deliveryMethod: "NONE", notes }
+//     deliveryMethod: "NONE", notes, platformName?, platformKey? }
+//   The platform credentials are included only when they were entered in
+//   settings, and only ever go to this same proxy endpoint.
 //   -> Tango Card order
 //   { referenceOrderID, rewardName,
 //     reward: { credentials: { redemptionUrl, expirationDate }, credentialList } }
@@ -84,19 +86,28 @@ export async function requestVirtualCard(settings, request) {
   }
 
   try {
+    const order = {
+      externalRefID: externalRef(request.earnings, request.amount),
+      customerIdentifier,
+      accountIdentifier,
+      utid,
+      amount,
+      deliveryMethod: "NONE",
+      notes: "Savings cashback payout",
+    };
+
+    const platformName = String(settings.payoutPlatform || "").trim();
+    const platformKey = String(settings.payoutPlatformKey || "").trim();
+    if (platformName && platformKey) {
+      order.platformName = platformName;
+      order.platformKey = platformKey;
+    }
+
     const response = await fetch(url, {
       method: "POST",
       headers: payoutHeaders(settings),
       cache: "no-store",
-      body: JSON.stringify({
-        externalRefID: externalRef(request.earnings, request.amount),
-        customerIdentifier,
-        accountIdentifier,
-        utid,
-        amount,
-        deliveryMethod: "NONE",
-        notes: "Savings cashback payout",
-      }),
+      body: JSON.stringify(order),
     });
 
     const body = await response.text();

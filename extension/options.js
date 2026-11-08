@@ -10,6 +10,8 @@ function fill(settings) {
   byId("cashback-template").value = settings.cashbackTemplate;
   byId("cashback-site").value = settings.cashbackSiteId;
   byId("payout-url").value = settings.payoutUrl;
+  byId("payout-platform").value = settings.payoutPlatform;
+  byId("payout-platform-key").value = settings.payoutPlatformKey;
   byId("payout-account").value = settings.payoutAccount;
   byId("payout-customer").value = settings.payoutCustomer;
   byId("payout-utid").value = settings.payoutUtid;
@@ -44,6 +46,8 @@ function collect() {
     cashbackTemplate: byId("cashback-template").value.trim(),
     cashbackSiteId: byId("cashback-site").value.trim(),
     payoutUrl: byId("payout-url").value.trim(),
+    payoutPlatform: byId("payout-platform").value.trim(),
+    payoutPlatformKey: byId("payout-platform-key").value.trim(),
     payoutAccount: byId("payout-account").value.trim(),
     payoutCustomer: byId("payout-customer").value.trim(),
     payoutUtid: byId("payout-utid").value.trim(),
@@ -84,14 +88,31 @@ async function ensureHost(endpoint) {
   return chrome.permissions.request({ origins: [origin] });
 }
 
+// Platform credentials only ever travel to the payout proxy, so that endpoint
+// must be HTTPS. Nothing is stored while it is not.
+function payoutEndpointInsecure(settings) {
+  const key = String(settings.payoutPlatformKey || "").trim();
+  const url = String(settings.payoutUrl || "").trim();
+  return Boolean(key) && !/^https:\/\//i.test(url);
+}
+
 async function save() {
   const stored = await chrome.storage.local.get("settings");
   const settings = withDefaults(Object.assign({}, stored.settings, collect()));
+  if (payoutEndpointInsecure(settings)) {
+    return {
+      ok: false,
+      message: "Use an https:// payout proxy address — platform credentials are only sent encrypted.",
+    };
+  }
   const granted = await ensureHost(settings.feedUrl);
   const payoutGranted = await ensureHost(settings.payoutUrl);
   const sponsorGranted = await ensureHost(settings.sponsorUrl);
   await chrome.storage.local.set({ settings });
-  return granted && payoutGranted && sponsorGranted;
+  if (!(granted && payoutGranted && sponsorGranted)) {
+    return { ok: false, message: "Saved, but access to that source host was denied." };
+  }
+  return { ok: true };
 }
 
 async function load() {
@@ -151,9 +172,9 @@ byId("feed-auth").addEventListener("change", syncAuthFields);
 
 byId("settings-form").addEventListener("submit", async (event) => {
   event.preventDefault();
-  const granted = await save();
+  const outcome = await save();
   const saved = byId("saved");
-  saved.textContent = granted ? "Saved" : "Saved, but access to that source host was denied.";
+  saved.textContent = outcome.ok ? "Saved" : outcome.message;
   saved.hidden = false;
   setTimeout(() => {
     saved.hidden = true;
@@ -169,10 +190,10 @@ byId("test-source").addEventListener("click", async () => {
   result.className = "test-line wait";
   result.textContent = "Contacting the source…";
 
-  const granted = await save();
-  if (!granted) {
+  const outcome = await save();
+  if (!outcome.ok) {
     result.className = "test-line bad";
-    result.textContent = "Access to that source host was denied, so it cannot be tested.";
+    result.textContent = outcome.message;
     button.disabled = false;
     button.textContent = "Test connection";
     return;
