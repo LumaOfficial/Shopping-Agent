@@ -1,6 +1,7 @@
-// Offer connector. Coupons and cashback rates come from the one authorized feed
-// the operator configures. There is no bundled catalog: when no feed is
-// configured this returns nothing, and the panel says so.
+// Optional offer connector. Codes arrive automatically from the page the
+// shopper is on; this feed only adds more of them, plus the cashback rate, for
+// an operator who has an authorized source. There is no bundled catalog: when no
+// feed is configured this returns nothing and the panel works from the page.
 import { normalizeCode, isExpired } from "../lib/codes.js";
 
 export function feedEndpoint(feedUrl, storeId) {

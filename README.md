@@ -59,14 +59,18 @@ involved ("Show Edge autofill", "Show Firefox autofill", …); nothing else diff
 
 ### Where codes come from
 
+Codes need no setup: the panel reads them from the store page you are already
+shopping on and re-reads it when a cart drawer or banner loads late. An
+authorized feed is optional and only adds more.
+
 Every code the panel shows is one of:
 
 | Source | Where it comes from |
 | --- | --- |
-| **feed** | the authorized offer endpoint configured in Settings |
-| **on page** | a code the store itself publishes on the page you are viewing |
-| **yours** | a code you pasted and saved for that store |
 | **works** | a code this store accepted earlier on this device |
+| **feed** | the optional authorized offer endpoint configured in Settings |
+| **yours** | a code you pasted and saved for that store |
+| **on page** | a code the store itself publishes on the page you are viewing (automatic) |
 
 There is no bundled coupon list: a store with no codes from any source shows an
 empty list, and the extension never invents an offer.
@@ -94,18 +98,18 @@ empty list, and the extension never invents an offer.
   saw (JSON-LD, meta or the page's own price node) on this device, and the panel
   reports the lowest price it has seen for that product. No API key needed.
 - **Optional product API** — a Keepa-compatible key adds a 90-day low.
-- **Fetch on demand** — when the list is empty, **Fetch codes now** asks the
-  configured coupon source for this store's current codes immediately (past the
-  10-minute cache) and reports how many it returned; with no source connected the
-  same button opens Settings.
+- **Scan on demand** — when the list is empty, **Scan this page again** re-reads
+  the store page (and the optional feed, past its 10-minute cache) and reports
+  what it found. It works with nothing configured.
 - **Saved codes** — paste a code and it is applied, then kept per store, with
   delete.
 - **Verified codes** — codes the store accepted are remembered per store and
   offered first next time, marked `works`.
 - **Search / filter**, **Copy**, **Try all** (stops at the first code that lands).
 - **Expiry** — codes past their `expires` date are dropped instead of offered.
-- **Provenance strip** — which source answered, how fresh it is, and the feed's
-  own error text when it fails.
+- **Provenance strip** — which source answered ("Live page scan" by default), how
+  fresh the read is, and the feed's own error text when one is connected and
+  fails.
 - **Cashback** — builds the network's tracked deep link so the purchase is
   attributed to the shopper. Cashback is paid by the network, never claimed by
   the extension.
@@ -174,9 +178,11 @@ between the shopper, the browser and the merchant.
 
 ### Connector configuration
 
-Options page (`options.html`), stored per device, no credential in the repo.
+Options page (`options.html`), stored per device, no credential in the repo. None
+of it is required for coupon codes — those come from the page automatically; the
+feed below only adds more of them.
 
-- **Source endpoint** — JSON you are authorized to query, `{store}` substituted:
+- **Extra coupon feed (optional)** — JSON you are authorized to query, `{store}` substituted:
   ```json
   {
     "stores": {
@@ -188,8 +194,7 @@ Options page (`options.html`), stored per device, no credential in the repo.
   }
   ```
   An array of `{ "store": "target", … }` entries, or a single store's object, is
-  also accepted. Without a feed the panel shows only page-published and saved
-  codes, and says so.
+  also accepted. Leave it blank and the panel works from the page alone.
 - **Authentication** — `Bearer token`, or `Basic` (username + password, the form
   Oxylabs uses). Credentials stay in `chrome.storage.local` on the device and are
   sent only to the configured host, which is why saving asks for optional host

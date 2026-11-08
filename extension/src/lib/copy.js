@@ -11,7 +11,8 @@ export function partnerSummary(members) {
   return `Coupons, cashback and price data from ${PARTNER_LABEL} — ${clean}+ members combined.`;
 }
 
-// Shown wherever the panel would otherwise have codes to show and has none. No
-// bundled examples: a code the store never issued is worse than no code.
-export const NO_SOURCE_NOTE =
-  "No coupon source is connected, so no codes are shown. Connect your authorized offer feed in Settings, or save a code you have.";
+// Codes are read from the page the shopper is already on, so nothing has to be
+// connected first. No bundled examples: a code the store never issued is worse
+// than no code.
+export const PAGE_SOURCE_NOTE =
+  "Codes are read automatically from the page you are shopping — no API or key needed. Stores often publish them in the cart, a banner or their deals page.";

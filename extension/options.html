@@ -9,13 +9,13 @@
     <form class="sheet" id="settings-form">
       <h1>Savings settings</h1>
       <p class="muted">
-        Live coupon data comes from an authorized offer source you configure here, from codes the
-        store publishes on the page you are viewing, and from codes you save yourself. Point the
-        source at a feed you are entitled to use — your own offer feed or your authorized data
-        provider account.
+        Coupon codes are found automatically on the page you are shopping — no API or key needed.
+        Codes the store publishes, codes you save, and codes this store already accepted all show up
+        by themselves. Everything below is optional: an authorized feed adds more codes and cashback
+        rates, and the payout fields enable cashing out.
       </p>
 
-      <h2>Authorized data source</h2>
+      <h2>Extra coupon feed (optional)</h2>
       <div class="field">
         <label for="feed-url">Source endpoint</label>
         <input id="feed-url" type="url" placeholder="https://offers.example.com/store/{store}" />
@@ -42,7 +42,10 @@
       <div class="field">
         <label for="feed-key" id="feed-key-label">Source token</label>
         <input id="feed-key" type="password" autocomplete="off" placeholder="Bearer token" />
-        <p class="hint">Blank means no feed: the panel then shows only page-published and saved codes.</p>
+        <p class="hint">
+          Blank is normal — the panel already shows the codes this store publishes and the ones you
+          saved. Fill this in only if you have a feed you are entitled to use.
+        </p>
       </div>
       <div class="actions" style="margin-top: 4px; padding-top: 0; border-top: 0">
         <button class="btn ghost" id="test-source" type="button">Test connection</button>

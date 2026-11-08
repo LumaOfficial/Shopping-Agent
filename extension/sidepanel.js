@@ -1,7 +1,7 @@
 import { storeCount } from "./src/lib/stores.js";
 import { mergeCodes, SOURCE_LABEL } from "./src/lib/codes.js";
 import { money, humanAge } from "./src/lib/format.js";
-import { NO_SOURCE_NOTE } from "./src/lib/copy.js";
+import { PAGE_SOURCE_NOTE } from "./src/lib/copy.js";
 import { browserName } from "./src/lib/browser.js";
 import { HOLD_DAYS } from "./src/partners/cashback-ledger.js";
 
@@ -12,6 +12,7 @@ const state = {
   url: null,
   data: null,
   scan: null,
+  scannedAt: 0,
   codes: [],
   filter: "",
   filterSource: "all",
@@ -69,7 +70,7 @@ function reset() {
   byId("codes-status").textContent = "";
   byId("fetch-codes").hidden = true;
   byId("fetch-codes").disabled = false;
-  byId("fetch-codes").textContent = "Fetch codes now";
+  byId("fetch-codes").textContent = "Scan this page again";
   byId("code-filters").hidden = true;
   byId("code-filters").textContent = "";
   byId("copy-all").hidden = true;
@@ -86,6 +87,7 @@ function reset() {
   byId("wallet-note").hidden = true;
   state.data = null;
   state.scan = null;
+  state.scannedAt = 0;
   state.codes = [];
   state.filter = "";
   state.filterSource = "all";
@@ -128,21 +130,26 @@ function feedStatusText(feed) {
   }
 }
 
-// Where the codes came from and how fresh they are — never invented.
+// Where the codes came from and how fresh they are — never invented. With no
+// feed configured the page is the source, so the strip reports when the page was
+// last read instead of asking for an API.
 function renderSource(data, connected) {
   byId("source-block").hidden = false;
   const feed = data.feed || {};
   const live = feed.configured && feed.status === "ok";
+  const haveCodes = state.codes.length > 0;
 
-  byId("source-dot").className = "dot " + (live ? "live" : "idle");
+  byId("source-dot").className = "dot " + (live || haveCodes || connected ? "live" : "idle");
   byId("source-label").textContent = feed.configured
     ? (live ? "Authorized feed · " + (feed.label || "connected") : "Feed: " + feedStatusText(feed))
-    : "No feed connected";
-  byId("source-fresh").textContent =
-    feed.configured && feed.fetchedAt ? humanAge(feed.fetchedAt) : "your own codes only";
+    : "Live page scan";
+  const readAt = feed.configured && feed.fetchedAt ? feed.fetchedAt : state.scannedAt;
+  byId("source-fresh").textContent = readAt
+    ? humanAge(readAt)
+    : feed.configured ? "waiting for the feed" : "reading this page";
 
   const note = byId("source-note");
-  const text = feed.error || (feed.configured ? "" : NO_SOURCE_NOTE);
+  const text = feed.configured ? feed.error || "" : haveCodes ? "" : PAGE_SOURCE_NOTE;
   note.textContent = text;
   note.hidden = !text;
 
@@ -337,20 +344,23 @@ function renderCoupons() {
 
   const alive = liveCodes();
   const codes = visibleCodes();
+  // A "no codes yet" scan message is stale the moment a code shows up.
+  if (alive.length) {
+    byId("codes-status").hidden = true;
+    byId("codes-status").textContent = "";
+  }
   renderFilters(alive);
   byId("try-all").hidden = codes.length < 2;
   byId("copy-all").hidden = !alive.length;
   byId("code-search").hidden = alive.length < 4;
 
-  // One tap fetches this store's current codes from the coupon source. Shown
-  // only while the list is empty, which is when there is nothing to apply.
+  // One tap re-reads this page for codes (and the optional feed, if one is
+  // connected). Shown only while the list is empty, which is when there is
+  // nothing to apply.
   const fetchButton = byId("fetch-codes");
   fetchButton.hidden = alive.length > 0;
   fetchButton.disabled = false;
-  fetchButton.textContent =
-    state.data && state.data.feed && state.data.feed.configured
-      ? "Fetch codes now"
-      : "Connect a coupon source";
+  fetchButton.textContent = "Scan this page again";
 
   const empty = byId("coupon-empty");
   empty.hidden = codes.length > 0;
@@ -358,10 +368,10 @@ function renderCoupons() {
     if (alive.length) {
       empty.textContent = "No code matches that filter.";
     } else if (state.data && state.data.feed && state.data.feed.configured) {
-      empty.textContent = "The source has no codes for this store yet.";
+      empty.textContent = "No codes yet — the feed has none for this store and none are published on this page.";
     } else {
       empty.textContent =
-        "No codes for this store yet. Connect an offer feed in Settings, or save a code you already have below.";
+        "No codes on this page yet. Stores usually publish them in the cart or a banner — open it and scan again, or save a code below.";
     }
   }
 
@@ -679,6 +689,29 @@ async function refreshCodes() {
   return data;
 }
 
+// Coupon widgets often render after the panel's first read (a cart drawer, a
+// banner that loads late). One delayed re-read keeps the list automatic without
+// any settings — still only what the page itself publishes.
+let autoScanTimer = null;
+function scheduleAutoScan() {
+  clearTimeout(autoScanTimer);
+  autoScanTimer = setTimeout(async () => {
+    if (!state.data || !state.url) return;
+    const scan = await toTab({ type: "page:scan" }, { frameId: 0 });
+    if (!scan || scan.error) return;
+    const pageCodes = (scan.codes || []).map((coupon) =>
+      Object.assign({}, coupon, { source: "page" })
+    );
+    const before = state.codes.length;
+    state.scan = scan;
+    state.scannedAt = Date.now();
+    state.codes = mergeCodes(state.codes, pageCodes);
+    renderSource(state.data, true);
+    renderPage(scan, state.data.features);
+    if (state.codes.length !== before) renderCoupons();
+  }, 2500);
+}
+
 function enableSiteAction() {
   return {
     label: "Use Savings on this site",
@@ -745,6 +778,7 @@ async function render() {
 
   const scan = await toTab({ type: "page:scan" }, { frameId: 0 });
   state.scan = scan && !scan.error ? scan : null;
+  state.scannedAt = Date.now();
 
   const pageCodes = ((state.scan && state.scan.codes) || []).map((coupon) =>
     Object.assign({}, coupon, { source: "page" })
@@ -755,6 +789,7 @@ async function render() {
   renderPage(state.scan, features);
   renderCashback(data);
   renderCoupons();
+  if (features.coupons !== false) scheduleAutoScan();
   byId("partner-line").textContent = data.footer;
   byId("access-line").textContent =
     storeCount() + " stores supported. Only the store's own promo field is touched.";
@@ -787,34 +822,32 @@ byId("refresh").addEventListener("click", async () => {
   button.disabled = true;
   button.textContent = "Checking…";
   state.scan = await toTab({ type: "page:scan" }, { frameId: 0 });
+  state.scannedAt = Date.now();
   await refreshCodes();
   renderPage(state.scan, state.data && state.data.features);
   button.disabled = false;
   button.textContent = "Refresh";
 });
 
-// One-tap live fetch: asks the coupon source for this store's current codes now
-// (past the 10-minute cache) instead of waiting for the panel's background load.
+// One tap re-reads the page the shopper is on and, when an extra feed is
+// connected, that too. Works with no configuration at all.
 byId("fetch-codes").addEventListener("click", async () => {
   if (!state.data || !state.url) return;
   const button = byId("fetch-codes");
   const status = byId("codes-status");
   const label = button.textContent;
 
-  if (!state.data.feed || !state.data.feed.configured) {
-    status.hidden = false;
-    status.className = "status wait";
-    status.textContent =
-      "No coupon source connected yet. Add your authorized feed in Settings, then fetch again.";
-    window.open("options.html", "_blank");
-    return;
-  }
-
   button.disabled = true;
-  button.textContent = "Fetching…";
+  button.textContent = "Scanning…";
   status.hidden = false;
   status.className = "status wait";
-  status.textContent = "Asking your coupon source for this store's current codes…";
+  status.textContent = "Reading this page for codes…";
+
+  const scan = await toTab({ type: "page:scan" }, { frameId: 0 });
+  if (scan && !scan.error) {
+    state.scan = scan;
+    state.scannedAt = Date.now();
+  }
 
   const data = await refreshCodes();
   button.disabled = false;
@@ -822,27 +855,28 @@ byId("fetch-codes").addEventListener("click", async () => {
 
   if (!data) {
     status.className = "status bad";
-    status.textContent = "Could not fetch codes for this page.";
+    status.textContent = "Could not read this page for codes.";
     return;
   }
 
   const feed = data.feed || {};
-  if (feed.status === "off") {
-    status.className = "status wait";
-    status.textContent = "Coupons are turned off in Settings.";
-    return;
-  }
-  if (feed.status !== "ok") {
-    status.className = "status bad";
-    status.textContent = feed.error || "The coupon source did not answer.";
+  const pageCodes = (data.codes || []).filter((coupon) => coupon.source === "page").length;
+  const feedCodes = (data.codes || []).filter((coupon) => coupon.source === "feed").length;
+  const parts = [];
+  if (pageCodes) parts.push(pageCodes + " code" + (pageCodes === 1 ? "" : "s") + " on this page");
+  if (feedCodes) parts.push(feedCodes + " from " + (feed.label || "the connected feed"));
+
+  if (parts.length) {
+    status.className = "status ok";
+    status.textContent = "Found " + parts.join(" and ") + ".";
     return;
   }
 
-  const found = (data.codes || []).filter((coupon) => coupon.source === "feed").length;
-  status.className = found ? "status ok" : "status wait";
-  status.textContent = found
-    ? "Fetched " + found + " code" + (found === 1 ? "" : "s") + " from " + (feed.label || "your coupon source") + "."
-    : "The source has no codes for this store right now.";
+  status.className = "status wait";
+  status.textContent =
+    feed.status === "off"
+      ? "Coupons are turned off in Settings."
+      : "No codes on this page yet. They often appear in the cart or a banner — open it, then scan again.";
 });
 
 byId("reconnect").addEventListener("click", () => {
