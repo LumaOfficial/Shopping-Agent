@@ -66,6 +66,9 @@ function reset() {
     "We can't verify this store's security — check the address bar before you pay.";
   byId("codes-status").hidden = true;
   byId("codes-status").textContent = "";
+  byId("fetch-codes").hidden = true;
+  byId("fetch-codes").disabled = false;
+  byId("fetch-codes").textContent = "Fetch codes now";
   byId("code-filters").hidden = true;
   byId("code-filters").textContent = "";
   byId("copy-all").hidden = true;
@@ -332,6 +335,16 @@ function renderCoupons() {
   byId("try-all").hidden = codes.length < 2;
   byId("copy-all").hidden = !alive.length;
   byId("code-search").hidden = alive.length < 4;
+
+  // One tap fetches this store's current codes from the coupon source. Shown
+  // only while the list is empty, which is when there is nothing to apply.
+  const fetchButton = byId("fetch-codes");
+  fetchButton.hidden = alive.length > 0;
+  fetchButton.disabled = false;
+  fetchButton.textContent =
+    state.data && state.data.feed && state.data.feed.configured
+      ? "Fetch codes now"
+      : "Connect a coupon source";
 
   const empty = byId("coupon-empty");
   empty.hidden = codes.length > 0;
@@ -703,6 +716,58 @@ byId("refresh").addEventListener("click", async () => {
   renderPage(state.scan, state.data && state.data.features);
   button.disabled = false;
   button.textContent = "Refresh";
+});
+
+// One-tap live fetch: asks the coupon source for this store's current codes now
+// (past the 10-minute cache) instead of waiting for the panel's background load.
+byId("fetch-codes").addEventListener("click", async () => {
+  if (!state.data || !state.url) return;
+  const button = byId("fetch-codes");
+  const status = byId("codes-status");
+  const label = button.textContent;
+
+  if (!state.data.feed || !state.data.feed.configured) {
+    status.hidden = false;
+    status.className = "status wait";
+    status.textContent =
+      "No coupon source connected yet. Add your authorized feed in Settings, then fetch again.";
+    window.open("options.html", "_blank");
+    return;
+  }
+
+  button.disabled = true;
+  button.textContent = "Fetching…";
+  status.hidden = false;
+  status.className = "status wait";
+  status.textContent = "Asking your coupon source for this store's current codes…";
+
+  const data = await refreshCodes();
+  button.disabled = false;
+  button.textContent = label;
+
+  if (!data) {
+    status.className = "status bad";
+    status.textContent = "Could not fetch codes for this page.";
+    return;
+  }
+
+  const feed = data.feed || {};
+  if (feed.status === "off") {
+    status.className = "status wait";
+    status.textContent = "Coupons are turned off in Settings.";
+    return;
+  }
+  if (feed.status !== "ok") {
+    status.className = "status bad";
+    status.textContent = feed.error || "The coupon source did not answer.";
+    return;
+  }
+
+  const found = (data.codes || []).filter((coupon) => coupon.source === "feed").length;
+  status.className = found ? "status ok" : "status wait";
+  status.textContent = found
+    ? "Fetched " + found + " code" + (found === 1 ? "" : "s") + " from " + (feed.label || "your coupon source") + "."
+    : "The source has no codes for this store right now.";
 });
 
 byId("reconnect").addEventListener("click", () => {

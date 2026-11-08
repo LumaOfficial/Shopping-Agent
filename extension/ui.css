@@ -1094,6 +1094,10 @@ body.sidepanel .empty-note {
   margin-top: 16px;
 }
 
+body.sidepanel #fetch-codes {
+  margin-top: 16px;
+}
+
 body.sidepanel .adds {
   display: flex;
   gap: 10px;

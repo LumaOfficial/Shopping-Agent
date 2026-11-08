@@ -94,6 +94,10 @@ empty list, and the extension never invents an offer.
   saw (JSON-LD, meta or the page's own price node) on this device, and the panel
   reports the lowest price it has seen for that product. No API key needed.
 - **Optional product API** — a Keepa-compatible key adds a 90-day low.
+- **Fetch on demand** — when the list is empty, **Fetch codes now** asks the
+  configured coupon source for this store's current codes immediately (past the
+  10-minute cache) and reports how many it returned; with no source connected the
+  same button opens Settings.
 - **Saved codes** — paste a code and it is applied, then kept per store, with
   delete.
 - **Verified codes** — codes the store accepted are remembered per store and
