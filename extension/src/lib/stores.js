@@ -7,7 +7,7 @@
 // resolveStore(url, settings.enabledSites).
 export const STORES = [
   // Marketplace & general
-  { id: "amazon", name: "Amazon", hosts: ["amazon.com", "amazon.co.uk", "amazon.de", "amazon.ca", "amazon.com.au", "amazon.co.jp", "amazon.fr", "amazon.it", "amazon.es"], category: "Marketplace" },
+  { id: "amazon", name: "Amazon", hosts: ["amazon.com", "amazon.co.uk", "amazon.de", "amazon.ca", "amazon.com.au", "amazon.co.jp", "amazon.fr", "amazon.it", "amazon.es", "amazon.in", "amazon.com.mx", "amazon.com.br", "amazon.nl", "amazon.se", "amazon.pl"], category: "Marketplace" },
   { id: "ebay", name: "eBay", hosts: ["ebay.com", "ebay.co.uk", "ebay.de", "ebay.ca", "ebay.com.au"], category: "Marketplace" },
   { id: "etsy", name: "Etsy", host: "etsy.com", category: "Marketplace" },
   { id: "aliexpress", name: "AliExpress", host: "aliexpress.com", category: "Marketplace" },
@@ -438,6 +438,81 @@ export const STORES = [
   { id: "myntra", name: "Myntra", host: "myntra.com", category: "Fashion" },
   { id: "noon", name: "noon", host: "noon.com", category: "Marketplace" },
   { id: "rakuten", name: "Rakuten", host: "rakuten.com", category: "Marketplace" },
+
+  // More fashion & shoes
+  { id: "aritzia", name: "Aritzia", host: "aritzia.com", category: "Fashion" },
+  { id: "reformation", name: "Reformation", host: "thereformation.com", category: "Fashion" },
+  { id: "skims", name: "SKIMS", host: "skims.com", category: "Fashion" },
+  { id: "allbirds", name: "Allbirds", host: "allbirds.com", category: "Fashion" },
+  { id: "onrunning", name: "On", host: "on.com", category: "Fashion" },
+  { id: "ugg", name: "UGG", host: "ugg.com", category: "Fashion" },
+  { id: "sperry", name: "Sperry", host: "sperry.com", category: "Fashion" },
+  { id: "pacsun", name: "PacSun", host: "pacsun.com", category: "Fashion" },
+  { id: "mango", name: "MANGO", host: "mango.com", category: "Fashion" },
+  { id: "cos", name: "COS", host: "cos.com", category: "Fashion" },
+  { id: "shoecarnival", name: "Shoe Carnival", host: "shoecarnival.com", category: "Fashion" },
+  { id: "rackroomshoes", name: "Rack Room Shoes", host: "rackroomshoes.com", category: "Fashion" },
+  { id: "tillys", name: "Tillys", host: "tillys.com", category: "Fashion" },
+
+  // More beauty
+  { id: "fentybeauty", name: "Fenty Beauty", host: "fentybeauty.com", category: "Beauty" },
+  { id: "rarebeauty", name: "Rare Beauty", host: "rarebeauty.com", category: "Beauty" },
+  { id: "glowrecipe", name: "Glow Recipe", host: "glowrecipe.com", category: "Beauty" },
+  { id: "deciem", name: "The Ordinary", host: "deciem.com", category: "Beauty" },
+  { id: "ipsy", name: "IPSY", host: "ipsy.com", category: "Beauty" },
+
+  // More home
+  { id: "arhaus", name: "Arhaus", host: "arhaus.com", category: "Home" },
+  { id: "serenaandlily", name: "Serena & Lily", host: "serenaandlily.com", category: "Home" },
+  { id: "ballarddesigns", name: "Ballard Designs", host: "ballarddesigns.com", category: "Home" },
+  { id: "frontgate", name: "Frontgate", host: "frontgate.com", category: "Home" },
+  { id: "flooranddecor", name: "Floor & Decor", host: "flooranddecor.com", category: "Home" },
+  { id: "rejuvenation", name: "Rejuvenation", host: "rejuvenation.com", category: "Home" },
+
+  // More electronics & mobile
+  { id: "verizon", name: "Verizon", host: "verizon.com", category: "Electronics" },
+  { id: "att", name: "AT&T", host: "att.com", category: "Electronics" },
+  { id: "tmobile", name: "T-Mobile", host: "t-mobile.com", category: "Electronics" },
+
+  // More grocery
+  { id: "foodlion", name: "Food Lion", host: "foodlion.com", category: "Grocery" },
+  { id: "stopandshop", name: "Stop & Shop", host: "stopandshop.com", category: "Grocery" },
+  { id: "gianteagle", name: "Giant Eagle", host: "gianteagle.com", category: "Grocery" },
+
+  // More books
+  { id: "abebooks", name: "AbeBooks", host: "abebooks.com", category: "Books" },
+  { id: "betterworldbooks", name: "Better World Books", host: "betterworldbooks.com", category: "Books" },
+
+  // More outdoor & sporting
+  { id: "decathlon", name: "Decathlon", host: "decathlon.com", category: "Outdoor" },
+  { id: "moosejaw", name: "Moosejaw", host: "moosejaw.com", category: "Outdoor" },
+  { id: "sierra", name: "Sierra", host: "sierra.com", category: "Outdoor" },
+  { id: "publiclands", name: "Public Lands", host: "publiclands.com", category: "Outdoor" },
+
+  // More kids
+  { id: "fatbraintoys", name: "Fat Brain Toys", host: "fatbraintoys.com", category: "Kids" },
+
+  // More services & software
+  { id: "canva", name: "Canva", host: "canva.com", category: "Software" },
+  { id: "grammarly", name: "Grammarly", host: "grammarly.com", category: "Software" },
+  { id: "nordvpn", name: "NordVPN", host: "nordvpn.com", category: "Software" },
+  { id: "squarespace", name: "Squarespace", host: "squarespace.com", category: "Software" },
+
+  // More travel
+  { id: "jetblue", name: "JetBlue", host: "jetblue.com", category: "Travel" },
+  { id: "alaskaair", name: "Alaska Airlines", host: "alaskaair.com", category: "Travel" },
+
+  // More United Kingdom
+  { id: "halfords", name: "Halfords", host: "halfords.com", category: "Electronics" },
+  { id: "selfridges", name: "Selfridges", host: "selfridges.com", category: "Fashion" },
+  { id: "sportsdirect", name: "Sports Direct", host: "sportsdirect.com", category: "Fashion" },
+  { id: "tesco", name: "Tesco", host: "tesco.com", category: "Grocery" },
+  { id: "ao", name: "AO", host: "ao.com", category: "Electronics" },
+
+  // More Australia
+  { id: "kogan", name: "Kogan", host: "kogan.com", category: "General" },
+  { id: "theiconic", name: "THE ICONIC", host: "theiconic.com.au", category: "Fashion" },
+  { id: "myer", name: "Myer", host: "myer.com.au", category: "General" },
 ];
 
 // Every entry may list one host or several regional hosts.

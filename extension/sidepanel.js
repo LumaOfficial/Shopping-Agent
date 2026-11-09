@@ -1,4 +1,5 @@
-import { storeCount } from "./src/lib/stores.js";
+import { STORES, storeCount } from "./src/lib/stores.js";
+import { filterStores, storeCategories, storeHost, storeSite } from "./src/lib/store-directory.js";
 import { mergeCodes, SOURCE_LABEL } from "./src/lib/codes.js";
 import { money, humanAge } from "./src/lib/format.js";
 import { PAGE_SOURCE_NOTE } from "./src/lib/copy.js";
@@ -17,6 +18,8 @@ const state = {
   filter: "",
   filterSource: "all",
   dead: new Set(),
+  storeQuery: "",
+  storeCategory: "All",
 };
 
 const BLOCKS = [
@@ -113,6 +116,65 @@ function showEmpty(title, text, chips, action) {
     button.hidden = false;
     button.textContent = action.label;
     button.onclick = action.run;
+  }
+}
+
+// ---- store directory ----------------------------------------------------
+// The whole catalog, browsable from the panel: what is covered, searchable by
+// name, host or category, and one tap from the store's own site.
+let directoryBuilt = false;
+
+function buildStoreDirectory() {
+  if (directoryBuilt) return;
+  directoryBuilt = true;
+  const row = byId("store-categories");
+  ["All"].concat(storeCategories()).forEach((category) => {
+    const button = document.createElement("button");
+    button.className = "chip filter";
+    button.type = "button";
+    button.dataset.category = category;
+    button.textContent = category;
+    button.setAttribute("aria-pressed", String(category === state.storeCategory));
+    row.appendChild(button);
+  });
+  renderStoreList();
+}
+
+function renderStoreList() {
+  const list = byId("store-list");
+  const stores = filterStores(state.storeQuery, state.storeCategory);
+  list.textContent = "";
+  byId("store-empty").hidden = stores.length > 0;
+  stores.forEach((store) => {
+    const item = document.createElement("li");
+
+    const open = document.createElement("button");
+    open.className = "store-link";
+    open.type = "button";
+    open.textContent = store.name;
+    open.title = "Open " + store.name;
+    open.dataset.url = storeSite(store);
+    item.appendChild(open);
+
+    const host = document.createElement("span");
+    host.className = "lbl";
+    host.textContent = storeHost(store);
+    item.appendChild(host);
+
+    list.appendChild(item);
+  });
+}
+
+function toggleStoreDirectory() {
+  const panel = byId("stores-panel");
+  const button = byId("stores-toggle");
+  const open = panel.hidden;
+  panel.hidden = !open;
+  button.setAttribute("aria-expanded", String(open));
+  button.textContent = open ? "Hide" : "Browse";
+  if (open) {
+    buildStoreDirectory();
+    byId("store-search").focus();
   }
 }
 
@@ -1107,6 +1169,30 @@ function applyBrowserCopy() {
   const button = byId("show-autofill");
   if (button) button.textContent = "Show " + name + " autofill";
 }
+
+byId("stores-count").textContent = String(STORES.length);
+byId("stores-toggle").addEventListener("click", toggleStoreDirectory);
+
+byId("store-search").addEventListener("input", (event) => {
+  state.storeQuery = event.target.value;
+  renderStoreList();
+});
+
+byId("store-categories").addEventListener("click", (event) => {
+  const button = event.target.closest("button[data-category]");
+  if (!button) return;
+  state.storeCategory = button.dataset.category;
+  Array.from(byId("store-categories").children).forEach((chip) => {
+    chip.setAttribute("aria-pressed", String(chip === button));
+  });
+  renderStoreList();
+});
+
+byId("store-list").addEventListener("click", (event) => {
+  const button = event.target.closest("button[data-url]");
+  if (!button) return;
+  chrome.tabs.create({ url: button.dataset.url });
+});
 
 applyBrowserCopy();
 render();

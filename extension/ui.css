@@ -801,6 +801,54 @@ body.sidepanel .ledger .amt {
   color: #2a2440;
 }
 
+/* ---------- Store directory ---------- */
+
+body.sidepanel .store-list {
+  max-height: 300px;
+  overflow-y: auto;
+  margin: 14px 0 0;
+  padding-right: 4px;
+}
+
+body.sidepanel .store-list li {
+  gap: 12px;
+  padding: 9px 6px;
+  border-radius: 12px;
+}
+
+body.sidepanel .store-list li:hover {
+  background: #faf8ff;
+}
+
+body.sidepanel .store-link {
+  appearance: none;
+  border: 0;
+  background: none;
+  padding: 0;
+  font: 500 14px/1.3 inherit;
+  font-family: inherit;
+  color: #2a2440;
+  text-align: left;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+body.sidepanel .store-link:hover {
+  color: #5b4bd6;
+}
+
+body.sidepanel .store-link:focus-visible {
+  outline: 2px solid #7c6bf5;
+  outline-offset: 3px;
+  border-radius: 6px;
+}
+
+body.sidepanel .store-list .lbl {
+  margin-left: auto;
+  color: #a39bc4;
+  font-size: 12px;
+}
+
 body.sidepanel .payout {
   margin-top: 16px;
   padding: 16px 18px;

@@ -186,6 +186,45 @@
         </p>
       </section>
 
+      <section class="card c8" id="stores-block">
+        <h3 style="justify-content: space-between">
+          All stores
+          <span class="head-actions">
+            <span class="pill" id="stores-count">0</span>
+            <button
+              class="mini"
+              id="stores-toggle"
+              type="button"
+              aria-expanded="false"
+              aria-controls="stores-panel"
+            >
+              Browse
+            </button>
+          </span>
+        </h3>
+        <p class="muted tiny">
+          Every store Savings works on. Open one to start comparing codes, cashback and prices.
+        </p>
+        <div id="stores-panel" hidden>
+          <input
+            class="search"
+            id="store-search"
+            type="search"
+            placeholder="Search stores"
+            aria-label="Search stores"
+          />
+          <div
+            class="filters"
+            id="store-categories"
+            role="group"
+            aria-label="Filter stores by category"
+            style="margin-top: 14px"
+          ></div>
+          <ul class="ledger store-list" id="store-list"></ul>
+          <p class="muted tiny" id="store-empty" hidden>No store matches that search.</p>
+        </div>
+      </section>
+
       <section class="card trust c8" id="trust-block">
         <div class="lbl" style="margin-bottom: 14px">Your data</div>
         <p>

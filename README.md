@@ -81,9 +81,12 @@ empty list, and the extension never invents an offer.
 ### What works
 
 - **Codes only for the store you are on.** The panel resolves the tab's host
-  against a catalog of **359 stores / 371 host patterns** (including regional
+  against a catalog of **410 stores / 428 host patterns** (including regional
   Amazon, eBay and other domains). Any other page shows an empty state, plus an
   option to enable the extension on that site.
+- **All stores, browsable** — the panel's *All stores* card lists the whole
+  catalog, searchable by name, host or category and filterable by category, so
+  a shopper can see what is covered and open a store from the list.
 - **Coupon apply** — the side panel sends the code to the content script, which
   finds the promo field (searching open shadow roots too, and skipping search,
   zip, gift-card and card fields), types it with native setters and real
