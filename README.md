@@ -126,7 +126,13 @@ empty list, and the extension never invents an offer.
   The ledger lives on this device under `chrome.storage.local` key `cashback`,
   and it never adds different currencies together: the wallet works in the
   currency holding the most unpaid cashback and pays out only that currency.
-- **Virtual Visa payouts** — the wallet asks your payout proxy, which fronts
+- **Virtual Visa payouts** — Settings opens on **Simple**, where cashing out is one
+  tap and asks for nothing: the extension posts a generic order (amount, currency,
+  `deliveryMethod: "NONE"`) to the connected reward service and shows the plain
+  outcome in place. No provider name, account or template id is needed there; the
+  full Tango Card order (account, customer, UTID, platform credentials) is the
+  **Developer** level's customisation.
+- **Virtual Visa payouts (Developer)** — the wallet asks your payout proxy, which fronts
   Tango Card's order API, to issue a virtual Visa for the cashable balance. The
   order uses `deliveryMethod: "NONE"` so Tango returns a redemption link for the
   panel instead of emailing the shopper; the wallet stores the Tango
@@ -189,7 +195,7 @@ between the shopper, the browser and the merchant.
 | `src/partners/offers-feed.js` | Authorized offer feed → normalized codes |
 | `src/partners/cashback-network.js` | Tracked deep-link builder |
 | `src/partners/cashback-ledger.js` | Cashback wallet: pending → cashable → paid, in minor units |
-| `src/partners/cashback-payout.js` | Tango Card order request through your payout proxy |
+| `src/partners/cashback-payout.js` | Virtual Visa order — generic from Simple, Tango Card through your proxy from Developer |
 | `src/partners/sponsor-offers.js` | Sponsored offers → normalized ads, and the sponsor's booked reward |
 | `src/partners/price-history.js` | Optional product API 90-day low |
 | `tools/check-catalog.mjs` | Keeps `manifest.json` hosts in sync with the catalog |
@@ -204,7 +210,7 @@ feed below only adds more of them.
 The page is split into three levels, opening on the one last used:
 
 - **Simple** — the on/off switches in plain words, the cashback balance and one
-  "set up cash out" step. No endpoints, tokens or identifiers.
+  "Get a virtual Visa" tap. No endpoints, tokens or identifiers.
 - **Advanced** — the optional coupon feed, the cashback network template, the
   product API key and local data (export / clear).
 - **Developer** — payout proxy and Tango Card credentials, sponsored offers and

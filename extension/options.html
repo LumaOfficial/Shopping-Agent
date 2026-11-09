@@ -72,11 +72,14 @@
 
         <h2>Your cashback</h2>
         <p class="wallet-figure" id="simple-wallet">$0.00</p>
-        <p class="muted" id="simple-payout">Reading your wallet…</p>
+        <p class="muted" id="simple-payout">
+          Cashback you earn adds up here. When there is enough, get a virtual Visa with one tap.
+        </p>
         <div class="actions" style="margin-top: 10px; padding-top: 0; border-top: 0">
-          <button class="btn ghost" id="simple-payout-setup" type="button">Set up cash out</button>
+          <button class="btn" id="simple-cashout" type="button">Get a virtual Visa</button>
         </div>
-        <p class="hint">Payout details and credentials live under <strong>Developer</strong>.</p>
+        <p class="test-line" id="simple-cashout-result" role="status" aria-live="polite" hidden></p>
+        <p class="hint">How your card is issued can be customised under <strong>Developer</strong>.</p>
       </div>
 
       <div id="panel-advanced" role="tabpanel" aria-labelledby="tab-advanced" hidden>

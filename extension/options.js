@@ -30,26 +30,11 @@ function showLevel(level, focus) {
   if (focus) byId("tab-" + active).focus();
 }
 
-// The Simple level shows the balance and one plain action. Every endpoint,
-// token and identifier lives under Developer instead.
-function renderSimplePayout(settings, stats) {
+// The Simple level shows the balance and one tap. Every provider detail —
+// endpoint, account, Tango Card ids — stays under Developer.
+function renderSimpleWallet(stats) {
   const wallet = stats.wallet || {};
-  const connected = Boolean(String(settings.payoutUrl || "").trim());
-  const button = byId("simple-payout-setup");
   byId("simple-wallet").textContent = money(wallet.available || 0, wallet.currency);
-
-  if (connected) {
-    byId("simple-payout").textContent = wallet.available
-      ? "Ready to cash out to a virtual Visa from the panel."
-      : "Cashback you earn shows up here, ready to cash out from the panel.";
-    button.hidden = true;
-    return;
-  }
-
-  byId("simple-payout").textContent =
-    "Cashback adds up here. Cashing out to a virtual Visa takes one setup step.";
-  button.hidden = false;
-  button.textContent = "Set up cash out";
 }
 
 function fill(settings) {
@@ -235,7 +220,6 @@ async function loadData() {
 
   if (!stats) {
     byId("data-stats").textContent = "Could not read local data.";
-    byId("simple-payout").textContent = "Cashback adds up here, ready to cash out from the panel.";
     return;
   }
 
@@ -274,7 +258,7 @@ async function loadData() {
   list.hidden = !sites.length;
   list.textContent = sites.length ? "Enabled on: " + sites.join(", ") : "";
 
-  renderSimplePayout(settings, stats);
+  renderSimpleWallet(stats);
 }
 
 byId("feed-auth").addEventListener("change", syncAuthFields);
@@ -356,9 +340,36 @@ LEVELS.forEach((name) => {
   byId("tab-" + name).addEventListener("click", () => showLevel(name, true));
 });
 
-byId("simple-payout-setup").addEventListener("click", () => {
-  showLevel("developer");
-  byId("payouts").scrollIntoView({ block: "start" });
+// One tap, no provider details: the worker issues a plain virtual Visa, and any
+// setup stays in Developer rather than sending the shopper there.
+byId("simple-cashout").addEventListener("click", async () => {
+  const button = byId("simple-cashout");
+  const result = byId("simple-cashout-result");
+  button.disabled = true;
+  button.textContent = "Getting your virtual Visa…";
+  result.hidden = false;
+  result.className = "test-line wait";
+  result.textContent = "Sorting your virtual Visa…";
+
+  const reply = await chrome.runtime.sendMessage({ type: "cashback:cashout", simple: true }).catch(() => null);
+
+  button.disabled = false;
+  button.textContent = "Get a virtual Visa";
+
+  if (reply && reply.ok) {
+    result.className = "test-line ok";
+    result.textContent = "Your virtual Visa is ready — redeem it from the panel.";
+  } else if (reply && reply.reason === "below-minimum") {
+    result.className = "test-line wait";
+    result.textContent = "Not quite yet — your cashback keeps adding up until there is enough for a card.";
+  } else if (reply && reply.reason === "not-connected") {
+    result.className = "test-line wait";
+    result.textContent = "Virtual Visa rewards open once a reward service is connected on this device.";
+  } else {
+    result.className = "test-line bad";
+    result.textContent = "The virtual Visa did not go through. Try again in a moment.";
+  }
+  loadData();
 });
 
 load();

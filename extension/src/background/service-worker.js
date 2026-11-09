@@ -21,7 +21,7 @@ import {
   normalizeCurrency,
 } from "../partners/cashback-ledger.js";
 import { getSponsoredOffers, claimOffer, sponsorConfigured } from "../partners/sponsor-offers.js";
-import { payoutConfigured, payoutHost, detectPayoutService, requestVirtualCard } from "../partners/cashback-payout.js";
+import { payoutConfigured, payoutHost, detectPayoutService, requestVirtualCard, requestSimpleVisa } from "../partners/cashback-payout.js";
 import { readSettings, writeSettings } from "../lib/settings.js";
 import { mergeCodes, cleanCode } from "../lib/codes.js";
 
@@ -354,7 +354,7 @@ async function walletSummary() {
   };
 }
 
-async function cashOut() {
+async function cashOut(message) {
   const settings = await readSettings();
   const wallet = await readWallet();
   settle(wallet);
@@ -372,8 +372,15 @@ async function cashOut() {
     .filter((entry) => entry.status === "available" && normalizeCurrency(entry.currency) === currency)
     .map((entry) => entry.id);
 
-  const reply = await requestVirtualCard(settings, { amount, currency, earnings });
-  if (!reply.ok) return { ok: false, reason: "declined", error: reply.error, wallet: await walletSummary() };
+  // The Simple level asks for a virtual Visa with no provider details; Developer
+  // settings send the full Tango Card order instead.
+  const request = { amount, currency, earnings };
+  const reply = message && message.simple
+    ? await requestSimpleVisa(settings, request)
+    : await requestVirtualCard(settings, request);
+  if (!reply.ok) {
+    return { ok: false, reason: reply.reason || "declined", error: reply.error, wallet: await walletSummary() };
+  }
 
   const payout = payOut(wallet, amount, currency, reply.card);
   await writeWallet(wallet);
@@ -528,7 +535,7 @@ async function handle(message, sender) {
     case "cashback:wallet":
       return walletSummary();
     case "cashback:cashout":
-      return cashOut();
+      return cashOut(message);
     case "payout:detect":
       return detectPayoutService(await readSettings());
     case "sponsor:offers":

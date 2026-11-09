@@ -136,8 +136,7 @@ function externalRef(earnings, amount) {
   return ("savings-" + (first || Date.now().toString(36)) + "-" + amount).slice(0, 100);
 }
 
-export async function requestVirtualCard(settings, request) {
-  const url = String((settings && settings.payoutUrl) || "").trim();
+export async function requestVirtualCard(settings, request) {  const url = String((settings && settings.payoutUrl) || "").trim();
   if (!url) return { ok: false, error: "No payout service is connected." };
 
   const accountIdentifier = String(settings.payoutAccount || "").trim();
@@ -202,5 +201,60 @@ export async function requestVirtualCard(settings, request) {
     return { ok: true, card };
   } catch (error) {
     return { ok: false, error: "Could not reach the payout service: " + String((error && error.message) || error) };
+  }
+}
+
+// The Simple level asks for a virtual Visa with no provider details at all: one
+// generic order to the connected reward service. Account, customer and reward
+// template ids belong to the Tango Card flow in Developer settings, so a generic
+// service only has to answer with a redemption link.
+export async function requestSimpleVisa(settings, request) {
+  const url = String((settings && settings.payoutUrl) || "").trim();
+  if (!url) return { ok: false, reason: "not-connected" };
+
+  const amount = Math.round(Number(request.amount)) / 100;
+  if (!isFinite(amount) || amount <= 0) return { ok: false, error: "There is no cashable balance to pay out." };
+
+  try {
+    const response = await fetch(url, {
+      method: "POST",
+      headers: payoutHeaders(settings),
+      cache: "no-store",
+      body: JSON.stringify({
+        externalRefID: externalRef(request.earnings, request.amount),
+        amount,
+        currency: String(request.currency || "USD").toUpperCase(),
+        deliveryMethod: "NONE",
+        notes: "Savings cashback payout",
+      }),
+    });
+
+    const body = await response.text();
+    let payload = null;
+    try {
+      payload = body ? JSON.parse(body) : null;
+    } catch (_error) {
+      payload = null;
+    }
+
+    if (!response.ok) return { ok: false, error: serviceError(response.status, payload) };
+
+    const card = readCard(payload);
+    if (card) return { ok: true, card };
+
+    const redeemUrl = payload && (payload.redemptionUrl || payload.redemption_url);
+    if (redeemUrl) {
+      return {
+        ok: true,
+        card: {
+          brand: "Visa",
+          redeemUrl: String(redeemUrl),
+          reference: String(payload.reference || payload.id || "").slice(0, 64),
+        },
+      };
+    }
+    return { ok: false, error: "The reward service did not return a card reference." };
+  } catch (error) {
+    return { ok: false, error: "Could not reach the reward service: " + String((error && error.message) || error) };
   }
 }
