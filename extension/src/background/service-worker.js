@@ -19,7 +19,7 @@ import {
   payOut,
 } from "../partners/cashback-ledger.js";
 import { getSponsoredOffers, claimOffer, sponsorConfigured } from "../partners/sponsor-offers.js";
-import { payoutConfigured, requestVirtualCard } from "../partners/cashback-payout.js";
+import { payoutConfigured, payoutHost, detectPayoutService, requestVirtualCard } from "../partners/cashback-payout.js";
 import { readSettings, writeSettings } from "../lib/settings.js";
 import { mergeCodes, cleanCode } from "../lib/codes.js";
 
@@ -337,6 +337,7 @@ async function walletSummary() {
     balances: balances(wallet),
     minimum: Number(settings.payoutMinimum) || 0,
      mode: payoutConfigured(settings) ? "service" : "unconfigured",
+    payoutHost: payoutHost(settings),
     entries: wallet.entries.slice(0, 6).map((entry) => ({
       id: entry.id,
       storeName: entry.storeName,
@@ -518,6 +519,8 @@ async function handle(message, sender) {
       return walletSummary();
     case "cashback:cashout":
       return cashOut();
+    case "payout:detect":
+      return detectPayoutService(await readSettings());
     case "sponsor:offers":
       return sponsoredOffers();
     case "sponsor:claim":

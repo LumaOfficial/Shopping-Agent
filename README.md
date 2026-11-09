@@ -128,7 +128,14 @@ empty list, and the extension never invents an offer.
   `referenceOrderID` and that link. A full card number is never requested or
   stored, and the Tango Card platform credentials live in the extension settings
   or on the proxy — never in an export. With no proxy connected there is nothing
-  to issue, so cash out stays unavailable.
+  to issue, so the wallet's **Connect a payout service** button opens the payout
+  settings instead of pretending to cash out.
+- **Payout service detection** — saving a proxy address probes it with a
+  read-only `GET` (no order, nothing spent) and reports the host it found and the
+  HTTP answer, so "Detected pay.example.com — ready to issue virtual Visa cards"
+  is visible before the first cash out. Settings re-checks the saved address
+  whenever it opens; the wallet shows that host once the proxy is connected.
+  Rejected tokens, a wrong path and 5xx answers are named separately.
 - **Earn extra (sponsored offers)** — an **Earn extra** block lists the sponsored
   offers your ad partner returns. Opening one takes the shopper to the
   advertiser in a new tab and asks the sponsor what it books for the visit; only
@@ -242,6 +249,9 @@ feed below only adds more of them.
   `https://` proxy endpoint (saving is refused for a plain-`http://` address) and
   stripped from every export. Leave it blank if your proxy keeps its own
   credentials.
+- **Detect payout service** — probes the proxy address you typed and reports the
+  host it reached, so a working connection is confirmed in Settings rather than
+  discovered at the first cash out.
 - **Minimum payout** — cashback below this amount stays in the wallet
   (default $5).
 - **Sponsor endpoint** — the service that lists the ads and books what a visit

@@ -85,6 +85,7 @@ function reset() {
   byId("sponsor-status").textContent = "";
   byId("wallet-status").hidden = true;
   byId("wallet-note").hidden = true;
+  payoutMode = "unconfigured";
   state.data = null;
   state.scan = null;
   state.scannedAt = 0;
@@ -449,6 +450,17 @@ async function loadSavings() {
 }
 
 // ---- cashback wallet ----------------------------------------------------
+let payoutMode = "unconfigured";
+
+function openPayoutSettings() {
+  const url = chrome.runtime.getURL("options.html#payouts");
+  if (chrome.tabs && chrome.tabs.create) {
+    chrome.tabs.create({ url });
+    return;
+  }
+  if (chrome.runtime.openOptionsPage) chrome.runtime.openOptionsPage();
+}
+
 function renderWallet(wallet) {
   if (!wallet || !wallet.balances) return;
   byId("wallet-block").hidden = false;
@@ -461,13 +473,15 @@ function renderWallet(wallet) {
 
   byId("wallet-mode").textContent =
     wallet.mode === "service"
-      ? "Cards are issued by your payout service."
-      : "No payout service connected — add one in Settings to cash out.";
+      ? "Cards are issued by " + (wallet.payoutHost || "your payout service") + "."
+      : "No payout service connected — connect one in Settings to cash out.";
 
-  const connected = wallet.mode === "service";
+  payoutMode = wallet.mode === "service" ? "service" : "unconfigured";
+  const connected = payoutMode === "service";
   const ready = connected && totals.available > 0 && totals.available >= minimum;
   const button = byId("cash-out");
-  button.disabled = !ready;
+  // Unconnected, the button is the way into Settings, so it never sits dead.
+  button.disabled = connected && !ready;
   button.textContent = !connected
     ? "Connect a payout service"
     : ready
@@ -951,6 +965,14 @@ byId("activate").addEventListener("click", async () => {
 
 byId("cash-out").addEventListener("click", async () => {
   const status = byId("wallet-status");
+  if (payoutMode !== "service") {
+    status.hidden = false;
+    status.className = "status wait";
+    status.textContent =
+      "Opening Settings — add your payout proxy address and it is detected automatically.";
+    openPayoutSettings();
+    return;
+  }
   status.hidden = false;
   status.className = "status wait";
   status.textContent = "Requesting your virtual Visa…";

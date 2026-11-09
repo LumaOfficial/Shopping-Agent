@@ -74,7 +74,7 @@
         <input id="cashback-site" type="text" placeholder="Fills {siteId}" />
       </div>
 
-      <h2>Cashback payouts</h2>
+      <h2 id="payouts">Cashback payouts</h2>
       <p class="muted">
         Virtual Visa cards are issued through your proxy to Tango Card's order API. Enter your
         production platform credentials below, or leave them on the proxy; either way the extension
@@ -91,6 +91,10 @@
           it to <code>POST /raas/v2/orders</code>. Blank means cash out stays unavailable.
         </p>
       </div>
+      <div class="actions" style="margin-top: 4px; padding-top: 0; border-top: 0">
+        <button class="btn ghost" id="detect-payout" type="button">Detect payout service</button>
+      </div>
+      <p class="test-line" id="payout-result" role="status" aria-live="polite" hidden></p>
       <div class="field">
         <label for="payout-platform">Tango Card platform name</label>
         <input id="payout-platform" type="text" autocomplete="off" placeholder="your-platform" />

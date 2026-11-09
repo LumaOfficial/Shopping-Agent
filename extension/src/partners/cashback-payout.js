@@ -22,6 +22,18 @@ export function payoutConfigured(settings) {
   );
 }
 
+// The host of the configured proxy, shown to the shopper so the connected
+// payout service is never a mystery.
+export function payoutHost(settings) {
+  const url = String((settings && settings.payoutUrl) || "").trim();
+  if (!url) return "";
+  try {
+    return new URL(url).hostname.replace(/^www\./i, "");
+  } catch (_error) {
+    return "";
+  }
+}
+
 function payoutHeaders(settings) {
   const headers = { "content-type": "application/json", accept: "application/json" };
   const key = String((settings && settings.payoutKey) || "").trim();
@@ -49,6 +61,61 @@ function readCard(payload) {
     redeemUrl: credentials.redemptionUrl || credential(reward, ["redemptionurl"]),
     reference: String(payload.referenceOrderID).slice(0, 64),
   };
+}
+
+// A read-only probe: any HTTP answer to a GET proves the proxy is live without
+// ordering a card or spending the balance.
+export async function detectPayoutService(settings) {
+  const url = String((settings && settings.payoutUrl) || "").trim();
+  const host = payoutHost(settings) || "the payout service";
+  if (!url) {
+    return { ok: false, detected: false, message: "Add your payout proxy address and it is detected on its own." };
+  }
+
+  try {
+    const response = await fetch(url, {
+      method: "GET",
+      headers: payoutHeaders(settings),
+      cache: "no-store",
+    });
+    if (response.status === 401 || response.status === 403) {
+      return {
+        ok: false,
+        detected: true,
+        host,
+        message: "Found " + host + " (HTTP " + response.status + "), but it rejected the payout proxy token.",
+      };
+    }
+    if (response.status === 404) {
+      return {
+        ok: false,
+        detected: true,
+        host,
+        message: "Reached " + host + ", but nothing answers at that path (HTTP 404). Check the address.",
+      };
+    }
+    if (response.status >= 500) {
+      return {
+        ok: false,
+        detected: true,
+        host,
+        message: host + " answered HTTP " + response.status + " — the service is up but failing.",
+      };
+    }
+    return {
+      ok: true,
+      detected: true,
+      host,
+      message: "Detected " + host + " (HTTP " + response.status + ") — ready to issue virtual Visa cards.",
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      detected: false,
+      host,
+      message: "Could not reach " + host + ": " + String((error && error.message) || error),
+    };
+  }
 }
 
 function serviceError(status, payload) {

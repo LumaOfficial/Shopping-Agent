@@ -119,7 +119,57 @@ async function load() {
   const stored = await chrome.storage.local.get("settings");
   fill(withDefaults(stored.settings));
   loadData();
+  if (location.hash === "#payouts") byId("payouts").scrollIntoView({ block: "start" });
+  detectPayout(true);
 }
+
+// A read-only check that the payout proxy is live. The address typed in the
+// field is saved first (so the host permission comes from this gesture); the
+// automatic check on load only probes what was already saved.
+let detectingPayout = false;
+
+async function detectPayout(useStored) {
+  if (detectingPayout) return;
+  const button = byId("detect-payout");
+  const result = byId("payout-result");
+
+  if (useStored) {
+    const stored = await chrome.storage.local.get("settings");
+    if (!String(withDefaults(stored.settings).payoutUrl || "").trim()) {
+      result.hidden = true;
+      return;
+    }
+  } else {
+    if (!byId("payout-url").value.trim()) {
+      result.hidden = true;
+      return;
+    }
+    const outcome = await save();
+    if (!outcome.ok) {
+      result.hidden = false;
+      result.className = "test-line bad";
+      result.textContent = outcome.message;
+      return;
+    }
+  }
+
+  detectingPayout = true;
+  button.disabled = true;
+  button.textContent = "Detecting…";
+  result.hidden = false;
+  result.className = "test-line wait";
+  result.textContent = "Checking the payout service…";
+
+  const reply = await chrome.runtime.sendMessage({ type: "payout:detect" }).catch(() => null);
+  result.className = "test-line " + (reply && reply.ok ? "ok" : "bad");
+  result.textContent = (reply && reply.message) || "No answer from the extension worker.";
+  button.disabled = false;
+  button.textContent = "Detect payout service";
+  detectingPayout = false;
+}
+
+byId("detect-payout").addEventListener("click", () => detectPayout(false));
+byId("payout-url").addEventListener("change", () => detectPayout(false));
 
 async function loadData() {
   const [stats, settings] = await Promise.all([
