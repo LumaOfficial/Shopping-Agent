@@ -198,6 +198,49 @@ body.options {
   margin-bottom: 12px;
 }
 
+/* Settings levels: Simple first, then Advanced, then Developer. */
+
+.levels {
+  display: flex;
+  gap: 4px;
+  margin: 18px 0 8px;
+  padding: 4px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: rgba(6, 10, 18, 0.5);
+}
+
+.level {
+  flex: 1;
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font: 650 11.5px/1 inherit;
+  font-family: inherit;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 9px 10px;
+  border-radius: 9px;
+  cursor: pointer;
+  transition: background 0.2s var(--ease), color 0.2s var(--ease);
+}
+
+.level:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text);
+}
+
+.level[aria-selected="true"] {
+  background: rgba(246, 201, 107, 0.16);
+  color: var(--gold);
+}
+
+.level:focus-visible {
+  outline: 2px solid rgba(246, 201, 107, 0.6);
+  outline-offset: 2px;
+}
+
 .field {
   margin-bottom: 14px;
 }

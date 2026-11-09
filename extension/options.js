@@ -3,6 +3,48 @@ import { money } from "./src/lib/format.js";
 
 const byId = (id) => document.getElementById(id);
 
+// Settings come in three levels so a shopper who only wants to save money never
+// has to read a feed or payout field. Simple is the default; the chosen level is
+// remembered on this device.
+const LEVELS = ["simple", "advanced", "developer"];
+
+function rememberedLevel() {
+  try {
+    return localStorage.getItem("settingsLevel") || "simple";
+  } catch (_error) {
+    return "simple";
+  }
+}
+
+function showLevel(level, focus) {
+  const active = LEVELS.includes(level) ? level : "simple";
+  LEVELS.forEach((name) => {
+    byId("tab-" + name).setAttribute("aria-selected", String(name === active));
+    byId("panel-" + name).hidden = name !== active;
+  });
+  try {
+    localStorage.setItem("settingsLevel", active);
+  } catch (_error) {
+    // Storage blocked: the page just opens on Simple next time.
+  }
+  if (focus) byId("tab-" + active).focus();
+}
+
+// Plain-language wallet status for the Simple level: no endpoints, no keys.
+function simplePayoutLine(settings, stats) {
+  const wallet = stats.wallet || {};
+  const connected = Boolean(String(settings.payoutUrl || "").trim());
+  const available = money(wallet.available || 0, wallet.currency);
+  if (wallet.available) {
+    return connected
+      ? available + " is ready — cash out to a virtual Visa from the panel."
+      : available + " is waiting in the panel's wallet. Connect a payout service to turn it into a virtual Visa.";
+  }
+  return connected
+    ? "A payout service is connected. Activate an offer and your cashback lands in the panel's wallet."
+    : "Cashback you earn is collected in the panel's wallet — no setup needed to start earning.";
+}
+
 function fill(settings) {
   byId("feed-url").value = settings.feedUrl;
   byId("feed-auth").value = settings.feedAuth;
@@ -119,8 +161,14 @@ async function save() {
 async function load() {
   const stored = await chrome.storage.local.get("settings");
   fill(withDefaults(stored.settings));
+  showLevel(rememberedLevel());
   loadData();
-  if (location.hash === "#payouts") byId("payouts").scrollIntoView({ block: "start" });
+  // The panel's "Connect a payout service" deep-links here, so land on the one
+  // level that holds the payout fields.
+  if (location.hash === "#payouts") {
+    showLevel("developer");
+    byId("payouts").scrollIntoView({ block: "start" });
+  }
   detectPayout(true);
 }
 
@@ -180,6 +228,7 @@ async function loadData() {
 
   if (!stats) {
     byId("data-stats").textContent = "Could not read local data.";
+    byId("simple-payout").textContent = "Cashback you earn is collected in the panel's wallet.";
     return;
   }
 
@@ -217,6 +266,8 @@ async function loadData() {
   const sites = settings.enabledSites || [];
   list.hidden = !sites.length;
   list.textContent = sites.length ? "Enabled on: " + sites.join(", ") : "";
+
+  byId("simple-payout").textContent = simplePayoutLine(settings, stats);
 }
 
 byId("feed-auth").addEventListener("change", syncAuthFields);
@@ -292,6 +343,15 @@ byId("clear-data").addEventListener("click", async () => {
   setTimeout(() => {
     status.hidden = true;
   }, 2400);
+});
+
+LEVELS.forEach((name) => {
+  byId("tab-" + name).addEventListener("click", () => showLevel(name, true));
+});
+
+byId("simple-payout-setup").addEventListener("click", () => {
+  showLevel("developer");
+  byId("payouts").scrollIntoView({ block: "start" });
 });
 
 load();

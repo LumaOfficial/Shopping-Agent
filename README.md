@@ -201,6 +201,18 @@ Options page (`options.html`), stored per device, no credential in the repo. Non
 of it is required for coupon codes — those come from the page automatically; the
 feed below only adds more of them.
 
+The page is split into three levels, opening on the one last used:
+
+- **Simple** — the on/off switches in plain words plus the cashback wallet
+  status. All a shopper needs to start saving.
+- **Advanced** — the optional coupon feed, the cashback network template, the
+  product API key and local data (export / clear).
+- **Developer** — payout proxy and Tango Card credentials, sponsored offers and
+  partner wording.
+
+`options.html#payouts` (used by the panel's *Connect a payout service*) opens the
+Developer level and scrolls to the payout fields.
+
 - **Extra coupon feed (optional)** — JSON you are authorized to query, `{store}` substituted:
   ```json
   {

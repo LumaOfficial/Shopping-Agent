@@ -13,205 +13,272 @@
     <form class="sheet" id="settings-form">
       <h1>Savings settings</h1>
       <p class="muted">
-        Coupon codes are found automatically on the page you are shopping — no API or key needed.
-        Codes the store publishes, codes you save, and codes this store already accepted all show up
-        by themselves. Everything below is optional: an authorized feed adds more codes and cashback
-        rates, and the payout fields enable cashing out.
+        Nothing has to be set up. Coupon codes are found automatically on the page you are shopping —
+        pick how much of the rest you want to see.
       </p>
 
-      <h2>Extra coupon feed (optional)</h2>
-      <div class="field">
-        <label for="feed-url">Source endpoint</label>
-        <input id="feed-url" type="url" placeholder="https://offers.example.com/store/{store}" />
-        <p class="hint">
-          JSON endpoint you are authorized to query. <code>{store}</code> is replaced with the store
-          id (e.g. <code>target</code>). See the README for the response shape.
-        </p>
-      </div>
-      <div class="field">
-        <label for="feed-auth">Authentication</label>
-        <select id="feed-auth">
-          <option value="bearer">Bearer token</option>
-          <option value="basic">Basic — username &amp; password (Oxylabs style)</option>
-        </select>
-        <p class="hint">
-          Credentials stay on this device in <code>chrome.storage.local</code> and are sent only to
-          the host above. Use an account you control and only query data you are allowed to access.
-        </p>
-      </div>
-      <div class="field" id="feed-user-field" hidden>
-        <label for="feed-user">Source username</label>
-        <input id="feed-user" type="text" autocomplete="off" placeholder="Your provider username" />
-      </div>
-      <div class="field">
-        <label for="feed-key" id="feed-key-label">Source token</label>
-        <input id="feed-key" type="password" autocomplete="off" placeholder="Bearer token" />
-        <p class="hint">
-          Blank is normal — the panel already shows the codes this store publishes and the ones you
-          saved. Fill this in only if you have a feed you are entitled to use.
-        </p>
-      </div>
-      <div class="actions" style="margin-top: 4px; padding-top: 0; border-top: 0">
-        <button class="btn ghost" id="test-source" type="button">Test connection</button>
-      </div>
-      <p class="test-line" id="test-result" role="status" aria-live="polite" hidden></p>
-
-      <h2>Cashback</h2>
-      <div class="field">
-        <label for="cashback-template">Tracked link template</label>
-        <input
-          id="cashback-template"
-          type="text"
-          placeholder="https://click.example-network.com/deeplink?id={siteId}&murl={url}"
-        />
-        <p class="hint">
-          Cashback is paid by the cashback network, not by this extension. The template hands the
-          visit to your network so the purchase is attributed to the user's account.
-        </p>
-      </div>
-      <div class="field">
-        <label for="cashback-site">Network site id</label>
-        <input id="cashback-site" type="text" placeholder="Fills {siteId}" />
+      <div class="levels" role="tablist" aria-label="How much of settings to show">
+        <button
+          class="level"
+          id="tab-simple"
+          type="button"
+          role="tab"
+          aria-selected="true"
+          aria-controls="panel-simple"
+          data-level="simple"
+        >
+          Simple
+        </button>
+        <button
+          class="level"
+          id="tab-advanced"
+          type="button"
+          role="tab"
+          aria-selected="false"
+          aria-controls="panel-advanced"
+          data-level="advanced"
+        >
+          Advanced
+        </button>
+        <button
+          class="level"
+          id="tab-developer"
+          type="button"
+          role="tab"
+          aria-selected="false"
+          aria-controls="panel-developer"
+          data-level="developer"
+        >
+          Developer
+        </button>
       </div>
 
-      <h2 id="payouts">Cashback payouts</h2>
-      <p class="muted">
-        Virtual Visa cards are issued through your proxy to Tango Card's order API. Enter your
-        production platform credentials below, or leave them on the proxy; either way the extension
-        keeps only the reference and redemption link it gets back — never a full card number. Without
-        a connected proxy there is nothing to issue, so cash out stays unavailable.
-      </p>
-      <div class="field">
-        <label for="payout-url">Payout proxy endpoint</label>
-        <input id="payout-url" type="url" placeholder="https://pay.example.com/tango/orders" />
+      <div id="panel-simple" role="tabpanel" aria-labelledby="tab-simple">
+        <h2>What Savings does for you</h2>
+        <div class="toggles">
+          <label class="toggle"><input id="toggle-coupons" type="checkbox" /> Find coupon codes for me</label>
+          <label class="toggle"
+            ><input id="toggle-clip" type="checkbox" /> Add the coupons the store shows on its page</label
+          >
+          <label class="toggle"><input id="toggle-cashback" type="checkbox" /> Show cashback offers</label>
+          <label class="toggle"><input id="toggle-price" type="checkbox" /> Show how the price has moved</label>
+          <label class="toggle"
+            ><input id="toggle-tracking" type="checkbox" /> Remember the prices I see on this device</label
+          >
+        </div>
         <p class="hint">
-          Receives a Tango Card order body (<code>externalRefID</code>, <code>customerIdentifier</code>,
-          <code>accountIdentifier</code>, <code>utid</code>, <code>amount</code>,
-          <code>deliveryMethod: "NONE"</code>) and adds your platform credentials before forwarding
-          it to <code>POST /raas/v2/orders</code>. Blank means cash out stays unavailable.
+          Turning something off only hides it. Nothing is bought, filled in or paid for without you.
         </p>
-      </div>
-      <div class="actions" style="margin-top: 4px; padding-top: 0; border-top: 0">
-        <button class="btn ghost" id="detect-payout" type="button">Detect payout service</button>
-      </div>
-      <p class="test-line" id="payout-result" role="status" aria-live="polite" hidden></p>
-      <div class="field">
-        <label for="payout-platform">Tango Card platform name</label>
-        <input id="payout-platform" type="text" autocomplete="off" placeholder="your-platform" />
-        <p class="hint">The platform name your proxy authenticates with.</p>
-      </div>
-      <div class="field">
-        <label for="payout-platform-key">Tango Card platform key</label>
-        <input
-          id="payout-platform-key"
-          type="password"
-          autocomplete="new-password"
-          placeholder="Platform key"
-        />
-        <p class="hint">
-          Production platform key. It stays in this browser profile, is sent only to an
-          <code>https://</code> payout proxy, and is left out of every export. Leave both blank if your
-          proxy holds the credentials itself.
-        </p>
-      </div>
-      <div class="field">
-        <label for="payout-account">Tango Card account identifier</label>
-        <input id="payout-account" type="text" autocomplete="off" placeholder="your-account" />
-        <p class="hint">The funded account the order is charged to.</p>
-      </div>
-      <div class="field">
-        <label for="payout-customer">Tango Card customer identifier</label>
-        <input id="payout-customer" type="text" autocomplete="off" placeholder="your-customer" />
-        <p class="hint">The customer the account belongs to.</p>
-      </div>
-      <div class="field">
-        <label for="payout-utid">Virtual Visa reward template (UTID)</label>
-        <input id="payout-utid" type="text" autocomplete="off" placeholder="U1234" />
-        <p class="hint">The UTID of the virtual Visa reward in your Tango Card catalog.</p>
-      </div>
-      <div class="field">
-        <label for="payout-key">Payout proxy token</label>
-        <input id="payout-key" type="password" autocomplete="off" placeholder="Bearer token" />
-        <p class="hint">
-          Authenticates the extension to your proxy only, stored in this browser profile. Tango Card
-          platform credentials stay on the proxy.
-        </p>
-      </div>
-      <div class="field">
-        <label for="payout-minimum">Minimum payout (USD)</label>
-        <input id="payout-minimum" type="number" min="1" step="1" placeholder="5" />
-        <p class="hint">Cashback below this amount stays in the wallet.</p>
-      </div>
 
-      <h2>Sponsored offers</h2>
-      <p class="muted">
-        Shoppers can earn a small amount for visiting an advertiser, paid into the same cashback
-        wallet. Point this at a sponsor or ad programme you are entitled to use: the extension shows
-        only the offers it returns and records only the amount it books for a visit. Incentivising
-        clicks on ordinary display ads breaks most ad networks' terms — use a programme that pays
-        for these visits itself.
-      </p>
-      <div class="field">
-        <label for="sponsor-url">Sponsor endpoint</label>
-        <input id="sponsor-url" type="url" placeholder="https://ads.example.com/offers" />
+        <h2>Your cashback</h2>
+        <p class="muted" id="simple-payout">Reading your wallet…</p>
+        <div class="actions" style="margin-top: 12px; padding-top: 0; border-top: 0">
+          <button class="btn ghost" id="simple-payout-setup" type="button">Set up payouts</button>
+        </div>
         <p class="hint">
-          <code>GET</code> returns the offers; <code>POST</code> with
-          <code>{"offerId": "…"}</code> books a visit. See the README for both shapes. Blank hides
-          the Earn extra block.
-        </p>
-      </div>
-      <div class="field">
-        <label for="sponsor-key">Sponsor token</label>
-        <input id="sponsor-key" type="password" autocomplete="off" placeholder="Bearer ******" />
-        <p class="hint">Sent only to the endpoint above, and never exported.</p>
-      </div>
-
-      <h2>Price history</h2>
-      <div class="field">
-        <label for="price-key">Product API key</label>
-        <input id="price-key" type="password" autocomplete="off" placeholder="API key" />
-        <p class="hint">
-          Optional. Local price tracking works without a key: every product page you visit records
-          the price you saw, on this device, and the panel reports the lowest one it has seen.
+          Cashback adds up in the panel's wallet. Turning it into a virtual Visa needs a payout
+          service — that part lives under <strong>Developer</strong>.
         </p>
       </div>
 
-      <h2>Partner wording</h2>
-      <div class="field">
-        <label for="members">Verified member count</label>
-        <input id="members" type="text" placeholder="e.g. 2.1 billion" />
+      <div id="panel-advanced" role="tabpanel" aria-labelledby="tab-advanced" hidden>
+        <p class="muted">
+          Optional sources. None of it is needed to save money — an authorized feed just adds more
+          codes and cashback rates than the page alone shows.
+        </p>
+
+        <h2>Extra coupon feed (optional)</h2>
+        <div class="field">
+          <label for="feed-url">Source endpoint</label>
+          <input id="feed-url" type="url" placeholder="https://offers.example.com/store/{store}" />
+          <p class="hint">
+            JSON endpoint you are authorized to query. <code>{store}</code> is replaced with the store
+            id (e.g. <code>target</code>). See the README for the response shape.
+          </p>
+        </div>
+        <div class="field">
+          <label for="feed-auth">Authentication</label>
+          <select id="feed-auth">
+            <option value="bearer">Bearer ******</option>
+            <option value="basic">Basic — username &amp; password (Oxylabs style)</option>
+          </select>
+          <p class="hint">
+            Credentials stay on this device in <code>chrome.storage.local</code> and are sent only to
+            the host above. Use an account you control and only query data you are allowed to access.
+          </p>
+        </div>
+        <div class="field" id="feed-user-field" hidden>
+          <label for="feed-user">Source username</label>
+          <input id="feed-user" type="text" autocomplete="off" placeholder="Your provider username" />
+        </div>
+        <div class="field">
+          <label for="feed-key" id="feed-key-label">Source token</label>
+          <input id="feed-key" type="password" autocomplete="off" placeholder="Bearer ******" />
+          <p class="hint">
+            Blank is normal — the panel already shows the codes this store publishes and the ones you
+            saved. Fill this in only if you have a feed you are entitled to use.
+          </p>
+        </div>
+        <div class="actions" style="margin-top: 4px; padding-top: 0; border-top: 0">
+          <button class="btn ghost" id="test-source" type="button">Test connection</button>
+        </div>
+        <p class="test-line" id="test-result" role="status" aria-live="polite" hidden></p>
+
+        <h2>Cashback network</h2>
+        <div class="field">
+          <label for="cashback-template">Tracked link template</label>
+          <input
+            id="cashback-template"
+            type="text"
+            placeholder="https://click.example-network.com/deeplink?id={siteId}&murl={url}"
+          />
+          <p class="hint">
+            Cashback is paid by the cashback network, not by this extension. The template hands the
+            visit to your network so the purchase is attributed to the user's account.
+          </p>
+        </div>
+        <div class="field">
+          <label for="cashback-site">Network site id</label>
+          <input id="cashback-site" type="text" placeholder="Fills {siteId}" />
+        </div>
+
+        <h2>Price history</h2>
+        <div class="field">
+          <label for="price-key">Product API key</label>
+          <input id="price-key" type="password" autocomplete="off" placeholder="API key" />
+          <p class="hint">
+            Optional. Local price tracking works without a key: every product page you visit records
+            the price you saw, on this device, and the panel reports the lowest one it has seen.
+          </p>
+        </div>
+
+        <h2>Data on this device</h2>
+        <p class="muted" id="data-stats">Reading local data…</p>
+        <p class="muted small" id="site-list" hidden></p>
+        <div class="actions">
+          <button class="btn ghost" id="export-data" type="button">Export a copy</button>
+          <button class="btn ghost" id="clear-data" type="button">Clear saved codes and history</button>
+          <span class="saved" id="data-status" hidden></span>
+        </div>
         <p class="hint">
-          Shown as “Partner Platforms — N+ members combined”. Leave empty to state the partner
-          relationship without a number — only enter a figure you can substantiate.
+          Everything above lives in this browser profile. Nothing is uploaded, sold or shared, and
+          card details are never read.
         </p>
       </div>
 
-      <h2>Features</h2>
-      <div class="toggles">
-        <label class="toggle"><input id="toggle-coupons" type="checkbox" /> Coupon codes</label>
-        <label class="toggle"><input id="toggle-cashback" type="checkbox" /> Cashback offers</label>
-        <label class="toggle"><input id="toggle-price" type="checkbox" /> Price history</label>
-        <label class="toggle"><input id="toggle-clip" type="checkbox" /> Clip on-page coupons</label>
-        <label class="toggle"><input id="toggle-tracking" type="checkbox" /> Track prices locally</label>
+      <div id="panel-developer" role="tabpanel" aria-labelledby="tab-developer" hidden>
+        <p class="muted">
+          The most advanced level: payouts, sponsor endpoints and partner wording. Everything here is
+          optional, and every value stays on this device unless it is sent to the host you name.
+        </p>
+
+        <h2 id="payouts">Cashback payouts</h2>
+        <p class="muted">
+          Virtual Visa cards are issued through your proxy to Tango Card's order API. Enter your
+          production platform credentials below, or leave them on the proxy; either way the extension
+          keeps only the reference and redemption link it gets back — never a full card number. Without
+          a connected proxy there is nothing to issue, so cash out stays unavailable.
+        </p>
+        <div class="field">
+          <label for="payout-url">Payout proxy endpoint</label>
+          <input id="payout-url" type="url" placeholder="https://pay.example.com/tango/orders" />
+          <p class="hint">
+            Receives a Tango Card order body (<code>externalRefID</code>, <code>customerIdentifier</code>,
+            <code>accountIdentifier</code>, <code>utid</code>, <code>amount</code>,
+            <code>deliveryMethod: "NONE"</code>) and adds your platform credentials before forwarding
+            it to <code>POST /raas/v2/orders</code>. Blank means cash out stays unavailable.
+          </p>
+        </div>
+        <div class="actions" style="margin-top: 4px; padding-top: 0; border-top: 0">
+          <button class="btn ghost" id="detect-payout" type="button">Detect payout service</button>
+        </div>
+        <p class="test-line" id="payout-result" role="status" aria-live="polite" hidden></p>
+        <div class="field">
+          <label for="payout-platform">Tango Card platform name</label>
+          <input id="payout-platform" type="text" autocomplete="off" placeholder="your-platform" />
+          <p class="hint">The platform name your proxy authenticates with.</p>
+        </div>
+        <div class="field">
+          <label for="payout-platform-key">Tango Card platform key</label>
+          <input
+            id="payout-platform-key"
+            type="password"
+            autocomplete="new-password"
+            placeholder="Platform key"
+          />
+          <p class="hint">
+            Production platform key. It stays in this browser profile, is sent only to an
+            <code>https://</code> payout proxy, and is left out of every export. Leave both blank if your
+            proxy holds the credentials itself.
+          </p>
+        </div>
+        <div class="field">
+          <label for="payout-account">Tango Card account identifier</label>
+          <input id="payout-account" type="text" autocomplete="off" placeholder="your-account" />
+          <p class="hint">The funded account the order is charged to.</p>
+        </div>
+        <div class="field">
+          <label for="payout-customer">Tango Card customer identifier</label>
+          <input id="payout-customer" type="text" autocomplete="off" placeholder="your-customer" />
+          <p class="hint">The customer the account belongs to.</p>
+        </div>
+        <div class="field">
+          <label for="payout-utid">Virtual Visa reward template (UTID)</label>
+          <input id="payout-utid" type="text" autocomplete="off" placeholder="U1234" />
+          <p class="hint">The UTID of the virtual Visa reward in your Tango Card catalog.</p>
+        </div>
+        <div class="field">
+          <label for="payout-key">Payout proxy token</label>
+          <input id="payout-key" type="password" autocomplete="off" placeholder="Bearer ******" />
+          <p class="hint">
+            Authenticates the extension to your proxy only, stored in this browser profile. Tango Card
+            platform credentials stay on the proxy.
+          </p>
+        </div>
+        <div class="field">
+          <label for="payout-minimum">Minimum payout (USD)</label>
+          <input id="payout-minimum" type="number" min="1" step="1" placeholder="5" />
+          <p class="hint">Cashback below this amount stays in the wallet.</p>
+        </div>
+
+        <h2>Sponsored offers</h2>
+        <p class="muted">
+          Shoppers can earn a small amount for visiting an advertiser, paid into the same cashback
+          wallet. Point this at a sponsor or ad programme you are entitled to use: the extension shows
+          only the offers it returns and records only the amount it books for a visit. Incentivising
+          clicks on ordinary display ads breaks most ad networks' terms — use a programme that pays
+          for these visits itself.
+        </p>
+        <div class="field">
+          <label for="sponsor-url">Sponsor endpoint</label>
+          <input id="sponsor-url" type="url" placeholder="https://ads.example.com/offers" />
+          <p class="hint">
+            <code>GET</code> returns the offers; <code>POST</code> with
+            <code>{"offerId": "…"}</code> books a visit. See the README for both shapes. Blank hides
+            the Earn extra block.
+          </p>
+        </div>
+        <div class="field">
+          <label for="sponsor-key">Sponsor token</label>
+          <input id="sponsor-key" type="password" autocomplete="off" placeholder="Bearer ******" />
+          <p class="hint">Sent only to the endpoint above, and never exported.</p>
+        </div>
+
+        <h2>Partner wording</h2>
+        <div class="field">
+          <label for="members">Verified member count</label>
+          <input id="members" type="text" placeholder="e.g. 2.1 billion" />
+          <p class="hint">
+            Shown as “Partner Platforms — N+ members combined”. Leave empty to state the partner
+            relationship without a number — only enter a figure you can substantiate.
+          </p>
+        </div>
       </div>
 
       <div class="actions">
         <button class="btn" type="submit">Save settings</button>
         <span class="saved" id="saved" hidden>Saved</span>
       </div>
-
-      <h2>Data on this device</h2>
-      <p class="muted" id="data-stats">Reading local data…</p>
-      <p class="muted small" id="site-list" hidden></p>
-      <div class="actions">
-        <button class="btn ghost" id="export-data" type="button">Export a copy</button>
-        <button class="btn ghost" id="clear-data" type="button">Clear saved codes and history</button>
-        <span class="saved" id="data-status" hidden></span>
-      </div>
-      <p class="hint">
-        Everything above lives in this browser profile. Nothing is uploaded, sold or shared, and
-        card details are never read.
-      </p>
     </form>
 
     <script src="src/lib/compat.js"></script>
