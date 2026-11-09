@@ -203,8 +203,8 @@ feed below only adds more of them.
 
 The page is split into three levels, opening on the one last used:
 
-- **Simple** — the on/off switches in plain words plus the cashback wallet
-  status. All a shopper needs to start saving.
+- **Simple** — the on/off switches in plain words, the cashback balance and one
+  "set up cash out" step. No endpoints, tokens or identifiers.
 - **Advanced** — the optional coupon feed, the cashback network template, the
   product API key and local data (export / clear).
 - **Developer** — payout proxy and Tango Card credentials, sponsored offers and

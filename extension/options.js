@@ -30,19 +30,26 @@ function showLevel(level, focus) {
   if (focus) byId("tab-" + active).focus();
 }
 
-// Plain-language wallet status for the Simple level: no endpoints, no keys.
-function simplePayoutLine(settings, stats) {
+// The Simple level shows the balance and one plain action. Every endpoint,
+// token and identifier lives under Developer instead.
+function renderSimplePayout(settings, stats) {
   const wallet = stats.wallet || {};
   const connected = Boolean(String(settings.payoutUrl || "").trim());
-  const available = money(wallet.available || 0, wallet.currency);
-  if (wallet.available) {
-    return connected
-      ? available + " is ready — cash out to a virtual Visa from the panel."
-      : available + " is waiting in the panel's wallet. Connect a payout service to turn it into a virtual Visa.";
+  const button = byId("simple-payout-setup");
+  byId("simple-wallet").textContent = money(wallet.available || 0, wallet.currency);
+
+  if (connected) {
+    byId("simple-payout").textContent = wallet.available
+      ? "Ready to cash out to a virtual Visa from the panel."
+      : "Cashback you earn shows up here, ready to cash out from the panel.";
+    button.hidden = true;
+    return;
   }
-  return connected
-    ? "A payout service is connected. Activate an offer and your cashback lands in the panel's wallet."
-    : "Cashback you earn is collected in the panel's wallet — no setup needed to start earning.";
+
+  byId("simple-payout").textContent =
+    "Cashback adds up here. Cashing out to a virtual Visa takes one setup step.";
+  button.hidden = false;
+  button.textContent = "Set up cash out";
 }
 
 function fill(settings) {
@@ -228,7 +235,7 @@ async function loadData() {
 
   if (!stats) {
     byId("data-stats").textContent = "Could not read local data.";
-    byId("simple-payout").textContent = "Cashback you earn is collected in the panel's wallet.";
+    byId("simple-payout").textContent = "Cashback adds up here, ready to cash out from the panel.";
     return;
   }
 
@@ -267,7 +274,7 @@ async function loadData() {
   list.hidden = !sites.length;
   list.textContent = sites.length ? "Enabled on: " + sites.join(", ") : "";
 
-  byId("simple-payout").textContent = simplePayoutLine(settings, stats);
+  renderSimplePayout(settings, stats);
 }
 
 byId("feed-auth").addEventListener("change", syncAuthFields);

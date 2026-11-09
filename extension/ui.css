@@ -241,6 +241,14 @@ body.options {
   outline-offset: 2px;
 }
 
+.wallet-figure {
+  margin: 2px 0 6px;
+  font-size: 30px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  color: var(--text);
+}
+
 .field {
   margin-bottom: 14px;
 }
