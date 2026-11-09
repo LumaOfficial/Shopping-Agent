@@ -193,6 +193,15 @@
             <span class="pill" id="stores-count">0</span>
             <button
               class="mini"
+              id="stores-animate"
+              type="button"
+              aria-haspopup="dialog"
+              aria-controls="logo-show"
+            >
+              Animate
+            </button>
+            <button
+              class="mini"
               id="stores-toggle"
               type="button"
               aria-expanded="false"
@@ -245,6 +254,23 @@
     </div>
 
     <footer class="foot" id="partner-line"></footer>
+
+    <div class="logo-show" id="logo-show" hidden>
+      <div class="logo-show-sheet" role="dialog" aria-modal="true" aria-label="All store logos">
+        <div class="logo-show-head">
+          <div>
+            <span class="lbl" data-show-step>All stores</span>
+            <h3 data-show-title>Every store</h3>
+          </div>
+          <button class="mini" id="logo-show-close" type="button">Close</button>
+        </div>
+        <div class="logo-show-grid" data-show-grid aria-hidden="true"></div>
+        <div class="logo-show-bar"><span data-show-bar></span></div>
+        <p class="muted tiny" data-show-note>
+          Every store Savings works on — tap Browse to open any of them.
+        </p>
+      </div>
+    </div>
 
     <script src="src/lib/compat.js"></script>
     <script type="module" src="sidepanel.js"></script>

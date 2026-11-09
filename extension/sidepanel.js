@@ -5,6 +5,7 @@ import { money, humanAge } from "./src/lib/format.js";
 import { PAGE_SOURCE_NOTE } from "./src/lib/copy.js";
 import { browserName } from "./src/lib/browser.js";
 import { HOLD_DAYS } from "./src/partners/cashback-ledger.js";
+import { startLogoShow } from "./src/lib/logo-show.js";
 
 const byId = (id) => document.getElementById(id);
 
@@ -176,6 +177,29 @@ function toggleStoreDirectory() {
     buildStoreDirectory();
     byId("store-search").focus();
   }
+}
+
+// The logo parade: a ~15 second flip through every store's own mark. Opened
+// from the All stores card and closed by button, backdrop click or Escape.
+let stopLogoShow = null;
+
+function openLogoShow() {
+  const root = byId("logo-show");
+  if (!root.hidden) return;
+  root.hidden = false;
+  document.body.classList.add("showing-logos");
+  stopLogoShow = startLogoShow(root, STORES);
+  byId("logo-show-close").focus();
+}
+
+function closeLogoShow() {
+  const root = byId("logo-show");
+  if (root.hidden) return;
+  root.hidden = true;
+  document.body.classList.remove("showing-logos");
+  if (stopLogoShow) stopLogoShow();
+  stopLogoShow = null;
+  byId("stores-animate").focus();
 }
 
 // ---- blocks -------------------------------------------------------------
@@ -1157,6 +1181,14 @@ function applyBrowserCopy() {
 
 byId("stores-count").textContent = String(STORES.length);
 byId("stores-toggle").addEventListener("click", toggleStoreDirectory);
+byId("stores-animate").addEventListener("click", openLogoShow);
+byId("logo-show-close").addEventListener("click", closeLogoShow);
+byId("logo-show").addEventListener("click", (event) => {
+  if (event.target === byId("logo-show")) closeLogoShow();
+});
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape") closeLogoShow();
+});
 
 byId("store-search").addEventListener("input", (event) => {
   state.storeQuery = event.target.value;

@@ -927,6 +927,153 @@ body.sidepanel .store-list .lbl {
   font-size: 12px;
 }
 
+/* ---------- Store logo preview ("Animate") ---------- */
+
+body.sidepanel .logo-show {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  background: rgba(14, 12, 30, 0.5);
+  backdrop-filter: blur(10px);
+  animation: fadeIn 0.3s ease both;
+}
+
+body.sidepanel .logo-show[hidden] {
+  display: none;
+}
+
+body.sidepanel .logo-show-sheet {
+  width: 100%;
+  max-width: 620px;
+  max-height: calc(100vh - 36px);
+  overflow: auto;
+  padding: 22px 22px 18px;
+  border-radius: 28px;
+  background: linear-gradient(165deg, #ffffff, #f7f2ff 60%, #fff6e7);
+  border: 1px solid #ece7fb;
+  box-shadow: 0 30px 70px rgba(24, 18, 60, 0.34);
+  animation: rise 0.5s var(--ease) both;
+}
+
+body.sidepanel .logo-show.done .logo-show-sheet {
+  border-color: #ded4ff;
+  box-shadow: 0 30px 70px rgba(24, 18, 60, 0.34), 0 0 0 4px rgba(124, 107, 245, 0.12);
+}
+
+body.sidepanel .logo-show-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+body.sidepanel .logo-show-head h3 {
+  margin: 6px 0 0;
+  font-weight: 300;
+  font-size: 22px;
+  letter-spacing: -0.02em;
+  color: #2a2440;
+}
+
+body.sidepanel .logo-show-grid {
+  display: grid;
+  grid-template-columns: repeat(var(--cols, 6), minmax(0, 1fr));
+  gap: 9px;
+  margin: 18px 0 16px;
+}
+
+body.sidepanel .logo-tile {
+  position: relative;
+  aspect-ratio: 1;
+  border-radius: 14px;
+  background: hsl(var(--hue, 250) 62% 97%);
+  border: 1px solid #ece7fb;
+  overflow: hidden;
+  transition: opacity 0.22s var(--ease);
+}
+
+body.sidepanel .logo-tile.off {
+  opacity: 0;
+}
+
+body.sidepanel .logo-tile.flip {
+  animation: logoFlip 0.5s var(--ease) both;
+}
+
+body.sidepanel .logo-mark {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font: 600 12px/1 system-ui, sans-serif;
+  letter-spacing: 0.04em;
+  color: hsl(var(--hue, 250) 26% 46%);
+  transition: opacity 0.25s;
+}
+
+body.sidepanel .logo-img {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 58%;
+  height: 58%;
+  object-fit: contain;
+  transform: translate(-50%, -50%);
+  opacity: 0;
+  transition: opacity 0.25s;
+}
+
+body.sidepanel .logo-tile.has-logo .logo-img {
+  opacity: 1;
+}
+
+body.sidepanel .logo-tile.has-logo .logo-mark {
+  opacity: 0;
+}
+
+body.sidepanel .logo-show-bar {
+  height: 4px;
+  border-radius: 999px;
+  background: #efeafb;
+  overflow: hidden;
+}
+
+body.sidepanel .logo-show-bar span {
+  display: block;
+  width: 0;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #7c6bf5, var(--gold));
+  transition: width 0.35s var(--ease);
+}
+
+body.sidepanel .logo-show .muted {
+  margin-top: 14px;
+}
+
+@keyframes logoFlip {
+  from {
+    opacity: 0.15;
+    transform: rotateX(56deg) scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
 body.sidepanel .payout {
   margin-top: 16px;
   padding: 16px 18px;
@@ -1131,6 +1278,8 @@ body.sidepanel .chip.paid {
 
 body.sidepanel .head-actions {
   display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
   align-items: center;
   gap: 8px;
   flex: none;
