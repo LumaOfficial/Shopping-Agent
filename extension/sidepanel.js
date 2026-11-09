@@ -512,16 +512,9 @@ async function loadSavings() {
 }
 
 // ---- cashback wallet ----------------------------------------------------
+// Whether Settings holds a complete payout service (proxy, account, customer
+// and reward template). Anything less asks for a generic card instead.
 let payoutMode = "unconfigured";
-
-function openPayoutSettings() {
-  const url = chrome.runtime.getURL("options.html#payouts");
-  if (chrome.tabs && chrome.tabs.create) {
-    chrome.tabs.create({ url });
-    return;
-  }
-  if (chrome.runtime.openOptionsPage) chrome.runtime.openOptionsPage();
-}
 
 function renderWallet(wallet) {
   if (!wallet || !wallet.balances) return;
@@ -537,21 +530,19 @@ function renderWallet(wallet) {
   byId("wallet-mode").textContent =
     wallet.mode === "service"
       ? "Cards are issued by " + (wallet.payoutHost || "your payout service") + "."
-      : "No payout service connected — connect one in Settings to cash out.";
+      : "No reward service connected — cash outs are issued as preview cards here.";
 
   payoutMode = wallet.mode === "service" ? "service" : "unconfigured";
-  const connected = payoutMode === "service";
-  const ready = connected && totals.available > 0 && totals.available >= minimum;
+  const ready = totals.available > 0 && totals.available >= minimum;
   const button = byId("cash-out");
-  // Unconnected, the button is the way into Settings, so it never sits dead.
-  button.disabled = connected && !ready;
-  button.textContent = !connected
-    ? "Connect a payout service"
-    : ready
-      ? "Cash out " + money(totals.available, currency) + " to a virtual Visa"
-      : minimum > 0
-        ? "Cash out from " + money(minimum, currency)
-        : "Nothing to cash out yet";
+  // The button always reflects the balance, so cashing out is one tap whether or
+  // not a reward service is connected.
+  button.disabled = !ready;
+  button.textContent = ready
+    ? "Cash out " + money(totals.available, currency) + " to a virtual Visa"
+    : minimum > 0
+      ? "Cash out from " + money(minimum, currency)
+      : "Nothing to cash out yet";
 
   const note = byId("wallet-note");
   note.hidden = !totals.pending;
@@ -583,13 +574,13 @@ function renderWallet(wallet) {
   if (payout) {
     const card = payout.card || {};
     byId("payout-title").textContent =
-      "Virtual Visa" +
+      (card.preview ? "Preview Virtual Visa" : "Virtual Visa") +
       (card.last4 ? " ···· " + card.last4 : "") +
       " · " +
       money(payout.amount, payout.currency);
-    byId("payout-detail").textContent = [card.reference, card.expiresAt ? "expires " + card.expiresAt : null]
-      .filter(Boolean)
-      .join(" · ");
+    byId("payout-detail").textContent = card.preview
+      ? "No cash value — connect a reward service in Settings for a real card."
+      : [card.reference, card.expiresAt ? "expires " + card.expiresAt : null].filter(Boolean).join(" · ");
     const link = byId("payout-link");
     link.hidden = !card.redeemUrl;
     if (card.redeemUrl) link.href = card.redeemUrl;
@@ -1028,24 +1019,18 @@ byId("activate").addEventListener("click", async () => {
 
 byId("cash-out").addEventListener("click", async () => {
   const status = byId("wallet-status");
-  if (payoutMode !== "service") {
-    status.hidden = false;
-    status.className = "status wait";
-    status.textContent =
-      "Opening Settings — add your payout proxy address and it is detected automatically.";
-    openPayoutSettings();
-    return;
-  }
   status.hidden = false;
   status.className = "status wait";
   status.textContent = "Requesting your virtual Visa…";
 
-  const reply = await sendWorker({ type: "cashback:cashout" });
+  const reply = await sendWorker({ type: "cashback:cashout", simple: payoutMode !== "service" });
   if (reply && reply.wallet) renderWallet(reply.wallet);
 
   if (reply && reply.ok) {
     status.className = "status ok";
-    status.textContent = "Virtual Visa issued for your cashback balance.";
+    status.textContent = reply.preview
+      ? "Preview card issued — no cash value. Connect a reward service in Settings for a real card."
+      : "Virtual Visa issued for your cashback balance.";
     return;
   }
   if (reply && reply.reason === "below-minimum") {

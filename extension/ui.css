@@ -179,6 +179,33 @@ body.options {
   animation: cardIn 0.6s var(--ease) both;
 }
 
+/* The settings page opens in its own tab, so it carries its own way back. */
+.sheet-top {
+  display: flex;
+  margin: -6px 0 12px;
+}
+
+.back-btn {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 13px 7px 9px;
+  border-radius: 999px;
+  border: 1px solid var(--line-strong);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--muted);
+  font: 650 12px/1 system-ui, sans-serif;
+  cursor: pointer;
+  transition: color 0.2s var(--ease), border-color 0.2s var(--ease), transform 0.2s var(--ease);
+}
+
+.back-btn:hover {
+  color: var(--text);
+  border-color: var(--gold);
+  transform: translateX(-2px);
+}
+
 .sheet h1 {
   margin: 0 0 6px;
   font-size: 21px;

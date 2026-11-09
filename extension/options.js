@@ -155,8 +155,8 @@ async function load() {
   fill(withDefaults(stored.settings));
   showLevel(rememberedLevel());
   loadData();
-  // The panel's "Connect a payout service" deep-links here, so land on the one
-  // level that holds the payout fields.
+  // #payouts deep-links here, so land on the one level that holds the payout
+  // fields.
   if (location.hash === "#payouts") {
     showLevel("developer");
     byId("payouts").scrollIntoView({ block: "start" });
@@ -261,6 +261,27 @@ async function loadData() {
   renderSimpleWallet(stats);
 }
 
+// Settings opens in its own tab, so "Back" closes that tab. Where the page is
+// shown without a tab to close it returns to the savings panel instead, so the
+// shopper is never stuck on this screen.
+async function goBack() {
+  try {
+    const tab = chrome.tabs && chrome.tabs.getCurrent ? await chrome.tabs.getCurrent() : null;
+    if (tab && tab.id != null && chrome.tabs.remove) {
+      await chrome.tabs.remove(tab.id);
+      return;
+    }
+  } catch (_error) {
+    // No tab to close — fall through to the panel.
+  }
+  window.close();
+  setTimeout(() => {
+    location.href = chrome.runtime.getURL("sidepanel.html");
+  }, 150);
+}
+
+byId("back").addEventListener("click", goBack);
+
 byId("feed-auth").addEventListener("change", syncAuthFields);
 
 byId("settings-form").addEventListener("submit", async (event) => {
@@ -356,18 +377,31 @@ byId("simple-cashout").addEventListener("click", async () => {
   button.disabled = false;
   button.textContent = "Get a virtual Visa";
 
+  const wallet = (reply && reply.wallet) || {};
+  const totals = wallet.balances || {};
+  const currency = wallet.currency || "USD";
+  const minimum = wallet.minimum || 0;
+
   if (reply && reply.ok) {
     result.className = "test-line ok";
-    result.textContent = "Your virtual Visa is ready — redeem it from the panel.";
-  } else if (reply && reply.reason === "below-minimum") {
+    result.textContent = reply.preview
+      ? "Preview card ready — no cash value. Connect a reward service under Developer for a real card."
+      : "Your virtual Visa is ready — redeem it from the panel.";
+  } else if ((totals.available || 0) < minimum) {
     result.className = "test-line wait";
-    result.textContent = "Not quite yet — your cashback keeps adding up until there is enough for a card.";
+    result.textContent =
+      "You have " +
+      money(totals.available || 0, currency) +
+      " cashable — a card needs " +
+      money(minimum, currency) +
+      ". The rest keeps adding up as stores confirm your orders.";
   } else if (reply && reply.reason === "not-connected") {
     result.className = "test-line wait";
     result.textContent = "Virtual Visa rewards open once a reward service is connected on this device.";
   } else {
     result.className = "test-line bad";
-    result.textContent = "The virtual Visa did not go through. Try again in a moment.";
+    result.textContent =
+      (reply && reply.error) || "The virtual Visa did not go through. Try again in a moment.";
   }
   loadData();
 });

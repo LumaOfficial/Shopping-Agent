@@ -21,7 +21,7 @@ import {
   normalizeCurrency,
 } from "../partners/cashback-ledger.js";
 import { getSponsoredOffers, claimOffer, sponsorConfigured } from "../partners/sponsor-offers.js";
-import { payoutConfigured, payoutHost, detectPayoutService, requestVirtualCard, requestSimpleVisa } from "../partners/cashback-payout.js";
+import { payoutConfigured, payoutHost, detectPayoutService, requestVirtualCard, requestSimpleVisa, requestPreviewCard } from "../partners/cashback-payout.js";
 import { readSettings, writeSettings } from "../lib/settings.js";
 import { mergeCodes, cleanCode } from "../lib/codes.js";
 
@@ -373,18 +373,22 @@ async function cashOut(message) {
     .map((entry) => entry.id);
 
   // The Simple level asks for a virtual Visa with no provider details; Developer
-  // settings send the full Tango Card order instead.
+  // settings send the full Tango Card order instead. With nothing connected the
+  // balance is issued as a preview card, so the one tap always completes.
   const request = { amount, currency, earnings };
-  const reply = message && message.simple
-    ? await requestSimpleVisa(settings, request)
-    : await requestVirtualCard(settings, request);
+  const connected = Boolean(String(settings.payoutUrl || "").trim());
+  const reply = !connected
+    ? requestPreviewCard(request)
+    : message && message.simple
+      ? await requestSimpleVisa(settings, request)
+      : await requestVirtualCard(settings, request);
   if (!reply.ok) {
     return { ok: false, reason: reply.reason || "declined", error: reply.error, wallet: await walletSummary() };
   }
 
   const payout = payOut(wallet, amount, currency, reply.card);
   await writeWallet(wallet);
-  return { ok: true, payout, wallet: await walletSummary() };
+  return { ok: true, preview: Boolean(reply.preview), payout, wallet: await walletSummary() };
 }
 
 // Lets the shopper use the extension on a store that is not in the catalog.

@@ -66,6 +66,11 @@ shown — one shape per code, duplicates collapsed, expired or malformed entries
 dropped, and reads from a sub-frame ignored. An authorized feed is optional and
 only adds more.
 
+Wording it recognizes includes "promo code: X", "code X", "use code X", "enter
+X at checkout", "X for 20% off", "save 20% with X" and "take $10 off with X",
+plus codes carried in `data-coupon-code` / `data-promo-code` / `data-voucher-code`
+style attributes and coupon-labelled elements.
+
 Every code the panel shows is one of:
 
 | Source | Where it comes from |
@@ -81,7 +86,7 @@ empty list, and the extension never invents an offer.
 ### What works
 
 - **Codes only for the store you are on.** The panel resolves the tab's host
-  against a catalog of **410 stores / 428 host patterns** (including regional
+  against a catalog of **572 stores / 590 host patterns** (including regional
   Amazon, eBay and other domains). Any other page shows an empty state, plus an
   option to enable the extension on that site.
 - **All stores, browsable** — the panel's *All stores* card lists the whole
@@ -138,9 +143,10 @@ empty list, and the extension never invents an offer.
   panel instead of emailing the shopper; the wallet stores the Tango
   `referenceOrderID` and that link. A full card number is never requested or
   stored, and the Tango Card platform credentials live in the extension settings
-  or on the proxy — never in an export. With no proxy connected there is nothing
-  to issue, so the wallet's **Connect a payout service** button opens the payout
-  settings instead of pretending to cash out. Cards are issued in USD, so a
+  or on the proxy — never in an export. With no proxy connected the cashable
+  balance is issued as a **preview card** on this device: the one tap always
+  finishes, and the wallet labels the result "Preview Virtual Visa — no cash
+  value" so it is never mistaken for a real card. Cards are issued in USD, so a
   cashback balance in another currency stays in the wallet with an explanation
   rather than being sent as if it were dollars.
 - **Payout service detection** — saving a proxy address probes it with a
@@ -210,14 +216,20 @@ feed below only adds more of them.
 The page is split into three levels, opening on the one last used:
 
 - **Simple** — the on/off switches in plain words, the cashback balance and one
-  "Get a virtual Visa" tap. No endpoints, tokens or identifiers.
+  "Get a virtual Visa" tap. No endpoints, tokens or identifiers. When the balance
+  reaches the minimum the tap always finishes: with a reward service connected it
+  asks that service for a card, and without one it issues a preview card labelled
+  as having no cash value.
 - **Advanced** — the optional coupon feed, the cashback network template, the
   product API key and local data (export / clear).
 - **Developer** — payout proxy and Tango Card credentials, sponsored offers and
   partner wording.
 
-`options.html#payouts` (used by the panel's *Connect a payout service*) opens the
-Developer level and scrolls to the payout fields.
+The page has a **Back** button at the top: it closes the settings tab, or returns
+to the savings panel when the page is shown without a tab to close.
+
+`options.html#payouts` opens the Developer level and scrolls to the payout fields.
+The wallet in the panel no longer needs it to cash out.
 
 - **Extra coupon feed (optional)** — JSON you are authorized to query, `{store}` substituted:
   ```json

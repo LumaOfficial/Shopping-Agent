@@ -204,6 +204,24 @@ export async function requestVirtualCard(settings, request) {  const url = Strin
   }
 }
 
+// With no reward service connected there is nothing to buy a card from, so the
+// cashable balance is issued as the extension's own preview reward: a reference
+// the wallet records and the panel shows, always marked as having no cash value.
+// It exists so one tap always finishes the flow instead of dead-ending, and it
+// never claims to be a real card.
+export function requestPreviewCard(request) {
+  const amount = Math.round(Number(request && request.amount));
+  if (!isFinite(amount) || amount <= 0) {
+    return { ok: false, error: "There is no cashable balance to pay out." };
+  }
+  const reference = ("preview-" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6)).slice(0, 64);
+  return {
+    ok: true,
+    preview: true,
+    card: { brand: "Visa", reference, redeemUrl: null, preview: true },
+  };
+}
+
 // The Simple level asks for a virtual Visa with no provider details at all: one
 // generic order to the connected reward service. Account, customer and reward
 // template ids belong to the Tango Card flow in Developer settings, so a generic

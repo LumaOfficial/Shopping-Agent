@@ -11,6 +11,16 @@
   var CODE_PATTERNS = [
     /(?:promo|coupon|voucher|discount|offer|referral|invite|redeem)\s*(?:code)?\s*(?:is|:|-|\u2013|\u2014)?\s*["'\u201c\u201d]?([A-Za-z0-9][A-Za-z0-9._-]{3,23})\b/g,
     /\bcode\b\s*(?:is|:|-|\u2013|\u2014|=)?\s*["'\u201c\u201d]?([A-Z][A-Z0-9._-]{3,23})\b/g,
+    // "use code SAVE20", "enter promo X", "apply voucher X", "redeem code X"
+    /(?:use|enter|apply|redeem)\s+(?:the\s+)?(?:promo|coupon|voucher|discount|offer|referral)?\s*(?:code)?\s*["'\u201c\u201d]?([A-Z0-9][A-Z0-9._-]{3,23})\b/gi,
+    // "SAVE20 for 20% off", "WELCOME gets you 10% off"
+    /\b([A-Z0-9][A-Z0-9._-]{3,23})\s+(?:for|gives?|takes?|gets?|saves?)\s+\d{1,2}\s*(?:%|percent)\s*(?:off|discount)/gi,
+    // "save 20% with SAVE20", "save $10 with code FALL"
+    /(?:save|saving)\s+(?:\d{1,2}\s*%|[$€£]\s?\d+(?:\.\d{2})?)\s*(?:off\s*)?(?:with|using|when\s+you\s+use)\s+(?:code|voucher|coupon)?\s*["'\u201c\u201d]?([A-Z0-9][A-Z0-9._-]{3,23})\b/gi,
+    // "take $10 off with SAVE10", "get 15% off with code SPRING"
+    /(?:take|get|enjoy)\s+(?:\d{1,2}\s*%|[$€£]\s?\d+(?:\.\d{2})?)\s*off\s*(?:with|using)\s+(?:code|voucher|coupon)?\s*["'\u201c\u201d]?([A-Z0-9][A-Z0-9._-]{3,23})\b/gi,
+    // "enter SAVE20 at checkout"
+    /\benter\s+["'\u201c\u201d]?([A-Z0-9][A-Z0-9._-]{3,23})["'\u201c\u201d]?\s+(?:at|during|in)\s+(?:the\s+)?checkout/gi,
   ];
 
   var STOPWORDS = [
@@ -133,15 +143,27 @@
     return found;
   }
 
-  var CODE_ATTRS = ["data-coupon-code", "data-promo-code", "data-discount-code", "data-code"];
+  var CODE_ATTRS = [
+    "data-coupon-code",
+    "data-promo-code",
+    "data-discount-code",
+    "data-voucher-code",
+    "data-promotion-code",
+    "data-apply-code",
+    "data-coupon",
+    "data-promo",
+    "data-code",
+  ];
 
   function codesFromAttributes() {
     var found = [];
     var seen = {};
     var elements = queryAll(
-      "[data-coupon-code], [data-promo-code], [data-discount-code], [data-code], " +
-        '[data-testid*="coupon" i], [data-testid*="promo" i], [class*="coupon-code" i], ' +
-        '[class*="promo-code" i], [id*="coupon" i], [aria-label*="coupon" i], [title*="coupon" i]'
+      "[data-coupon-code], [data-promo-code], [data-discount-code], [data-voucher-code], " +
+        "[data-promotion-code], [data-apply-code], [data-coupon], [data-promo], [data-code], " +
+        '[data-testid*="coupon" i], [data-testid*="promo" i], [data-testid*="voucher" i], ' +
+        '[class*="coupon-code" i], [class*="promo-code" i], [class*="voucher-code" i], ' +
+        '[class*="discount-code" i], [id*="coupon" i], [aria-label*="coupon" i], [title*="coupon" i]'
     );
     for (var index = 0; index < elements.length && index < 400; index += 1) {
       var el = elements[index];

@@ -177,6 +177,7 @@ export function payOut(wallet, amount, currency, card, now) {
       expiresAt: card.expiresAt || null,
       redeemUrl: card.redeemUrl || null,
       reference: card.reference,
+      preview: Boolean(card.preview),
     },
   };
   wallet.payouts.unshift(payout);
