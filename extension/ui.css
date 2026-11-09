@@ -929,6 +929,10 @@ body.sidepanel .store-list .lbl {
 
 /* ---------- Store logo preview ("Animate") ---------- */
 
+body.sidepanel #enable-site {
+  margin-top: 12px;
+}
+
 body.sidepanel .logo-show {
   position: fixed;
   inset: 0;

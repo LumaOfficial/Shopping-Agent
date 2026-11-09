@@ -6,6 +6,7 @@ import { PAGE_SOURCE_NOTE } from "./src/lib/copy.js";
 import { browserName } from "./src/lib/browser.js";
 import { HOLD_DAYS } from "./src/partners/cashback-ledger.js";
 import { startLogoShow } from "./src/lib/logo-show.js";
+import { siteHost, REWARD_MIN, REWARD_MAX } from "./src/lib/site-request.js";
 
 const byId = (id) => document.getElementById(id);
 
@@ -21,6 +22,8 @@ const state = {
   dead: new Set(),
   storeQuery: "",
   storeCategory: "All",
+  site: null,
+  request: null,
 };
 
 const BLOCKS = [
@@ -30,6 +33,7 @@ const BLOCKS = [
   "cashback-block",
   "wallet-block",
   "sponsor-block",
+  "register-block",
   "coupon-block",
   "price-block",
   "checkout-block",
@@ -77,6 +81,14 @@ function reset() {
   byId("fetch-codes").textContent = "Scan this page again";
   byId("code-filters").hidden = true;
   byId("code-filters").textContent = "";
+  byId("submit-site").disabled = false;
+  byId("submit-site").textContent = "Submit this site";
+  byId("submit-status").hidden = true;
+  byId("submit-status").textContent = "";
+  byId("enable-site").disabled = false;
+  byId("enable-site").hidden = true;
+  state.site = null;
+  state.request = null;
   byId("copy-all").hidden = true;
   byId("wallet-list").hidden = true;
   byId("wallet-list").textContent = "";
@@ -459,7 +471,7 @@ function renderCoupons() {
       empty.textContent = "No codes yet — the feed has none for this store and none are published on this page.";
     } else {
       empty.textContent =
-        "No codes on this page yet. Stores usually publish them in the cart or a banner — open it and scan again, or save a code below.";
+        "This store isn't registered yet. Submit it above, or scan again in case the codes load with the cart.";
     }
   }
 
@@ -841,29 +853,94 @@ function startAutoScan() {
   step();
 }
 
-function enableSiteAction() {
-  return {
-    label: "Use Savings on this site",
-    run: async () => {
-      const button = byId("empty-action");
-      button.disabled = true;
-      button.textContent = "Enabling…";
-      let origin;
-      try {
-        origin = new URL(state.url).origin + "/*";
-      } catch (_error) {
-        return;
-      }
-      const granted = await chrome.permissions.request({ origins: [origin] });
-      if (!granted) {
-        button.disabled = false;
-        button.textContent = "Access declined — try again";
-        return;
-      }
-      await sendWorker({ type: "site:enable", url: state.url, tabId: state.tabId });
-      await render();
-    },
-  };
+// Stores outside the catalog can still use the code tools on that one site.
+async function enableSite(button) {
+  button.disabled = true;
+  button.textContent = "Enabling…";
+  let origin;
+  try {
+    origin = new URL(state.url).origin + "/*";
+  } catch (_error) {
+    button.disabled = false;
+    button.textContent = "Use code tools on this site";
+    return;
+  }
+  const granted = await chrome.permissions.request({ origins: [origin] });
+  if (!granted) {
+    button.disabled = false;
+    button.textContent = "Access declined — try again";
+    return;
+  }
+  await sendWorker({ type: "site:enable", url: state.url, tabId: state.tabId });
+  await render();
+}
+
+// Every store we cover has at least one code, so a site with no code on file is
+// not registered yet. Name the site the shopper is on, quote the reward and let
+// them file it once.
+function renderRegister() {
+  const block = byId("register-block");
+  const features = (state.data && state.data.features) || {};
+  const registered = Boolean(state.data && state.data.store);
+  const show = Boolean(state.site) && !state.codes.length && features.coupons !== false;
+  block.hidden = !show;
+  if (!show) return;
+
+  byId("register-site").textContent =
+    "Detected site: " + state.site + (registered ? " · " + state.data.store.name : "");
+  byId("reward-line").textContent =
+    "Every store Savings covers has at least one code. If this one is new to us, submit it — accepted sites earn " +
+    money(REWARD_MIN) +
+    " to " +
+    money(REWARD_MAX) +
+    ".";
+  byId("enable-site").hidden = registered;
+
+  const button = byId("submit-site");
+  const status = byId("submit-status");
+  if (state.request) {
+    button.disabled = true;
+    button.textContent = "Submitted";
+    status.hidden = false;
+    status.className = "status ok";
+    status.textContent =
+      "Filed and waiting for review — pays " +
+      money(REWARD_MIN) +
+      "–" +
+      money(REWARD_MAX) +
+      " once the site is added.";
+    return;
+  }
+  button.disabled = false;
+  button.textContent = "Submit this site";
+  status.hidden = true;
+  status.textContent = "";
+}
+
+async function submitSite(button, status) {
+  if (!state.url) return;
+  button.disabled = true;
+  button.textContent = "Submitting…";
+  const reply = await sendWorker({ type: "site:submit", url: state.url });
+
+  if (!reply || !reply.ok) {
+    button.disabled = false;
+    button.textContent = "Submit this site";
+    status.hidden = false;
+    status.className = "status bad";
+    status.textContent = "Could not file that request — try again.";
+    return;
+  }
+
+  // The worker returns the stored request; keep the site's own record if a
+  // browser shim answered without one.
+  state.request = reply.request || { host: state.site, submittedAt: Date.now() };
+  renderRegister();
+  if (reply.already) {
+    status.hidden = false;
+    status.className = "status ok";
+    status.textContent = "You already submitted this site — review is still open.";
+  }
 }
 
 // ---- render -------------------------------------------------------------
@@ -889,13 +966,10 @@ async function render() {
   const data = await sendWorker({ type: "site:resolve", url: state.url });
 
   if (!data || !data.store) {
-    byId("store-name").textContent = "Not a supported store";
-    showEmpty(
-      "Not supported yet",
-      "Savings covers " + storeCount() + " stores. You can also turn it on for this site and use the same code tools here.",
-      ["Codes", "Cashback", "Price tracking"],
-      enableSiteAction()
-    );
+    state.site = (data && data.site) || siteHost(state.url);
+    state.request = (data && data.request) || null;
+    byId("store-name").textContent = state.site ? state.site + " · not registered" : "Not a supported store";
+    renderRegister();
     byId("partner-line").textContent = "Data from Partner Platforms and from this page.";
     return;
   }
@@ -910,10 +984,13 @@ async function render() {
   state.scannedAt = Date.now();
 
   state.codes = mergeCodes(data.codes, pageCodesFrom(state.scan));
+  state.site = data.site || siteHost(state.url);
+  state.request = data.request || null;
 
   renderSource(data, Boolean(state.scan));
   renderPage(state.scan, features);
   renderCashback(data);
+  renderRegister();
   renderCoupons();
   if (features.coupons !== false) startAutoScan();
   byId("partner-line").textContent = data.footer;
@@ -1178,6 +1255,11 @@ function applyBrowserCopy() {
   const button = byId("show-autofill");
   if (button) button.textContent = "Show " + name + " autofill";
 }
+
+byId("submit-site").addEventListener("click", () =>
+  submitSite(byId("submit-site"), byId("submit-status"))
+);
+byId("enable-site").addEventListener("click", (event) => enableSite(event.currentTarget));
 
 byId("stores-count").textContent = String(STORES.length);
 byId("stores-toggle").addEventListener("click", toggleStoreDirectory);

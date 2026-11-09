@@ -23,6 +23,7 @@ import {
 import { getSponsoredOffers, claimOffer, sponsorConfigured } from "../partners/sponsor-offers.js";
 import { payoutConfigured, payoutHost, detectPayoutService, requestVirtualCard, requestSimpleVisa, requestPreviewCard } from "../partners/cashback-payout.js";
 import { readSettings, writeSettings } from "../lib/settings.js";
+import { siteHost } from "../lib/site-request.js";
 import { mergeCodes, cleanCode } from "../lib/codes.js";
 
 const FEED_TTL_MS = 10 * 60 * 1000;
@@ -63,7 +64,10 @@ function cachedOffers(store, settings, refresh) {
 async function resolveSite(url, options) {
   const settings = await readSettings();
   const store = resolveStore(url, settings.enabledSites);
-  if (!store) return { store: null };
+  const site = siteHost(url);
+  const requests = await readMap("siteRequests");
+  const request = (site && requests[site]) || null;
+  if (!store) return { store: null, site, request };
 
   const [verified, saved, dead] = await Promise.all([
     readMap("verified"),
@@ -98,6 +102,9 @@ async function resolveSite(url, options) {
       category: store.category,
       custom: Boolean(store.custom),
     },
+    site,
+    // Filed by the panel when this store had no code on file.
+    request,
     codes,
     feed: {
       configured: Boolean(settings.feedUrl),
@@ -448,6 +455,22 @@ async function enableSite(url, tabId) {
   return { ok: true, host };
 }
 
+// A store the panel found no code for: keep the request so the shopper sees it
+// was filed and the operator can add the site. The reward is quoted, never
+// credited here — it is paid once the site is added.
+async function submitSiteRequest(url) {
+  const host = siteHost(url);
+  if (!host) return { ok: false, reason: "no-site" };
+
+  const requests = await readMap("siteRequests");
+  if (requests[host]) return { ok: true, already: true, request: requests[host] };
+
+  const request = { host, url: String(url).slice(0, 300), submittedAt: Date.now() };
+  requests[host] = request;
+  await writeMap("siteRequests", requests);
+  return { ok: true, already: false, request };
+}
+
 // Sponsored offers: the sponsor service lists the ads and books what each visit
 // pays. Only what the sponsor confirms reaches the wallet.
 async function sponsoredOffers() {
@@ -560,6 +583,8 @@ async function handle(message, sender) {
       return getPrice(message.key);
     case "site:enable":
       return enableSite(message.url, sender && sender.tab ? sender.tab.id : message.tabId);
+    case "site:submit":
+      return submitSiteRequest(message.url);
     case "settings:get":
       return readSettings();
     case "settings:set":
