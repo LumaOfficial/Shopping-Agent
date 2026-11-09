@@ -466,10 +466,11 @@ function renderWallet(wallet) {
   byId("wallet-block").hidden = false;
 
   const totals = wallet.balances;
+  const currency = wallet.currency || totals.currency || "USD";
   const minimum = wallet.minimum || 0;
-  byId("wallet-available").textContent = money(totals.available, "USD");
-  byId("wallet-pending").textContent = money(totals.pending, "USD");
-  byId("wallet-paid").textContent = money(totals.paid, "USD");
+  byId("wallet-available").textContent = money(totals.available, currency);
+  byId("wallet-pending").textContent = money(totals.pending, currency);
+  byId("wallet-paid").textContent = money(totals.paid, currency);
 
   byId("wallet-mode").textContent =
     wallet.mode === "service"
@@ -485,9 +486,9 @@ function renderWallet(wallet) {
   button.textContent = !connected
     ? "Connect a payout service"
     : ready
-      ? "Cash out " + money(totals.available, "USD") + " to a virtual Visa"
+      ? "Cash out " + money(totals.available, currency) + " to a virtual Visa"
       : minimum > 0
-        ? "Cash out from " + money(minimum, "USD")
+        ? "Cash out from " + money(minimum, currency)
         : "Nothing to cash out yet";
 
   const note = byId("wallet-note");

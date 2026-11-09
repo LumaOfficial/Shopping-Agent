@@ -120,7 +120,9 @@ empty list, and the extension never invents an offer.
   rate against the cart total the page actually showed. The amount stays
   **pending** for the 30-day return window, then becomes **cashable**; a payout
   marks those entries **paid**, so the same cashback can never be cashed twice.
-  The ledger lives on this device under `chrome.storage.local` key `cashback`.
+  The ledger lives on this device under `chrome.storage.local` key `cashback`,
+  and it never adds different currencies together: the wallet works in the
+  currency holding the most unpaid cashback and pays out only that currency.
 - **Virtual Visa payouts** — the wallet asks your payout proxy, which fronts
   Tango Card's order API, to issue a virtual Visa for the cashable balance. The
   order uses `deliveryMethod: "NONE"` so Tango returns a redemption link for the
@@ -129,7 +131,9 @@ empty list, and the extension never invents an offer.
   stored, and the Tango Card platform credentials live in the extension settings
   or on the proxy — never in an export. With no proxy connected there is nothing
   to issue, so the wallet's **Connect a payout service** button opens the payout
-  settings instead of pretending to cash out.
+  settings instead of pretending to cash out. Cards are issued in USD, so a
+  cashback balance in another currency stays in the wallet with an explanation
+  rather than being sent as if it were dollars.
 - **Payout service detection** — saving a proxy address probes it with a
   read-only `GET` (no order, nothing spent) and reports the host it found and the
   HTTP answer, so "Detected pay.example.com — ready to issue virtual Visa cards"
@@ -148,7 +152,8 @@ empty list, and the extension never invents an offer.
   of codes that worked, products tracked. Stored locally.
 - **Use on any site** — for stores outside the catalog the panel asks for
   permission for that origin, registers a persistent content script and turns the
-  same tools on there.
+  same tools on there. A site is one site with or without `www.`, so
+  `www.example.com` and `example.com` share their saved and verified codes.
 - **Export / clear** — a JSON copy of local data (never the credentials), and a
   one-click wipe.
 - **Checkout guidance** — when a page shows card fields, the panel offers a
@@ -205,7 +210,9 @@ feed below only adds more of them.
   }
   ```
   An array of `{ "store": "target", … }` entries, or a single store's object, is
-  also accepted. Leave it blank and the panel works from the page alone.
+  also accepted, and a coupon list may be published as `coupons`, `codes` or
+  `offers` — a feed may also answer with just this store's coupons. Leave it
+  blank and the panel works from the page alone.
 - **Authentication** — `Bearer token`, or `Basic` (username + password, the form
   Oxylabs uses). Credentials stay in `chrome.storage.local` on the device and are
   sent only to the configured host, which is why saving asks for optional host
@@ -213,6 +220,9 @@ feed below only adds more of them.
 - **Test connection** — one request to the source, reporting: connected and how
   many store offers, credentials rejected (401/403), an HTTP error, or
   unreachable.
+- **Links are http(s) only** — a feed's `trackingUrl` (like the tracked link
+  template) is opened only when it is an `http(s)` address; anything else is
+  ignored.
 - **Tracked link template** — e.g.
   `https://click.example-network.com/deeplink?id={siteId}&murl={url}`. With no
   template the Activate button says "Not configured" instead of pretending.

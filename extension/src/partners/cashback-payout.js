@@ -152,6 +152,16 @@ export async function requestVirtualCard(settings, request) {
     return { ok: false, error: "There is no cashable balance to pay out." };
   }
 
+  // Tango Card issues these cards in USD, so a balance in another currency is
+  // never sent as if it were dollars.
+  const currency = String(request.currency || "USD").toUpperCase();
+  if (currency !== "USD") {
+    return {
+      ok: false,
+      error: "Virtual Visa cards are issued in USD — cashback in " + currency + " stays in the wallet.",
+    };
+  }
+
   try {
     const order = {
       externalRefID: externalRef(request.earnings, request.amount),

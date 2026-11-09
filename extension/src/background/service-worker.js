@@ -17,6 +17,8 @@ import {
   addSponsoredEarning,
   balances,
   payOut,
+  walletCurrency,
+  normalizeCurrency,
 } from "../partners/cashback-ledger.js";
 import { getSponsoredOffers, claimOffer, sponsorConfigured } from "../partners/sponsor-offers.js";
 import { payoutConfigured, payoutHost, detectPayoutService, requestVirtualCard } from "../partners/cashback-payout.js";
@@ -309,7 +311,7 @@ async function activateCashback(url, total, currency) {
         storeName: store.name,
         total,
         rate: offers.cashback.rate,
-        currency: currency || "USD",
+        currency: normalizeCurrency(currency),
       })
     );
     if (tracked) await writeWallet(wallet);
@@ -333,10 +335,12 @@ async function walletSummary() {
   const wallet = await readWallet();
   if (settle(wallet)) await writeWallet(wallet);
 
+  const currency = walletCurrency(wallet);
   return {
-    balances: balances(wallet),
+    balances: balances(wallet, currency),
+    currency,
     minimum: Number(settings.payoutMinimum) || 0,
-     mode: payoutConfigured(settings) ? "service" : "unconfigured",
+    mode: payoutConfigured(settings) ? "service" : "unconfigured",
     payoutHost: payoutHost(settings),
     entries: wallet.entries.slice(0, 6).map((entry) => ({
       id: entry.id,
@@ -355,21 +359,23 @@ async function cashOut() {
   const wallet = await readWallet();
   settle(wallet);
 
-  const totals = balances(wallet);
+  const currency = walletCurrency(wallet);
+  const totals = balances(wallet, currency);
   const minimum = Number(settings.payoutMinimum) || 0;
   if (!totals.available || totals.available < minimum) {
     return { ok: false, reason: "below-minimum", wallet: await walletSummary() };
   }
 
+  // Only the cashback in this currency is paid out; anything else stays.
   const amount = totals.available;
   const earnings = wallet.entries
-    .filter((entry) => entry.status === "available")
+    .filter((entry) => entry.status === "available" && normalizeCurrency(entry.currency) === currency)
     .map((entry) => entry.id);
 
-  const reply = await requestVirtualCard(settings, { amount, currency: "USD", earnings });
+  const reply = await requestVirtualCard(settings, { amount, currency, earnings });
   if (!reply.ok) return { ok: false, reason: "declined", error: reply.error, wallet: await walletSummary() };
 
-  const payout = payOut(wallet, amount, "USD", reply.card);
+  const payout = payOut(wallet, amount, currency, reply.card);
   await writeWallet(wallet);
   return { ok: true, payout, wallet: await walletSummary() };
 }
@@ -389,8 +395,12 @@ async function enableSite(url, tabId) {
     return { ok: false, error: "Only http and https pages can be enabled." };
   }
 
-  const host = parsed.hostname.toLowerCase();
+  // One site, one id: www.example.com and example.com share their codes.
+  const host = parsed.hostname.toLowerCase().replace(/^www\./, "");
   const id = "site_" + host.replace(/[^a-z0-9]/g, "_").slice(0, 60);
+  const matches = [parsed.origin + "/*"];
+  const bare = "*://" + host + "/*";
+  if (matches.indexOf(bare) === -1) matches.push(bare);
 
   try {
     const existing = await chrome.scripting.getRegisteredContentScripts({ ids: [id] });
@@ -398,7 +408,7 @@ async function enableSite(url, tabId) {
       await chrome.scripting.registerContentScripts([
         {
           id,
-          matches: [parsed.origin + "/*"],
+          matches,
           js: CONTENT_FILES,
           runAt: "document_idle",
           allFrames: true,

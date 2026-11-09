@@ -445,12 +445,28 @@ export function hostsOf(store) {
   return store.hosts || [store.host];
 }
 
+// A site is the same site with or without "www.", and the same goes for the
+// sites the shopper enabled by hand, so hosts are compared in one shape.
+function normalizeHost(host) {
+  return String(host || "")
+    .trim()
+    .toLowerCase()
+    .replace(/^www\./, "");
+}
+
 function hostOf(url) {
   try {
-    return new URL(url).hostname.toLowerCase();
+    return normalizeHost(new URL(url).hostname);
   } catch {
     return null;
   }
+}
+
+function matchHost(host, candidates) {
+  return candidates
+    .map(normalizeHost)
+    .filter((candidate) => candidate && (host === candidate || host.endsWith(`.${candidate}`)))
+    .sort((a, b) => b.length - a.length)[0];
 }
 
 export function storeById(id) {
@@ -467,15 +483,23 @@ function customStore(host) {
 export function resolveStore(url, enabledSites) {
   const host = hostOf(url);
   if (!host) return null;
-  const known = STORES.find((store) =>
-    hostsOf(store).some((candidate) => host === candidate || host.endsWith(`.${candidate}`))
-  );
+  // The most specific host wins, so a store's country site never falls back to
+  // its .com entry.
+  let known = null;
+  let knownLength = 0;
+  STORES.forEach((store) => {
+    const match = matchHost(host, hostsOf(store));
+    if (match && match.length > knownLength) {
+      known = store;
+      knownLength = match.length;
+    }
+  });
   if (known) return known;
-  const enabled = Array.isArray(enabledSites) ? enabledSites : [];
-  if (enabled.some((site) => host === site || host.endsWith(`.${site}`))) {
-    return customStore(host);
-  }
-  return null;
+
+  // A site the shopper enabled is stored under that same normalized host, so
+  // www.example.com and example.com share one set of saved codes.
+  const matchedSite = matchHost(host, Array.isArray(enabledSites) ? enabledSites : []);
+  return matchedSite ? customStore(matchedSite) : null;
 }
 
 export function storeCount() {

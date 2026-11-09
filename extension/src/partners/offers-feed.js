@@ -33,22 +33,32 @@ export function sourceLabel(feedUrl) {
 function pickEntry(payload, storeId) {
   if (!payload) return null;
   if (Array.isArray(payload)) {
-    return payload.find((item) => item && (item.store === storeId || item.id === storeId)) || null;
+    const match = payload.find((item) => item && (item.store === storeId || item.id === storeId));
+    if (match) return match;
+    // A feed may also answer with just this store's coupons.
+    return payload.some((item) => item && (item.code || item.couponCode)) ? { coupons: payload } : null;
   }
   if (payload.stores && payload.stores[storeId]) return payload.stores[storeId];
-  if (payload.coupons || payload.cashback) return payload;
+  if (payload.coupons || payload.codes || payload.offers || payload.cashback) return payload;
   return null;
 }
 
+// Only an http(s) link may leave the panel, even when a feed supplies it.
+function httpLink(url) {
+  const value = String(url || "").trim();
+  return /^https?:\/\//i.test(value) ? value : null;
+}
+
 function normalizeEntry(entry) {
-  const coupons = (Array.isArray(entry && entry.coupons) ? entry.coupons : [])
+  const list = entry && (entry.coupons || entry.codes || entry.offers);
+  const coupons = (Array.isArray(list) ? list : [])
     .map((raw) => normalizeCode(raw, "feed"))
     .filter(Boolean)
     .filter((coupon) => !isExpired(coupon));
   const cashback = entry && entry.cashback
     ? {
         rate: entry.cashback.rate || null,
-        trackingUrl: entry.cashback.trackingUrl || entry.cashback.url || null,
+        trackingUrl: httpLink(entry.cashback.trackingUrl || entry.cashback.url),
       }
     : null;
   return { coupons, cashback };

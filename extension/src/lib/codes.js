@@ -18,6 +18,15 @@ export function cleanCode(input) {
   return code;
 }
 
+// Feeds publish an expiry as an ISO date or as epoch milliseconds; both become
+// one ISO string so isExpired() reads them the same way.
+function normalizeExpiry(value) {
+  if (!value) return null;
+  const at = typeof value === "number" ? value : Date.parse(value);
+  if (!isFinite(at)) return null;
+  return new Date(at).toISOString();
+}
+
 export function normalizeCode(raw, fallbackSource) {
   if (!raw) return null;
   const code = cleanCode(raw.code || raw.couponCode || raw.value);
@@ -26,7 +35,7 @@ export function normalizeCode(raw, fallbackSource) {
   return {
     code,
     title: title ? title.slice(0, 160) : null,
-    expires: raw.expires || null,
+    expires: normalizeExpiry(raw.expires || raw.expiresAt),
     source: raw.source || fallbackSource || "feed",
     verifiedAt: raw.verifiedAt || raw.at || null,
   };

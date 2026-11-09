@@ -12,6 +12,40 @@ export function emptyWallet() {
   return { entries: [], payouts: [] };
 }
 
+export function normalizeCurrency(currency) {
+  const code = String(currency || "USD").trim().toUpperCase();
+  return /^[A-Z]{3}$/.test(code) ? code : "USD";
+}
+
+function entryCurrency(entry) {
+  return normalizeCurrency(entry && entry.currency);
+}
+
+// Money in different currencies is never added together. The wallet works in
+// the currency that holds the most unpaid cashback.
+export function walletCurrency(wallet) {
+  const entries = ((wallet && wallet.entries) || []).filter(
+    (entry) => entry && typeof entry.amount === "number"
+  );
+  const totals = new Map();
+  entries.forEach((entry) => {
+    if (entry.status === "paid") return;
+    const code = entryCurrency(entry);
+    totals.set(code, (totals.get(code) || 0) + entry.amount);
+  });
+  let best = null;
+  let bestTotal = -1;
+  totals.forEach((amount, code) => {
+    if (amount > bestTotal) {
+      best = code;
+      bestTotal = amount;
+    }
+  });
+  // Everything paid out: keep reporting the currency of the last payout.
+  if (!best) return entries.length ? entryCurrency(entries[0]) : "USD";
+  return best;
+}
+
 // "4%", "4 %" and "4" all mean four percent. Anything outside 0–50% is not a
 // cashback rate and is ignored rather than guessed at.
 export function parseRate(rate) {
@@ -66,7 +100,7 @@ export function addEarning(wallet, earning, now) {
     rate: parseRate(earning.rate),
     total: earning.total,
     amount,
-    currency: earning.currency || "USD",
+    currency: normalizeCurrency(earning.currency),
     status: "pending",
     at,
     confirmAt: at + (earning.holdDays || HOLD_DAYS) * DAY_MS,
@@ -94,7 +128,7 @@ export function addSponsoredEarning(wallet, earning, now) {
     storeId: "sponsored",
     storeName: String(earning.advertiser || "Sponsored offer").slice(0, 60),
     amount,
-    currency: String(earning.currency || "USD").slice(0, 3).toUpperCase(),
+    currency: normalizeCurrency(earning.currency),
     sponsored: true,
     status,
     at,
@@ -106,28 +140,36 @@ export function addSponsoredEarning(wallet, earning, now) {
   return entry;
 }
 
-export function balances(wallet) {
+// Totals for one currency (the wallet's own when none is given), so euros and
+// dollars are never added together.
+export function balances(wallet, currency) {
+  const want = normalizeCurrency(currency || walletCurrency(wallet));
   const totals = { pending: 0, available: 0, paid: 0 };
   wallet.entries.forEach((entry) => {
     if (totals[entry.status] == null) return;
+    if (entryCurrency(entry) !== want) return;
     totals[entry.status] += entry.amount;
   });
-  return Object.assign(totals, { lifetime: totals.pending + totals.available + totals.paid });
+  return Object.assign(totals, {
+    lifetime: totals.pending + totals.available + totals.paid,
+    currency: want,
+  });
 }
 
-// Marks every cashable entry as paid against one payout. The payout record is
-// returned so the caller can store it with the wallet.
+// Marks cashable entries in the payout's currency as paid. Entries in another
+// currency are left alone — that money has not been paid out.
 export function payOut(wallet, amount, currency, card, now) {
   const at = now || Date.now();
+  const want = normalizeCurrency(currency);
   wallet.entries.forEach((entry) => {
-    if (entry.status !== "available") return;
+    if (entry.status !== "available" || entryCurrency(entry) !== want) return;
     entry.status = "paid";
     entry.payoutId = card.reference;
   });
   const payout = {
     id: card.reference,
     amount,
-    currency: currency || "USD",
+    currency: want,
     at,
     card: {
       brand: card.brand || "Visa",

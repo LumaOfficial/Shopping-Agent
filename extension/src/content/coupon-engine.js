@@ -193,11 +193,19 @@
     return amounts;
   }
 
+  // Stores outside the US print their own symbol; the message follows the page
+  // rather than assuming dollars.
+  var SYMBOL_RE = /([$€£¥₹])\s?\d/;
+  var pageSymbol = null;
+
   function orderTotal() {
     var values = [];
     queryAll(TOTAL_SELECTOR).slice(0, 40).forEach(function (node) {
       if (!isVisible(node)) return;
-      Array.prototype.push.apply(values, amountsIn(textOf(node)));
+      var text = textOf(node);
+      var symbol = String(text).match(SYMBOL_RE);
+      if (symbol && !pageSymbol) pageSymbol = symbol[1];
+      Array.prototype.push.apply(values, amountsIn(text));
     });
     if (!values.length) return null;
     return Math.max.apply(null, values);
@@ -291,7 +299,7 @@
       if (before.total !== null && totalAfter !== null && totalAfter < before.total - 0.009) {
         return {
           status: "applied",
-          message: "Order total dropped to $" + totalAfter.toFixed(2),
+          message: "Order total dropped to " + (pageSymbol || "") + totalAfter.toFixed(2),
           totalBefore: before.total,
           totalAfter: totalAfter,
           saving: before.total - totalAfter,

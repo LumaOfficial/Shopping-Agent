@@ -1,4 +1,5 @@
 import { withDefaults } from "./src/lib/settings.js";
+import { money } from "./src/lib/format.js";
 
 const byId = (id) => document.getElementById(id);
 
@@ -203,12 +204,12 @@ async function loadData() {
     ((savings.total || 0) / 100).toFixed(2) +
     " in total drops." +
     (stats.wallet
-      ? " Cashback wallet: $" +
-        ((stats.wallet.available || 0) / 100).toFixed(2) +
-        " available, $" +
-        ((stats.wallet.pending || 0) / 100).toFixed(2) +
-        " pending, $" +
-        ((stats.wallet.paid || 0) / 100).toFixed(2) +
+      ? " Cashback wallet: " +
+        money(stats.wallet.available || 0, stats.wallet.currency) +
+        " available, " +
+        money(stats.wallet.pending || 0, stats.wallet.currency) +
+        " pending, " +
+        money(stats.wallet.paid || 0, stats.wallet.currency) +
         " paid out."
       : "");
 
