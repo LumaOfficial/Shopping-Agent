@@ -360,19 +360,23 @@
     <footer class="foot" id="partner-line"></footer>
 
     <div class="logo-show" id="logo-show" hidden>
-      <div class="logo-show-sheet" role="dialog" aria-modal="true" aria-label="All store logos">
-        <div class="logo-show-head">
-          <div>
-            <span class="lbl" data-show-step>All stores</span>
-            <h3 data-show-title>Every store</h3>
-          </div>
-          <button class="mini" id="logo-show-close" type="button">Close</button>
+      <div class="show-stage" role="dialog" aria-modal="true" aria-label="Every store Savings works on">
+        <div class="show-aura" aria-hidden="true"></div>
+        <div class="show-scene" data-scene="orbit" aria-hidden="true"></div>
+        <div class="show-scene" data-scene="tunnel" aria-hidden="true"></div>
+        <div class="show-scene" data-scene="mosaic" aria-hidden="true"></div>
+        <button class="mini show-close" id="logo-show-close" type="button">Close</button>
+        <div class="show-copy">
+          <span class="lbl" data-show-step>All stores</span>
+          <h3 data-show-title>Loading logos</h3>
+          <p class="muted tiny" data-show-note>
+            Preloading every store's mark so nothing pops in mid-show.
+          </p>
+          <button class="btn show-browse" data-show-browse type="button" hidden>
+            Browse all stores
+          </button>
         </div>
-        <div class="logo-show-grid" data-show-grid aria-hidden="true"></div>
-        <div class="logo-show-bar"><span data-show-bar></span></div>
-        <p class="muted tiny" data-show-note>
-          Every store Savings works on — tap Browse to open any of them.
-        </p>
+        <div class="show-bar"><span data-show-bar></span></div>
       </div>
     </div>
 

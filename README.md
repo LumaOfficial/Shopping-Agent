@@ -86,7 +86,7 @@ empty list, and the extension never invents an offer.
 ### What works
 
 - **Codes only for the store you are on.** The panel resolves the tab's host
-  against a catalog of **572 stores / 590 host patterns** (including regional
+  against a catalog of **769 stores / 787 host patterns** (including regional
   Amazon, eBay and other domains). Any other page shows an empty state, plus an
   option to enable the extension on that site.
 - **All stores, browsable** — the panel's *All stores* card lists the whole
@@ -95,6 +95,10 @@ empty list, and the extension never invents an offer.
 - **Popular stores and categories** — a shuffleable rail of ten popular stores
   (each one tap from its site) and a category grid that opens the All stores
   list already filtered, so the panel is useful before a store is visited.
+- **Animate** — a full-screen trailer for the catalog. Every store's mark is
+  preloaded first (with a progress bar), then the show runs an orbit of logos,
+  a fly-through and a mosaic before settling on the store count and a *Browse
+  all stores* button. `prefers-reduced-motion` skips straight to the mosaic.
 - **Coupon apply** — the side panel sends the code to the content script, which
   finds the promo field (searching open shadow roots too, and skipping search,
   zip, gift-card and card fields), types it with native setters and real

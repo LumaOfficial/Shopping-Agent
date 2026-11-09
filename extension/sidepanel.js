@@ -1297,6 +1297,10 @@ startPanelExtras({
 });
 byId("stores-animate").addEventListener("click", openLogoShow);
 byId("logo-show-close").addEventListener("click", closeLogoShow);
+document.querySelector("[data-show-browse]").addEventListener("click", () => {
+  closeLogoShow();
+  openStoreDirectory("All");
+});
 byId("logo-show").addEventListener("click", (event) => {
   if (event.target === byId("logo-show")) closeLogoShow();
 });
