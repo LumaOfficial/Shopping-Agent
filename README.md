@@ -92,6 +92,9 @@ empty list, and the extension never invents an offer.
 - **All stores, browsable** — the panel's *All stores* card lists the whole
   catalog, searchable by name, host or category and filterable by category, so
   a shopper can see what is covered and open a store from the list.
+- **Popular stores and categories** — a shuffleable rail of ten popular stores
+  (each one tap from its site) and a category grid that opens the All stores
+  list already filtered, so the panel is useful before a store is visited.
 - **Coupon apply** — the side panel sends the code to the content script, which
   finds the promo field (searching open shadow roots too, and skipping search,
   zip, gift-card and card fields), types it with native setters and real
@@ -192,6 +195,8 @@ between the shopper, the browser and the merchant.
 | `src/content/coupon-engine.js` | Promo-field autofill + outcome detection |
 | `src/content/page-scan.js` | Published codes, clip coupons, product/price reading |
 | `src/lib/stores.js` | Merchant catalog and host matching |
+| `src/lib/panel-extras.js` | Popular-store rail and category tiles, both from the catalog |
+| `src/lib/logo-show.js` | The *Animate* logo parade over the whole catalog |
 | `src/lib/codes.js` | One code shape, de-duplication order, expiry rule |
 | `src/lib/settings.js` | Stored settings defaults, shared by worker and options |
 | `src/lib/format.js` | Money (minor units), relative times |

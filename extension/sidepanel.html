@@ -29,10 +29,10 @@
 
       <section class="hero">
         <div class="glow" aria-hidden="true"></div>
-        <div class="num" id="saved-total">—</div>
+        <div class="num" id="saved-total">$0.00</div>
         <div class="row">
           <div>
-            <strong id="saved-count">—</strong>
+            <strong id="saved-count">0</strong>
             <span>codes worked</span>
           </div>
         </div>
@@ -198,6 +198,28 @@
         </p>
       </section>
 
+      <section class="card c8" id="picks-block">
+        <h3 style="justify-content: space-between">
+          Popular stores
+          <span class="head-actions">
+            <button class="mini" id="picks-shuffle" type="button">Shuffle</button>
+          </span>
+        </h3>
+        <p class="muted tiny">
+          Tap a store to open it — codes and cashback fill in as you browse.
+        </p>
+        <div class="picks" id="picks-rail" aria-label="Popular stores"></div>
+      </section>
+
+      <section class="card c8" id="category-block">
+        <h3>Shop by category</h3>
+        <p class="muted tiny">
+          The categories with the most stores. Tap one to open the full list at that
+          category.
+        </p>
+        <div class="cat-grid" id="category-grid"></div>
+      </section>
+
       <section class="card c8" id="stores-block">
         <h3 style="justify-content: space-between">
           All stores
@@ -246,6 +268,42 @@
         </div>
       </section>
 
+      <section class="card c8" id="how-block">
+        <h3>How savings works</h3>
+        <ol class="steps">
+          <li>
+            <span class="step-n" aria-hidden="true">1</span>
+            <div>
+              <strong>Scan the page</strong>
+              <p class="muted tiny">
+                The panel reads the store's own page for codes, clip coupons and the
+                price on the product you are viewing. No feed or key needed.
+              </p>
+            </div>
+          </li>
+          <li>
+            <span class="step-n" aria-hidden="true">2</span>
+            <div>
+              <strong>Apply in one tap</strong>
+              <p class="muted tiny">
+                A code is typed into the store's own promo field, and the panel
+                reports what the page confirmed — never a guess.
+              </p>
+            </div>
+          </li>
+          <li>
+            <span class="step-n" aria-hidden="true">3</span>
+            <div>
+              <strong>Earn as you shop</strong>
+              <p class="muted tiny">
+                Cashback and sponsored offers land in your wallet, then cash out to a
+                virtual Visa.
+              </p>
+            </div>
+          </li>
+        </ol>
+      </section>
+
       <section class="card trust c8" id="trust-block">
         <div class="lbl" style="margin-bottom: 14px">Your data</div>
         <p>
@@ -262,6 +320,40 @@
           </svg>
           <span id="access-line">Codes are applied only in the store's own promo field.</span>
         </p>
+      </section>
+
+      <section class="card c8" id="faq-block">
+        <h3>Good to know</h3>
+        <details class="faq">
+          <summary>Where do the codes come from?</summary>
+          <p class="muted tiny">
+            Most come from the page you are on — banners, the cart and the store's
+            deals pages. A feed you connect in Settings is merged in and labelled by
+            source.
+          </p>
+        </details>
+        <details class="faq">
+          <summary>Does Savings see my card details?</summary>
+          <p class="muted tiny">
+            No. Card numbers, expiry dates and security codes are never read, stored
+            or sent. Your browser's own autofill fills them.
+          </p>
+        </details>
+        <details class="faq">
+          <summary>When does cashback become cash?</summary>
+          <p class="muted tiny">
+            A tracked visit stays pending until the store's return window passes
+            (<span id="faq-hold">30</span> days), then it becomes available to cash
+            out.
+          </p>
+        </details>
+        <details class="faq">
+          <summary>How is the price low worked out?</summary>
+          <p class="muted tiny">
+            From prices recorded on product pages you visit on this device, plus an
+            optional 90-day low from a product API in Settings.
+          </p>
+        </details>
       </section>
     </div>
 

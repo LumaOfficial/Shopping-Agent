@@ -6,6 +6,7 @@ import { PAGE_SOURCE_NOTE } from "./src/lib/copy.js";
 import { browserName } from "./src/lib/browser.js";
 import { HOLD_DAYS } from "./src/partners/cashback-ledger.js";
 import { startLogoShow } from "./src/lib/logo-show.js";
+import { startPanelExtras } from "./src/lib/panel-extras.js";
 import { siteHost, REWARD_MIN, REWARD_MAX } from "./src/lib/site-request.js";
 
 const byId = (id) => document.getElementById(id);
@@ -189,6 +190,26 @@ function toggleStoreDirectory() {
     buildStoreDirectory();
     byId("store-search").focus();
   }
+}
+
+function syncCategoryChips() {
+  Array.from(byId("store-categories").children).forEach((chip) => {
+    chip.setAttribute("aria-pressed", String(chip.dataset.category === state.storeCategory));
+  });
+}
+
+// The category tiles and the All stores card drive the same directory, so a tile
+// opens it already filtered and scrolls it into view.
+function openStoreDirectory(category) {
+  if (typeof category === "string") state.storeCategory = category;
+  if (byId("stores-panel").hidden) {
+    toggleStoreDirectory();
+  } else {
+    buildStoreDirectory();
+    renderStoreList();
+  }
+  syncCategoryChips();
+  byId("stores-block").scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
 // The logo parade: a ~15 second flip through every store's own mark. Opened
@@ -1263,6 +1284,17 @@ byId("enable-site").addEventListener("click", (event) => enableSite(event.curren
 
 byId("stores-count").textContent = String(STORES.length);
 byId("stores-toggle").addEventListener("click", toggleStoreDirectory);
+byId("faq-hold").textContent = String(HOLD_DAYS);
+
+// The pick rail and category tiles come from the catalog, so the panel has
+// something useful on it before any store has been visited.
+startPanelExtras({
+  rail: byId("picks-rail"),
+  grid: byId("category-grid"),
+  shuffleButton: byId("picks-shuffle"),
+  onOpenStore: (store) => chrome.tabs.create({ url: storeSite(store) }),
+  onOpenCategory: openStoreDirectory,
+});
 byId("stores-animate").addEventListener("click", openLogoShow);
 byId("logo-show-close").addEventListener("click", closeLogoShow);
 byId("logo-show").addEventListener("click", (event) => {
