@@ -24,6 +24,7 @@ import { getSponsoredOffers, claimOffer, sponsorConfigured } from "../partners/s
 import { payoutConfigured, payoutHost, detectPayoutService, requestVirtualCard, requestSimpleVisa, requestPreviewCard } from "../partners/cashback-payout.js";
 import { readSettings, writeSettings } from "../lib/settings.js";
 import { siteHost } from "../lib/site-request.js";
+import { decideSite } from "../lib/site-add.js";
 import { mergeCodes, cleanCode } from "../lib/codes.js";
 
 const FEED_TTL_MS = 10 * 60 * 1000;
@@ -65,9 +66,15 @@ async function resolveSite(url, options) {
   const settings = await readSettings();
   const store = resolveStore(url, settings.enabledSites);
   const site = siteHost(url);
-  const requests = await readMap("siteRequests");
-  const request = (site && requests[site]) || null;
-  if (!store) return { store: null, site, request };
+  if (!store) return { store: null, site };
+
+  // Sites the shopper added on the spot carry the name and category the page
+  // itself declared, which is what the panel shows instead of the bare host.
+  const added = store.custom ? (await readMap("addedSites"))[store.id] || null : null;
+  if (added) {
+    store.name = added.name || store.name;
+    store.category = added.category || store.category;
+  }
 
   const [verified, saved, dead] = await Promise.all([
     readMap("verified"),
@@ -101,10 +108,11 @@ async function resolveSite(url, options) {
       name: store.name,
       category: store.category,
       custom: Boolean(store.custom),
+      // Added on the spot by the panel, so it can be removed again from there.
+      removable: Boolean(store.custom),
+      evidence: (added && added.evidence) || [],
     },
     site,
-    // Filed by the panel when this store had no code on file.
-    request,
     codes,
     feed: {
       configured: Boolean(settings.feedUrl),
@@ -398,77 +406,165 @@ async function cashOut(message) {
   return { ok: true, preview: Boolean(reply.preview), payout, wallet: await walletSummary() };
 }
 
-// Lets the shopper use the extension on a store that is not in the catalog.
-// The panel asks for the origin permission first (it needs the user gesture);
-// this registers a persistent content script for future visits and injects the
-// same scripts into the tab that is already open.
-async function enableSite(url, tabId) {
+// One site, one content script: www.example.com and example.com share their id
+// and their codes.
+function scriptIdFor(host) {
+  return "site_" + host.replace(/[^a-z0-9]/g, "_").slice(0, 60);
+}
+
+async function registerSiteScript(host, origin) {
+  const id = scriptIdFor(host);
+  const matches = [origin + "/*"];
+  const bare = "*://" + host + "/*";
+  if (matches.indexOf(bare) === -1) matches.push(bare);
+
+  const existing = await chrome.scripting.getRegisteredContentScripts({ ids: [id] });
+  if (!existing.length) {
+    await chrome.scripting.registerContentScripts([
+      {
+        id,
+        matches,
+        js: CONTENT_FILES,
+        runAt: "document_idle",
+        allFrames: true,
+        persistAcrossSessions: true,
+      },
+    ]);
+  }
+  return id;
+}
+
+async function unregisterSiteScript(host) {
+  try {
+    await chrome.scripting.unregisterContentScripts({ ids: [scriptIdFor(host)] });
+  } catch (_error) {
+    // Nothing was registered for this host.
+  }
+}
+
+// Reading what the page declares about itself, then adding it on the spot or
+// leaving it out. Only the page's own evidence counts: schema.org store or
+// product markup, a known storefront platform, and a real cart or checkout. The
+// panel has already asked for access to this origin, which is the user gesture
+// the browser requires.
+async function detectSite(url, tabId) {
+  const host = siteHost(url);
+  if (!host) return { ok: false, reason: "no-site", message: "This tab is not a web page." };
+
   let parsed;
   try {
     parsed = new URL(url);
   } catch (_error) {
-    return { ok: false, error: "This tab is not a web page." };
+    return { ok: false, reason: "no-site", message: "This tab is not a web page." };
   }
-  if (!/^https?:$/.test(parsed.protocol)) {
-    return { ok: false, error: "Only http and https pages can be enabled." };
+  if (typeof tabId !== "number") {
+    return { ok: false, reason: "no-tab", message: "Open the site's page and check it there." };
   }
 
-  // One site, one id: www.example.com and example.com share their codes.
-  const host = parsed.hostname.toLowerCase().replace(/^www\./, "");
-  const id = "site_" + host.replace(/[^a-z0-9]/g, "_").slice(0, 60);
-  const matches = [parsed.origin + "/*"];
-  const bare = "*://" + host + "/*";
-  if (matches.indexOf(bare) === -1) matches.push(bare);
+  let detection = null;
+  try {
+    await chrome.scripting.executeScript({
+      target: { tabId, frameId: 0 },
+      files: ["src/content/site-detect.js"],
+    });
+    const [reply] = await chrome.scripting.executeScript({
+      target: { tabId, frameId: 0 },
+      func: function () {
+        return globalThis.SiteDetect ? globalThis.SiteDetect.scan() : null;
+      },
+    });
+    detection = reply && reply.result;
+  } catch (error) {
+    return {
+      ok: false,
+      reason: "no-access",
+      message: "The browser did not let the panel read this page: " + String((error && error.message) || error),
+    };
+  }
+  if (!detection) return { ok: false, reason: "no-answer", message: "The page did not answer, so nothing was added." };
+
+  const verdict = decideSite(detection, host);
+  const settings = await readSettings();
+  const added = await readMap("addedSites");
+
+  if (!verdict.add) {
+    // A page that cannot prove it is a shop is removed rather than parked in a
+    // review queue: the site is not covered and any earlier record of it goes.
+    let removed = false;
+    if (settings.enabledSites.indexOf(host) !== -1) {
+      settings.enabledSites = settings.enabledSites.filter((value) => value !== host);
+      await writeSettings(settings);
+      removed = true;
+    }
+    if (added[host]) {
+      delete added[host];
+      await writeMap("addedSites", added);
+      removed = true;
+    }
+    await unregisterSiteScript(host);
+    if (removed) feedCache.clear();
+    return { ok: true, action: "removed", store: null, verdict };
+  }
 
   try {
-    const existing = await chrome.scripting.getRegisteredContentScripts({ ids: [id] });
-    if (!existing.length) {
-      await chrome.scripting.registerContentScripts([
-        {
-          id,
-          matches,
-          js: CONTENT_FILES,
-          runAt: "document_idle",
-          allFrames: true,
-          persistAcrossSessions: true,
-        },
-      ]);
-    }
+    await registerSiteScript(host, parsed.origin);
   } catch (error) {
-    return { ok: false, error: "The browser refused the content script: " + String((error && error.message) || error) };
+    return {
+      ok: false,
+      reason: "register-failed",
+      message: "The browser refused to watch this site: " + String((error && error.message) || error),
+    };
   }
 
-  const settings = await readSettings();
   if (settings.enabledSites.indexOf(host) === -1) {
     settings.enabledSites.push(host);
     await writeSettings(settings);
   }
+  added[host] = {
+    host,
+    name: verdict.name,
+    category: verdict.category,
+    platform: detection.platform || null,
+    evidence: verdict.evidence || [],
+    addedAt: Date.now(),
+  };
+  await writeMap("addedSites", added);
+  feedCache.clear();
 
-  if (typeof tabId === "number") {
-    try {
-      await chrome.scripting.executeScript({ target: { tabId, allFrames: true }, files: CONTENT_FILES });
-    } catch (_error) {
-      // The registration still covers the next page load.
-    }
+  try {
+    await chrome.scripting.executeScript({ target: { tabId, allFrames: true }, files: CONTENT_FILES });
+  } catch (_error) {
+    // The registration still covers the next page load.
   }
 
-  return { ok: true, host };
+  return {
+    ok: true,
+    action: "added",
+    store: { host, name: verdict.name, category: verdict.category },
+    verdict,
+  };
 }
 
-// A store the panel found no code for: keep the request so the shopper sees it
-// was filed and the operator can add the site. The reward is quoted, never
-// credited here — it is paid once the site is added.
-async function submitSiteRequest(url) {
+// Takes back a site the shopper added: its content script, its place in the
+// enabled list and the profile the page declared. Saved codes stay on the
+// device in case the site is added again.
+async function removeSite(url) {
   const host = siteHost(url);
-  if (!host) return { ok: false, reason: "no-site" };
+  if (!host) return { ok: false, message: "This tab is not a web page." };
 
-  const requests = await readMap("siteRequests");
-  if (requests[host]) return { ok: true, already: true, request: requests[host] };
-
-  const request = { host, url: String(url).slice(0, 300), submittedAt: Date.now() };
-  requests[host] = request;
-  await writeMap("siteRequests", requests);
-  return { ok: true, already: false, request };
+  const settings = await readSettings();
+  if (settings.enabledSites.indexOf(host) !== -1) {
+    settings.enabledSites = settings.enabledSites.filter((value) => value !== host);
+    await writeSettings(settings);
+  }
+  const added = await readMap("addedSites");
+  if (added[host]) {
+    delete added[host];
+    await writeMap("addedSites", added);
+  }
+  await unregisterSiteScript(host);
+  feedCache.clear();
+  return { ok: true, host };
 }
 
 // Sponsored offers: the sponsor service lists the ads and books what each visit
@@ -581,10 +677,10 @@ async function handle(message, sender) {
       return recordPrice(message.product);
     case "price:get":
       return getPrice(message.key);
-    case "site:enable":
-      return enableSite(message.url, sender && sender.tab ? sender.tab.id : message.tabId);
-    case "site:submit":
-      return submitSiteRequest(message.url);
+    case "site:detect":
+      return detectSite(message.url, sender && sender.tab ? sender.tab.id : message.tabId);
+    case "site:remove":
+      return removeSite(message.url);
     case "settings:get":
       return readSettings();
     case "settings:set":

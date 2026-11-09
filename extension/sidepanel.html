@@ -117,15 +117,17 @@
       </section>
 
       <section class="card c5b" id="register-block" hidden>
-        <div class="lbl" style="margin-bottom: 10px">Unregistered store</div>
-        <h3>This store isn't registered</h3>
+        <div class="lbl" style="margin-bottom: 10px">Store coverage</div>
+        <h3 id="register-title">This page isn't covered yet</h3>
         <p class="muted tiny" id="register-site">Detected site: —</p>
-        <p class="muted tiny" id="reward-line">
-          Every store Savings covers has at least one code.
+        <p class="muted tiny" id="register-note">
+          Savings reads what the page itself declares — store or product markup, a
+          known shop platform, a real cart or checkout — and adds it on the spot
+          when that is clear.
         </p>
-        <button class="btn w" id="submit-site" type="button">Submit this site</button>
-        <button class="mini" id="enable-site" type="button" hidden>Use code tools on this site</button>
-        <div class="status" id="submit-status" role="status" aria-live="polite" hidden></div>
+        <button class="btn w" id="detect-site" type="button">Check &amp; add this site</button>
+        <button class="mini" id="remove-site" type="button" hidden>Remove this site</button>
+        <div class="status" id="detect-status" role="status" aria-live="polite" hidden></div>
       </section>
 
       <section class="card c5" id="coupon-block" hidden>

@@ -87,8 +87,8 @@ empty list, and the extension never invents an offer.
 
 - **Codes only for the store you are on.** The panel resolves the tab's host
   against a catalog of **769 stores / 787 host patterns** (including regional
-  Amazon, eBay and other domains). Any other page shows an empty state, plus an
-  option to enable the extension on that site.
+  Amazon, eBay and other domains). Any other page shows an empty state, plus a
+  one-tap check that adds the site when the page proves it is a shop.
 - **All stores, browsable** — the panel's *All stores* card lists the whole
   catalog, searchable by name, host or category and filterable by category, so
   a shopper can see what is covered and open a store from the list.
@@ -172,9 +172,13 @@ empty list, and the extension never invents an offer.
   these visits itself.
 - **Savings record** — total of the order-total drops the page confirmed, number
   of codes that worked, products tracked. Stored locally.
-- **Use on any site** — for stores outside the catalog the panel asks for
-  permission for that origin, registers a persistent content script and turns the
-  same tools on there. A site is one site with or without `www.`, so
+- **Any shop, added on the spot** — for a site outside the catalog the panel
+  asks for permission for that origin, reads what the page itself declares
+  (schema.org store or product markup, a known shop platform such as Shopify or
+  WooCommerce, a real cart or checkout), and either adds the site immediately —
+  registering a persistent content script and turning the same tools on — or
+  removes it again and says why. A site added this way gets a *Remove this site*
+  control in the same card. A site is one site with or without `www.`, so
   `www.example.com` and `example.com` share their saved and verified codes.
 - **Export / clear** — a JSON copy of local data (never the credentials), and a
   one-click wipe.
@@ -182,6 +186,34 @@ empty list, and the extension never invents an offer.
   "Show Chrome autofill" / "Show Edge autofill" button that focuses the card
   field so **the browser's own** autofill appears. The extension never reads, stores, autofills or submits card
   numbers, expiry dates or security codes, and it never calls a checkout "safe".
+
+### How a site gets added
+
+There is no review queue and no site is added from a hostname guess. On a page
+outside the catalog the panel's **Check & add this site** button asks for that
+origin's permission (the click is the gesture the browser requires), then the
+service worker reads the page's own evidence:
+
+| Evidence | Where it comes from |
+| --- | --- |
+| Store markup | `schema.org` JSON-LD with a store type (`Store`, `OnlineStore`, …) |
+| Product markup | JSON-LD `Product` with an `Offer`, or an Add-to-cart control next to a cart |
+| Shop platform | Shopify, WooCommerce, BigCommerce, Magento, PrestaShop, Squarespace, Shopware |
+| Cart / checkout | a visible link to the page's own cart or checkout |
+
+Store markup, a shop platform, a product with a real offer, or a working
+add-to-cart beside a cart must be present *and* the combined evidence must reach
+the threshold, which is what keeps a blog or a review page with an affiliate
+product snippet out. When it passes, the site is added immediately: a persistent content
+script is registered, the host joins the enabled list, the name and category the
+page declared are stored, and the same tools are injected into the open tab. When
+it does not pass, nothing is added and any earlier record of the site is removed,
+with the reason shown in the card.
+
+The name comes from the page (`og:site_name`, the store's JSON-LD name, or the
+title) and the category is *Added by you*. An added site can be removed again
+from the same card; that unregisters the content script and drops it from the
+enabled list, while saved codes stay on the device.
 
 ### Privacy: card data
 
@@ -198,6 +230,9 @@ between the shopper, the browser and the merchant.
 | `src/content/content.js` | Frame-aware bridge: `page:scan`, `page:clip`, `coupon:probe`, `coupon:apply`, `checkout:probe`, `checkout:focus` (attributes only) |
 | `src/content/coupon-engine.js` | Promo-field autofill + outcome detection |
 | `src/content/page-scan.js` | Published codes, clip coupons, product/price reading |
+| `src/content/site-detect.js` | What the page declares about itself as a shop: structured data, platform, cart/checkout |
+| `src/lib/site-add.js` | Add-or-remove decision from that evidence, plus the store's display name |
+| `src/lib/site-request.js` | Normalizes the tab's host into the site key |
 | `src/lib/stores.js` | Merchant catalog and host matching |
 | `src/lib/panel-extras.js` | Popular-store rail and category tiles, both from the catalog |
 | `src/lib/logo-show.js` | The *Animate* logo parade over the whole catalog |

@@ -7,7 +7,7 @@ import { browserName } from "./src/lib/browser.js";
 import { HOLD_DAYS } from "./src/partners/cashback-ledger.js";
 import { startLogoShow } from "./src/lib/logo-show.js";
 import { startPanelExtras } from "./src/lib/panel-extras.js";
-import { siteHost, REWARD_MIN, REWARD_MAX } from "./src/lib/site-request.js";
+import { siteHost } from "./src/lib/site-request.js";
 
 const byId = (id) => document.getElementById(id);
 
@@ -24,7 +24,8 @@ const state = {
   storeQuery: "",
   storeCategory: "All",
   site: null,
-  request: null,
+  // The outcome of the last add-or-remove check, shown on the coverage card.
+  verdict: null,
 };
 
 const BLOCKS = [
@@ -82,14 +83,14 @@ function reset() {
   byId("fetch-codes").textContent = "Scan this page again";
   byId("code-filters").hidden = true;
   byId("code-filters").textContent = "";
-  byId("submit-site").disabled = false;
-  byId("submit-site").textContent = "Submit this site";
-  byId("submit-status").hidden = true;
-  byId("submit-status").textContent = "";
-  byId("enable-site").disabled = false;
-  byId("enable-site").hidden = true;
+  byId("detect-site").disabled = false;
+  byId("detect-site").textContent = "Check & add this site";
+  byId("detect-site").hidden = false;
+  byId("remove-site").hidden = true;
+  byId("remove-site").disabled = false;
+  byId("detect-status").hidden = true;
+  byId("detect-status").textContent = "";
   state.site = null;
-  state.request = null;
   byId("copy-all").hidden = true;
   byId("wallet-list").hidden = true;
   byId("wallet-list").textContent = "";
@@ -874,101 +875,118 @@ function startAutoScan() {
   step();
 }
 
-// Stores outside the catalog can still use the code tools on that one site.
-async function enableSite(button) {
-  button.disabled = true;
-  button.textContent = "Enabling…";
-  let origin;
-  try {
-    origin = new URL(state.url).origin + "/*";
-  } catch (_error) {
-    button.disabled = false;
-    button.textContent = "Use code tools on this site";
-    return;
-  }
-  const granted = await chrome.permissions.request({ origins: [origin] });
-  if (!granted) {
-    button.disabled = false;
-    button.textContent = "Access declined — try again";
-    return;
-  }
-  await sendWorker({ type: "site:enable", url: state.url, tabId: state.tabId });
-  await render();
-}
-
-// Every store we cover has at least one code, so a site with no code on file is
-// not registered yet. Name the site the shopper is on, quote the reward and let
-// them file it once.
+// The coverage card: a site outside the catalog can be checked against what the
+// page itself declares and added on the spot, or it is left out. A site that was
+// added here gets a remove control in the same place.
 function renderRegister() {
   const block = byId("register-block");
   const features = (state.data && state.data.features) || {};
   const registered = Boolean(state.data && state.data.store);
-  const show = Boolean(state.site) && !state.codes.length && features.coupons !== false;
+  const custom = Boolean(registered && state.data.store.custom);
+  const show =
+    Boolean(state.site) && (custom || (!registered && !state.codes.length && features.coupons !== false));
   block.hidden = !show;
   if (!show) return;
 
+  const evidence = (custom && state.data.store.evidence) || [];
+  byId("register-title").textContent = custom ? "Added from this page" : "This page isn't covered yet";
   byId("register-site").textContent =
     "Detected site: " + state.site + (registered ? " · " + state.data.store.name : "");
-  byId("reward-line").textContent =
-    "Every store Savings covers has at least one code. If this one is new to us, submit it — accepted sites earn " +
-    money(REWARD_MIN) +
-    " to " +
-    money(REWARD_MAX) +
-    ".";
-  byId("enable-site").hidden = registered;
+  byId("register-note").textContent = custom
+    ? "Added on the spot from the page's own " +
+      (evidence.join(", ") || "storefront") +
+      " data. Remove it to stop covering this site."
+    : "Savings reads what the page itself declares — store or product markup, a known shop platform, a real cart or checkout — and adds it on the spot when that is clear.";
+  byId("detect-site").hidden = registered;
 
-  const button = byId("submit-site");
-  const status = byId("submit-status");
-  if (state.request) {
-    button.disabled = true;
-    button.textContent = "Submitted";
-    status.hidden = false;
-    status.className = "status ok";
-    status.textContent =
-      "Filed and waiting for review — pays " +
-      money(REWARD_MIN) +
-      "–" +
-      money(REWARD_MAX) +
-      " once the site is added.";
-    return;
-  }
+  const button = byId("detect-site");
   button.disabled = false;
-  button.textContent = "Submit this site";
-  status.hidden = true;
-  status.textContent = "";
+  button.textContent = "Check & add this site";
+
+  const removeButton = byId("remove-site");
+  removeButton.hidden = !custom;
+  removeButton.disabled = false;
+  removeButton.textContent = "Remove this site";
+
+  const status = byId("detect-status");
+  status.hidden = !state.verdict;
+  status.textContent = state.verdict ? state.verdict.text : "";
+  status.className = "status " + (state.verdict ? state.verdict.tone : "");
 }
 
-async function submitSite(button, status) {
+// The click is the browser gesture the origin permission needs. With access
+// granted the worker reads the page and either adds or removes the site; the
+// panel only shows what it decided.
+async function checkSite(button) {
   if (!state.url) return;
+  let origin;
+  try {
+    origin = new URL(state.url).origin + "/*";
+  } catch (_error) {
+    return;
+  }
   button.disabled = true;
-  button.textContent = "Submitting…";
-  const reply = await sendWorker({ type: "site:submit", url: state.url });
+  button.textContent = "Checking this site…";
 
-  if (!reply || !reply.ok) {
-    button.disabled = false;
-    button.textContent = "Submit this site";
-    status.hidden = false;
-    status.className = "status bad";
-    status.textContent = "Could not file that request — try again.";
+  const granted = await chrome.permissions.request({ origins: [origin] });
+  if (!granted) {
+    state.verdict = { tone: "bad", text: "Access declined — nothing was added." };
+    renderRegister();
     return;
   }
 
-  // The worker returns the stored request; keep the site's own record if a
-  // browser shim answered without one.
-  state.request = reply.request || { host: state.site, submittedAt: Date.now() };
-  renderRegister();
-  if (reply.already) {
-    status.hidden = false;
-    status.className = "status ok";
-    status.textContent = "You already submitted this site — review is still open.";
+  const reply = await sendWorker({ type: "site:detect", url: state.url, tabId: state.tabId });
+  if (!reply || reply.error || !reply.ok) {
+    state.verdict = {
+      tone: "bad",
+      text: (reply && (reply.message || reply.error)) || "Could not read this page — nothing was added.",
+    };
+    renderRegister();
+    return;
   }
+
+  if (reply.action === "added") {
+    state.verdict = {
+      tone: "ok",
+      text: "Added " + reply.store.name + " — coupons, cashback and price history are on.",
+    };
+    await render();
+    return;
+  }
+
+  state.verdict = {
+    tone: "bad",
+    text:
+      "Not added — " +
+      ((reply.verdict && reply.verdict.reason) || "this page has no storefront data."),
+  };
+  renderRegister();
+}
+
+async function removeSite(button) {
+  if (!state.url) return;
+  button.disabled = true;
+  button.textContent = "Removing…";
+  const reply = await sendWorker({ type: "site:remove", url: state.url });
+  if (!reply || !reply.ok) {
+    state.verdict = { tone: "bad", text: "Could not remove this site — try again." };
+    renderRegister();
+    return;
+  }
+  state.data = null;
+  state.codes = [];
+  state.verdict = { tone: "ok", text: "Removed — this site is no longer covered." };
+  await render();
 }
 
 // ---- render -------------------------------------------------------------
 async function render() {
   const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+  const previousUrl = state.url;
   state.tabId = tab && typeof tab.id === "number" ? tab.id : null;
   state.url = (tab && tab.url) || null;
+  // A verdict belongs to the site it was reached on.
+  if (state.url !== previousUrl) state.verdict = null;
 
   reset();
 
@@ -987,9 +1005,10 @@ async function render() {
   const data = await sendWorker({ type: "site:resolve", url: state.url });
 
   if (!data || !data.store) {
+    state.data = null;
+    state.codes = [];
     state.site = (data && data.site) || siteHost(state.url);
-    state.request = (data && data.request) || null;
-    byId("store-name").textContent = state.site ? state.site + " · not registered" : "Not a supported store";
+    byId("store-name").textContent = state.site ? state.site + " · not covered" : "Not a supported store";
     renderRegister();
     byId("partner-line").textContent = "Data from Partner Platforms and from this page.";
     return;
@@ -1006,7 +1025,6 @@ async function render() {
 
   state.codes = mergeCodes(data.codes, pageCodesFrom(state.scan));
   state.site = data.site || siteHost(state.url);
-  state.request = data.request || null;
 
   renderSource(data, Boolean(state.scan));
   renderPage(state.scan, features);
@@ -1277,10 +1295,8 @@ function applyBrowserCopy() {
   if (button) button.textContent = "Show " + name + " autofill";
 }
 
-byId("submit-site").addEventListener("click", () =>
-  submitSite(byId("submit-site"), byId("submit-status"))
-);
-byId("enable-site").addEventListener("click", (event) => enableSite(event.currentTarget));
+byId("detect-site").addEventListener("click", (event) => checkSite(event.currentTarget));
+byId("remove-site").addEventListener("click", (event) => removeSite(event.currentTarget));
 
 byId("stores-count").textContent = String(STORES.length);
 byId("stores-toggle").addEventListener("click", toggleStoreDirectory);
