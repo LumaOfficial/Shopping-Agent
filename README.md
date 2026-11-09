@@ -60,8 +60,11 @@ involved ("Show Edge autofill", "Show Firefox autofill", …); nothing else diff
 ### Where codes come from
 
 Codes need no setup: the panel reads them from the store page you are already
-shopping on and re-reads it when a cart drawer or banner loads late. An
-authorized feed is optional and only adds more.
+shopping on and re-reads it a few times while the page settles, since cart
+drawers and banners often load late. Every candidate is validated before it is
+shown — one shape per code, duplicates collapsed, expired or malformed entries
+dropped, and reads from a sub-frame ignored. An authorized feed is optional and
+only adds more.
 
 Every code the panel shows is one of:
 

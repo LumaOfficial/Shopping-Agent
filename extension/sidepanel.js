@@ -92,6 +92,7 @@ function reset() {
   state.filter = "";
   state.filterSource = "all";
   state.dead = new Set();
+  stopAutoScan();
 }
 
 function showEmpty(title, text, chips, action) {
@@ -160,7 +161,7 @@ function renderPage(scan, features) {
   const clips = ((scan && scan.clips) || []).filter(
     () => !features || features.clipOffers !== false
   );
-  const pageCodes = (scan && scan.codes) || [];
+  const pageCodes = pageCodesFrom(scan);
   if (!clips.length && !pageCodes.length) return;
 
   byId("page-block").hidden = false;
@@ -680,36 +681,72 @@ async function refreshCodes() {
   if (!data || !data.store) return null;
   state.data = data;
   state.dead = new Set(Array.isArray(data.dead) ? data.dead : []);
-  const pageCodes = ((state.scan && state.scan.codes) || []).map((coupon) =>
-    Object.assign({}, coupon, { source: "page" })
-  );
-  state.codes = mergeCodes(data.codes, pageCodes);
+  state.codes = mergeCodes(data.codes, pageCodesFrom(state.scan));
   renderSource(data, Boolean(state.scan));
   renderCoupons();
   return data;
 }
 
-// Coupon widgets often render after the panel's first read (a cart drawer, a
-// banner that loads late). One delayed re-read keeps the list automatic without
-// any settings — still only what the page itself publishes.
-let autoScanTimer = null;
-function scheduleAutoScan() {
-  clearTimeout(autoScanTimer);
-  autoScanTimer = setTimeout(async () => {
-    if (!state.data || !state.url) return;
-    const scan = await toTab({ type: "page:scan" }, { frameId: 0 });
-    if (!scan || scan.error) return;
-    const pageCodes = (scan.codes || []).map((coupon) =>
-      Object.assign({}, coupon, { source: "page" })
-    );
-    const before = state.codes.length;
-    state.scan = scan;
-    state.scannedAt = Date.now();
-    state.codes = mergeCodes(state.codes, pageCodes);
-    renderSource(state.data, true);
-    renderPage(scan, state.data.features);
-    if (state.codes.length !== before) renderCoupons();
-  }, 2500);
+// ---- automatic coupon scanner -------------------------------------------
+// The panel is its own document, so the merchant page is read through the
+// content script, which only reports what the page actually publishes. Every
+// read is validated here before it can reach the list: one shape per code,
+// duplicates collapsed, expired or malformed entries dropped. Codes the
+// shopper marked as not working are kept out by liveCodes().
+const SCAN_DELAYS = [900, 2500, 6000, 12000];
+let scanTimer = null;
+let scanRound = 0;
+
+function stopAutoScan() {
+  clearTimeout(scanTimer);
+  scanTimer = null;
+  scanRound = 0;
+}
+
+// A read counts only when it describes the page the shopper is on. mergeCodes
+// applies the shared code shape and expiry rule, so nothing unvalidated is
+// merged.
+function pageCodesFrom(scan) {
+  if (!scan || scan.error || scan.top === false) return [];
+  const raw = Array.isArray(scan.codes) ? scan.codes : [];
+  return mergeCodes(
+    raw.map((coupon) => Object.assign({}, coupon, { source: "page" }))
+  );
+}
+
+// Merge one read into the list and return how many codes it added, which is
+// what tells the scanner whether the page has gone quiet.
+function ingestScan(scan) {
+  // A read from a sub-frame describes an embedded widget, not the page the
+  // shopper is shopping on, so it never replaces the last good read.
+  if (!scan || scan.error || scan.top === false) return 0;
+  const before = state.codes.length;
+  state.scan = scan;
+  state.scannedAt = Date.now();
+  state.codes = mergeCodes(state.codes, pageCodesFrom(scan));
+  const added = state.codes.length - before;
+  if (!state.data) return added;
+
+  renderSource(state.data, true);
+  renderPage(scan, state.data.features);
+  if (added) renderCoupons();
+  return added;
+}
+
+// Coupon widgets render after the first read — a cart drawer, a banner that
+// loads late — so the page is re-read a few times while it settles, and two
+// quiet rounds in a row end the scan early.
+function startAutoScan() {
+  stopAutoScan();
+  const step = () => {
+    scanTimer = setTimeout(async () => {
+      if (!state.data || !state.url) return;
+      const added = ingestScan(await toTab({ type: "page:scan" }, { frameId: 0 }));
+      scanRound += 1;
+      if ((added || scanRound < 2) && scanRound < SCAN_DELAYS.length) step();
+    }, SCAN_DELAYS[scanRound]);
+  };
+  step();
 }
 
 function enableSiteAction() {
@@ -780,16 +817,13 @@ async function render() {
   state.scan = scan && !scan.error ? scan : null;
   state.scannedAt = Date.now();
 
-  const pageCodes = ((state.scan && state.scan.codes) || []).map((coupon) =>
-    Object.assign({}, coupon, { source: "page" })
-  );
-  state.codes = mergeCodes(data.codes, pageCodes);
+  state.codes = mergeCodes(data.codes, pageCodesFrom(state.scan));
 
   renderSource(data, Boolean(state.scan));
   renderPage(state.scan, features);
   renderCashback(data);
   renderCoupons();
-  if (features.coupons !== false) scheduleAutoScan();
+  if (features.coupons !== false) startAutoScan();
   byId("partner-line").textContent = data.footer;
   byId("access-line").textContent =
     storeCount() + " stores supported. Only the store's own promo field is touched.";
@@ -821,8 +855,7 @@ byId("refresh").addEventListener("click", async () => {
   const button = byId("refresh");
   button.disabled = true;
   button.textContent = "Checking…";
-  state.scan = await toTab({ type: "page:scan" }, { frameId: 0 });
-  state.scannedAt = Date.now();
+  ingestScan(await toTab({ type: "page:scan" }, { frameId: 0 }));
   await refreshCodes();
   renderPage(state.scan, state.data && state.data.features);
   button.disabled = false;
@@ -843,11 +876,7 @@ byId("fetch-codes").addEventListener("click", async () => {
   status.className = "status wait";
   status.textContent = "Reading this page for codes…";
 
-  const scan = await toTab({ type: "page:scan" }, { frameId: 0 });
-  if (scan && !scan.error) {
-    state.scan = scan;
-    state.scannedAt = Date.now();
-  }
+  ingestScan(await toTab({ type: "page:scan" }, { frameId: 0 }));
 
   const data = await refreshCodes();
   button.disabled = false;
@@ -902,8 +931,7 @@ byId("clip-all").addEventListener("click", async () => {
       "Clipped " + result.clicked + " coupon" + (result.clicked === 1 ? "" : "s") + " on the store's page.";
   }
 
-  state.scan = await toTab({ type: "page:scan" }, { frameId: 0 });
-  renderPage(state.scan, state.data && state.data.features);
+  ingestScan(await toTab({ type: "page:scan" }, { frameId: 0 }));
 });
 
 byId("activate").addEventListener("click", async () => {
