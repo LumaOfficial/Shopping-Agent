@@ -61,6 +61,7 @@ function fill(settings) {
   byId("toggle-price").checked = settings.enabled.priceHistory;
   byId("toggle-clip").checked = settings.enabled.clipOffers;
   byId("toggle-tracking").checked = settings.enabled.priceTracking;
+  byId("toggle-adblock").checked = settings.enabled.adBlock !== false;
   syncAuthFields();
 }
 
@@ -98,6 +99,7 @@ function collect() {
       priceHistory: byId("toggle-price").checked,
       clipOffers: byId("toggle-clip").checked,
       priceTracking: byId("toggle-tracking").checked,
+      adBlock: byId("toggle-adblock").checked,
     },
   };
 }

@@ -24,12 +24,16 @@ for (const store of STORES) {
 }
 const unique = Array.from(new Set(expected)).sort();
 
-const current = new Set(manifest.content_scripts[0].matches);
+// The catalog's own script, not the ad guard that runs on every page.
+const storeScript = manifest.content_scripts.find((entry) =>
+  (entry.js || []).includes("src/content/content.js")
+);
+const current = new Set(storeScript.matches);
 const missing = unique.filter((pattern) => !current.has(pattern));
 const extra = Array.from(current).filter((pattern) => !unique.includes(pattern));
 
 if (process.argv.includes("--write")) {
-  manifest.content_scripts[0].matches = unique;
+  storeScript.matches = unique;
   writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + "\n");
   console.log(`wrote ${unique.length} match patterns from ${STORES.length} stores`);
   process.exit(0);

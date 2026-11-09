@@ -8,14 +8,22 @@
     "storage",
     "tabs",
     "sidePanel",
-    "scripting"
+    "scripting",
+    "declarativeNetRequest"
   ],
   "host_permissions": [
-    "https://api.keepa.com/*"
-  ],
-  "optional_host_permissions": [
+    "https://api.keepa.com/*",
     "*://*/*"
   ],
+  "declarative_net_request": {
+    "rule_resources": [
+      {
+        "id": "ads",
+        "enabled": true,
+        "path": "rules/ads.json"
+      }
+    ]
+  },
   "background": {
     "service_worker": "src/background/service-worker.js",
     "type": "module"
@@ -37,6 +45,12 @@
   },
   "options_page": "options.html",
   "content_scripts": [
+    {
+      "matches": ["*://*/*"],
+      "js": ["src/content/ad-guard.js"],
+      "run_at": "document_idle",
+      "all_frames": false
+    },
     {
       "matches": [
         "*://*.1password.com/*",

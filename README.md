@@ -170,6 +170,15 @@ empty list, and the extension never invents an offer.
   sponsor endpoint the block is hidden. Incentivising clicks on ordinary display
   ads breaks most ad networks' terms, so this must be a programme that pays for
   these visits itself.
+- **Ad value** — the extension blocks ad and tracker requests with the
+  declarative rules in `rules/ads.json` and hides the empty ad slots on the page,
+  then shows what those impressions were worth instead of a coin balance. The
+  rate is one display impression, **$0.03 per 5 ads** (`src/lib/ad-value.js`), so
+  five blocked ads read `$0.03`. The panel's **Ad value** card shows the running
+  value, the ads blocked today and all time, and the ads blocked on the page the
+  shopper is on. Nothing is paid out by this figure — it is the advertising value
+  kept off the page, and the wallet still holds only cashback the networks
+  confirm. The switch in Settings stops both blocking and counting.
 - **Savings record** — total of the order-total drops the page confirmed, number
   of codes that worked, products tracked. Stored locally.
 - **Any shop, added on the spot** — for a site outside the catalog the panel
@@ -231,6 +240,9 @@ between the shopper, the browser and the merchant.
 | `src/content/coupon-engine.js` | Promo-field autofill + outcome detection |
 | `src/content/page-scan.js` | Published codes, clip coupons, product/price reading |
 | `src/content/site-detect.js` | What the page declares about itself as a shop: structured data, platform, cart/checkout |
+| `src/content/ad-guard.js` | Hides the page's ad slots and counts them, one report per page |
+| `rules/ads.json` | Declarative ruleset that blocks ad and tracker requests |
+| `src/lib/ad-value.js` | What a blocked ad is worth, and the running ad record |
 | `src/lib/site-add.js` | Add-or-remove decision from that evidence, plus the store's display name |
 | `src/lib/site-request.js` | Normalizes the tab's host into the site key |
 | `src/lib/stores.js` | Merchant catalog and host matching |

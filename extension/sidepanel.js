@@ -2,6 +2,7 @@ import { STORES, storeCount } from "./src/lib/stores.js";
 import { filterStores, storeCategories, storeHost, storeSite } from "./src/lib/store-directory.js";
 import { mergeCodes, SOURCE_LABEL } from "./src/lib/codes.js";
 import { money, humanAge } from "./src/lib/format.js";
+import { rateLabel } from "./src/lib/ad-value.js";
 import { PAGE_SOURCE_NOTE } from "./src/lib/copy.js";
 import { browserName } from "./src/lib/browser.js";
 import { HOLD_DAYS } from "./src/partners/cashback-ledger.js";
@@ -34,6 +35,7 @@ const BLOCKS = [
   "page-block",
   "cashback-block",
   "wallet-block",
+  "ads-block",
   "sponsor-block",
   "register-block",
   "coupon-block",
@@ -103,6 +105,11 @@ function reset() {
   byId("sponsor-status").textContent = "";
   byId("wallet-status").hidden = true;
   byId("wallet-note").hidden = true;
+  byId("ads-value").textContent = "$0.00";
+  byId("ads-note").textContent = "";
+  byId("ads-today").textContent = "0";
+  byId("ads-total").textContent = "0";
+  byId("ads-rate").textContent = "";
   payoutMode = "unconfigured";
   state.data = null;
   state.scan = null;
@@ -718,6 +725,34 @@ async function openSponsorOffer(offer, button) {
   button.textContent = "Open";
 }
 
+// ---- ad value -----------------------------------------------------------
+// The background blocks the ad requests and the page script hides the empty
+// slots; the panel shows what those impressions were worth on this browser.
+async function renderAds() {
+  const [stats, probe] = await Promise.all([
+    sendWorker({ type: "ads:stats" }),
+    toTab({ type: "ads:probe" }, { frameId: 0 }),
+  ]);
+  if (!stats || stats.error) return;
+
+  byId("ads-block").hidden = false;
+  byId("ads-value").textContent = money(stats.value || 0);
+  byId("ads-today").textContent = String(stats.today || 0);
+  byId("ads-total").textContent = String(stats.total || 0);
+
+  const onPage = probe && typeof probe.count === "number" ? probe.count : null;
+  byId("ads-note").textContent =
+    stats.enabled === false
+      ? "Ad blocking is off — turn it back on in Settings."
+      : onPage === null
+        ? "Ads are blocked as you browse and counted here."
+        : onPage === 0
+          ? "No ads on this page."
+          : onPage + (onPage === 1 ? " ad blocked on this page." : " ads blocked on this page.");
+  byId("ads-rate").textContent =
+    "Valued at " + rateLabel() + " — what those impressions would have cost the advertiser.";
+}
+
 function renderPrice(tracked, keepa) {
   const hasTracked = tracked && typeof tracked.current === "number";
   const hasKeepa = keepa && keepa.status === "ok" && typeof keepa.current === "number";
@@ -989,6 +1024,8 @@ async function render() {
   if (state.url !== previousUrl) state.verdict = null;
 
   reset();
+
+  renderAds();
 
   if (!state.url || !/^https?:/i.test(state.url)) {
     byId("store-name").textContent = "No store open";

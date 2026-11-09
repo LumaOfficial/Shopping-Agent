@@ -879,6 +879,25 @@ body.sidepanel .ledger .amt {
   color: #2a2440;
 }
 
+/* ---------- Ad value ---------- */
+
+body.sidepanel .ads .bal {
+  font-weight: 200;
+  font-size: 56px;
+  line-height: 1;
+  letter-spacing: -0.04em;
+  color: #2a2440;
+}
+
+body.sidepanel .ads-stats {
+  margin: 18px 0 10px;
+  gap: 36px;
+}
+
+body.sidepanel .ads-stats strong {
+  font-size: 34px;
+}
+
 /* ---------- Store directory ---------- */
 
 body.sidepanel .store-list {

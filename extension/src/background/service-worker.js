@@ -26,6 +26,7 @@ import { readSettings, writeSettings } from "../lib/settings.js";
 import { siteHost } from "../lib/site-request.js";
 import { decideSite } from "../lib/site-add.js";
 import { mergeCodes, cleanCode } from "../lib/codes.js";
+import { normalizeRecord, addAds, summaryOf } from "../lib/ad-value.js";
 
 const FEED_TTL_MS = 10 * 60 * 1000;
 const MAX_VERIFIED = 40;
@@ -253,6 +254,44 @@ async function getPrice(key) {
   const prices = await readMap("prices");
   const entry = prices[String(key || "")];
   return entry ? summarizePrice(entry) : null;
+}
+
+// ---- ad blocking ---------------------------------------------------------
+// rules/ads.json blocks the ad requests; each page reports the slots it hid,
+// and that count is what the panel turns into money.
+async function readAdRecord() {
+  const stored = await chrome.storage.local.get("adBlock");
+  return normalizeRecord(stored.adBlock);
+}
+
+async function adsSummary() {
+  const settings = await readSettings();
+  const record = await readAdRecord();
+  return Object.assign(summaryOf(record), { enabled: settings.enabled.adBlock !== false });
+}
+
+async function reportAds(count) {
+  const record = await readAdRecord();
+  addAds(record, count);
+  await chrome.storage.local.set({ adBlock: record });
+  return adsSummary();
+}
+
+// The blocking ruleset follows the Settings toggle, so turning it off stops
+// ads being blocked as well as counted.
+async function syncAdBlock() {
+  const rules = chrome.declarativeNetRequest;
+  if (!rules || !rules.updateEnabledRulesets) return;
+  const settings = await readSettings();
+  try {
+    await rules.updateEnabledRulesets(
+      settings.enabled.adBlock === false
+        ? { disableRulesetIds: ["ads"] }
+        : { enableRulesetIds: ["ads"] }
+    );
+  } catch (_error) {
+    // A browser without static rulesets still hides the slots on the page.
+  }
 }
 
 // Validates the operator's authorized data source: it either answers with the
@@ -642,7 +681,7 @@ async function exportData() {
 }
 
 async function clearData() {
-  await chrome.storage.local.remove(["saved", "verified", "dead", "prices", "savings", "cashback"]);
+  await chrome.storage.local.remove(["saved", "verified", "dead", "prices", "savings", "cashback", "adBlock"]);
   feedCache.clear();
   return { ok: true };
 }
@@ -677,6 +716,10 @@ async function handle(message, sender) {
       return recordPrice(message.product);
     case "price:get":
       return getPrice(message.key);
+    case "ads:report":
+      return reportAds(message.count);
+    case "ads:stats":
+      return adsSummary();
     case "site:detect":
       return detectSite(message.url, sender && sender.tab ? sender.tab.id : message.tabId);
     case "site:remove":
@@ -686,6 +729,7 @@ async function handle(message, sender) {
     case "settings:set":
       await writeSettings(message.settings);
       feedCache.clear();
+      await syncAdBlock();
       return { ok: true };
     case "source:test":
       return testSource();
@@ -748,6 +792,8 @@ function openPanelOnActionClick() {
 }
 
 openPanelOnActionClick();
+// Rulesets follow the saved setting from the first moment the worker runs.
+syncAdBlock();
 
 // Only fires where the click does not already open the side panel: Firefox and
 // any Chromium browser without the Side Panel API.
@@ -762,4 +808,8 @@ chrome.commands.onCommand.addListener(function (command) {
   });
 });
 
-chrome.runtime.onInstalled.addListener(openPanelOnActionClick);
+chrome.runtime.onInstalled.addListener(function () {
+  openPanelOnActionClick();
+  syncAdBlock();
+});
+chrome.runtime.onStartup.addListener(syncAdBlock);

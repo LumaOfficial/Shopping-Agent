@@ -1,0 +1,88 @@
+[
+  {
+    "id": 1,
+    "priority": 1,
+    "action": { "type": "block" },
+    "condition": {
+      "domainType": "thirdParty",
+      "requestDomains": [
+        "2mdn.net",
+        "adform.net",
+        "adnxs.com",
+        "adroll.com",
+        "adsafeprotected.com",
+        "adservice.google.com",
+        "adsrvr.org",
+        "advertising.com",
+        "amazon-adsystem.com",
+        "applovin.com",
+        "bidswitch.net",
+        "casalemedia.com",
+        "contextweb.com",
+        "criteo.com",
+        "criteo.net",
+        "doubleclick.net",
+        "googleadservices.com",
+        "googlesyndication.com",
+        "gumgum.com",
+        "indexexchange.com",
+        "inmobi.com",
+        "lijit.com",
+        "loopme.me",
+        "media.net",
+        "mgid.com",
+        "moatads.com",
+        "moloco.com",
+        "openx.net",
+        "outbrain.com",
+        "pubmatic.com",
+        "quantserve.com",
+        "revcontent.com",
+        "rubiconproject.com",
+        "scorecardresearch.com",
+        "sharethrough.com",
+        "smaato.net",
+        "smartadserver.com",
+        "sonobi.com",
+        "sovrn.com",
+        "taboola.com",
+        "teads.tv",
+        "triplelift.com",
+        "unityads.unity3d.com",
+        "yieldmo.com",
+        "zedo.com"
+      ],
+      "resourceTypes": [
+        "script",
+        "image",
+        "xmlhttprequest",
+        "sub_frame",
+        "object",
+        "media",
+        "ping",
+        "websocket",
+        "other"
+      ]
+    }
+  },
+  {
+    "id": 2,
+    "priority": 1,
+    "action": { "type": "block" },
+    "condition": {
+      "domainType": "thirdParty",
+      "urlFilter": "/pagead/",
+      "resourceTypes": ["script", "image", "xmlhttprequest", "sub_frame", "object", "media", "ping", "other"]
+    }
+  },
+  {
+    "id": 3,
+    "priority": 1,
+    "action": { "type": "block" },
+    "condition": {
+      "domainType": "thirdParty",
+      "urlFilter": "/adsbygoogle",
+      "resourceTypes": ["script", "image", "xmlhttprequest", "sub_frame", "object", "media", "other"]
+    }
+  }
+]

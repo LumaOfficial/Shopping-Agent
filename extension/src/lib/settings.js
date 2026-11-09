@@ -26,6 +26,7 @@ export const DEFAULTS = {
     priceHistory: true,
     clipOffers: true,
     priceTracking: true,
+    adBlock: true,
   },
 };
 
