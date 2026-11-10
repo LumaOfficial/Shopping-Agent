@@ -1,43 +1,29 @@
 // The "Animate" trailer on the panel's All stores card.
 //
-// Every store's own mark is loaded before the show starts, so no tile pops a
-// logo in halfway through. The show then runs three scenes — an orbit of logos,
-// a fly-through and a mosaic — and settles on the store count. Presentational
-// only: it reads the catalog, reports its own progress, and lets the panel wire
-// the close and Browse buttons.
-import { hostsOf } from "./stores.js";
+// The whole show is cached and built before the first scene paints: every
+// popular mark is fetched and decoded, then the orbit, the logo wall and the
+// mosaic are laid out off-screen. The opening therefore says what it is really
+// doing, and nothing pops in halfway through a scene. Presentational only — it
+// reads the catalog for its closing count, reports its own progress, and lets
+// the panel wire the close and Browse buttons.
+import { BRAND_MARKS, initials, markUrl } from "./brand-marks.js";
 
-const CONCURRENCY = 10;
-const PRELOAD_LIMIT_MS = 15000;
-const ORBIT_MS = 5600;
-const TUNNEL_MS = 4000;
+const CONCURRENCY = 8;
+const PRELOAD_LIMIT_MS = 20000;
+const ORBIT_MS = 6600;
+const WALL_MS = 5800;
 
-// One preload per session: later opens start instantly from the browser cache.
-let preloadPromise = null;
-const logoReady = new Set();
+// Progress at each beat of the show, so the bar tracks the real work first and
+// the scenes after it.
+const AT = { cache: 30, decode: 38, build: 50, orbit: 74, wall: 92, done: 100 };
 
-function logoUrl(store) {
-  return (
-    "https://www.google.com/s2/favicons?domain=" +
-    encodeURIComponent(hostsOf(store)[0]) +
-    "&sz=64"
-  );
-}
+const cache = new Map(); // host -> loaded Image, or null when the mark failed
+let preloadRun = null;
 
-function initials(name) {
-  return name
-    .replace(/[^A-Za-z0-9& ]/g, "")
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((word) => word[0].toUpperCase())
-    .join("");
-}
-
-function hue(name) {
-  let sum = 0;
-  for (let i = 0; i < name.length; i += 1) sum = (sum * 31 + name.charCodeAt(i)) % 360;
-  return sum;
+function el(tag, className) {
+  const node = document.createElement(tag);
+  if (className) node.className = className;
+  return node;
 }
 
 function shuffled(list) {
@@ -49,100 +35,179 @@ function shuffled(list) {
   return out;
 }
 
-// Load every mark with a small queue, so the browser is not asked for hundreds
-// of images at once. A slow or blocked image is skipped, never waited on
-// forever — the tile keeps its initials instead.
-function preload(stores, onProgress) {
-  if (preloadPromise) {
-    if (onProgress) onProgress(stores.length, stores.length);
-    return preloadPromise;
-  }
-  const urls = stores.map(logoUrl);
-  let done = 0;
-  let next = 0;
-  let settled = false;
-
-  preloadPromise = new Promise((resolve) => {
+// Fetch every mark once per session with a small queue. A slow or blocked mark
+// is remembered as failed, never waited on forever.
+function preload(onMark) {
+  if (preloadRun) return preloadRun;
+  preloadRun = new Promise((resolve) => {
+    const queue = BRAND_MARKS.slice();
+    let settled = false;
     const finish = () => {
       if (settled) return;
       settled = true;
       resolve();
     };
-    const step = () => {
-      done += 1;
-      if (onProgress && (done === urls.length || done % 8 === 0)) {
-        onProgress(done, urls.length);
+    const pump = () => {
+      const mark = queue.shift();
+      if (!mark) {
+        if (cache.size >= BRAND_MARKS.length) finish();
+        return;
       }
-      if (next < urls.length) load();
-      else if (done >= urls.length) finish();
-    };
-    function load() {
-      const url = urls[next];
-      next += 1;
       const img = new Image();
-      img.onload = () => {
-        logoReady.add(url);
-        step();
+      img.decoding = "async";
+      img.referrerPolicy = "no-referrer";
+      const settle = (ok) => {
+        cache.set(mark.host, ok ? img : null);
+        onMark(mark);
+        pump();
+        if (cache.size >= BRAND_MARKS.length) finish();
       };
-      img.onerror = step;
-      img.src = url;
-    }
-    if (!urls.length) {
+      img.onload = () => settle(true);
+      img.onerror = () => settle(false);
+      img.src = markUrl(mark.host);
+    };
+    if (!BRAND_MARKS.length) {
       finish();
       return;
     }
-    for (let i = 0; i < CONCURRENCY; i += 1) load();
+    for (let i = 0; i < CONCURRENCY; i += 1) pump();
     setTimeout(finish, PRELOAD_LIMIT_MS);
   });
-
-  return preloadPromise;
+  return preloadRun;
 }
 
-// One tile, at any size. The store's initials sit underneath so a mark that is
-// blocked in this browser still reads as that store.
-function makeTile(store) {
-  const tile = document.createElement("div");
-  tile.className = "show-tile";
-  tile.style.setProperty("--hue", String(hue(store.name)));
+// One tile at any size. The store's initials sit underneath in its own ink, so
+// a mark that is blocked in this browser still reads as that store.
+function makeTile(mark) {
+  const tile = el("div", "show-tile");
+  tile.style.setProperty("--ink", mark.ink);
 
-  const mark = document.createElement("span");
-  mark.className = "show-mark";
-  mark.textContent = initials(store.name);
+  const letters = el("span", "show-mark");
+  letters.textContent = initials(mark.name);
 
-  const url = logoUrl(store);
-  const img = document.createElement("img");
-  img.className = "show-logo";
+  const img = el("img", "show-logo");
   img.alt = "";
   img.decoding = "async";
   img.referrerPolicy = "no-referrer";
-  if (logoReady.has(url)) tile.classList.add("has-logo");
-  else img.addEventListener("load", () => tile.classList.add("has-logo"));
-  img.src = url;
+  if (cache.has(mark.host)) {
+    if (cache.get(mark.host)) tile.classList.add("has-logo");
+  } else {
+    img.addEventListener("load", () => tile.classList.add("has-logo"));
+  }
+  img.src = markUrl(mark.host);
 
-  tile.append(mark, img);
+  tile.append(letters, img);
   return tile;
 }
 
-// Scene 1: three rings turning at different speeds, tilted into a shallow disc.
-function buildOrbit(scene, stores, stage) {
+// The opening: a progress dial that fills with the marks themselves, one tile
+// per cached logo, while the copy underneath names the step.
+function buildBoot(scene, total, later, onPaint) {
   scene.textContent = "";
-  const disc = document.createElement("div");
-  disc.className = "show-disc";
-  const size = Math.min(stage.clientWidth, stage.clientHeight) * 0.96;
-  const order = shuffled(stores);
+  const boot = el("div", "boot");
+  const halo = el("div", "boot-halo");
+  const dial = el("div", "boot-dial");
+
+  const core = el("div", "boot-core");
+  const pct = el("strong", "boot-pct");
+  const num = el("b");
+  num.textContent = "0";
+  const sign = el("span");
+  sign.textContent = "%";
+  pct.append(num, sign);
+  const unit = el("em");
+  unit.textContent = "marks cached";
+  core.append(pct, unit);
+
+  const slots = [];
+  for (let i = 0; i < total; i += 1) slots.push(el("span", "boot-slot"));
+
+  boot.append(halo, dial, core);
+  scene.appendChild(boot);
+
+  // Slots ride the dial itself, so the ring visibly fills as marks arrive.
+  const radius = Math.round(boot.clientWidth * 0.47);
+  const ring = el("div", "boot-ring");
+  slots.forEach((slot, i) => {
+    slot.style.setProperty("--a", Math.round((360 / total) * i - 90) + "deg");
+    slot.style.setProperty("--r", radius + "px");
+    ring.appendChild(slot);
+  });
+  boot.appendChild(ring);
+
+  const order = shuffled(slots.map((_, i) => i));
+  let placed = 0;
+
+  // Marks are poured in on a steady drip, so the ring fills in front of the
+  // shopper even when the browser answers from its own cache in a blink.
+  const queue = [];
+  const waiting = [];
+  let draining = false;
+
+  const paintNow = (mark) => {
+    const slot = slots[order[placed % order.length]];
+    placed += 1;
+    const img = el("img", "boot-mark");
+    img.alt = "";
+    img.referrerPolicy = "no-referrer";
+    img.src = markUrl(mark.host);
+    if (cache.get(mark.host)) {
+      slot.appendChild(img);
+      slot.classList.add("lit");
+    } else {
+      slot.classList.add("missed");
+    }
+    if (onPaint) onPaint(placed, mark);
+  };
+
+  const drip = () => {
+    if (!queue.length) {
+      draining = false;
+      waiting.splice(0).forEach((resolve) => resolve());
+      return;
+    }
+    paintNow(queue.shift());
+    later(drip, 24);
+  };
+
+  return {
+    paint(mark) {
+      queue.push(mark);
+      if (draining) return;
+      draining = true;
+      later(drip, 0);
+    },
+    // Resolves once every queued mark has landed on the dial.
+    settle() {
+      if (!draining && !queue.length) return Promise.resolve();
+      return new Promise((resolve) => waiting.push(resolve));
+    },
+    progress(done) {
+      const share = total ? Math.min(1, done / total) : 1;
+      dial.style.setProperty("--p", String(share));
+      num.textContent = String(Math.round(share * 100));
+    },
+  };
+}
+
+// Scene 1: three rings turning at different speeds around the wordmark.
+function buildOrbit(scene, stage, marks) {
+  scene.textContent = "";
+  const disc = el("div", "show-disc");
+  const size = Math.min(stage.clientWidth, stage.clientHeight) * 0.98;
+  const order = shuffled(marks);
   const rings = [
-    { count: 22, radius: 0.17, tile: 0.062, dur: 24, tint: "far", reverse: true },
-    { count: 28, radius: 0.3, tile: 0.075, dur: 32, tint: "mid", reverse: false },
-    { count: 32, radius: 0.44, tile: 0.089, dur: 42, tint: "near", reverse: true },
+    { count: 14, radius: 0.19, tile: 0.068, dur: 26, tint: "far", reverse: true },
+    { count: 18, radius: 0.31, tile: 0.082, dur: 34, tint: "mid", reverse: false },
+    { count: 20, radius: 0.45, tile: 0.098, dur: 44, tint: "near", reverse: true },
   ];
 
   let cursor = 0;
   rings.forEach((ring) => {
-    const rail = document.createElement("div");
-    rail.className = "show-ring " + ring.tint + (ring.reverse ? " rev" : "");
+    const rail = el("div", "show-ring " + ring.tint + (ring.reverse ? " rev" : ""));
     rail.style.setProperty("--dur", ring.dur + "s");
     const radius = Math.round(size * ring.radius);
-    const tileSize = Math.max(24, Math.round(size * ring.tile));
+    const tileSize = Math.max(26, Math.round(size * ring.tile));
     for (let i = 0; i < ring.count && cursor < order.length; i += 1) {
       const tile = makeTile(order[cursor]);
       cursor += 1;
@@ -153,39 +218,69 @@ function buildOrbit(scene, stores, stage) {
     }
     disc.appendChild(rail);
   });
+
+  const core = el("div", "orbit-core");
+  const word = el("strong");
+  word.textContent = "Savings";
+  const sub = el("small");
+  sub.textContent = marks.length + " popular marks";
+  core.append(word, sub);
+  disc.appendChild(core);
+
   scene.appendChild(disc);
 }
 
-// Scene 2: logos stream out of the centre toward the viewer.
-function buildTunnel(scene, stores, stage) {
+// Scene 2: a tilted wall of logo bands drifting in opposite directions.
+const WALL_ROWS = [
+  { tile: 64, dur: 34, reverse: false },
+  { tile: 52, dur: 42, reverse: true },
+  { tile: 72, dur: 37, reverse: false },
+  { tile: 56, dur: 46, reverse: true },
+];
+
+function buildWall(scene, marks) {
   scene.textContent = "";
-  const count = Math.min(64, stores.length);
-  const reach = Math.max(stage.clientWidth, stage.clientHeight) * 0.78;
-  shuffled(stores)
-    .slice(0, count)
-    .forEach((store, index) => {
-      const tile = makeTile(store);
-      tile.classList.add("show-fly");
-      tile.style.setProperty("--tile", 34 + Math.round(Math.random() * 26) + "px");
-      tile.style.setProperty("--a", Math.round(Math.random() * 360) + "deg");
-      tile.style.setProperty("--r", Math.round(reach * (0.6 + Math.random() * 0.5)) + "px");
-      tile.style.animationDelay = Math.round(index * 26 + Math.random() * 180) + "ms";
-      scene.appendChild(tile);
-    });
+  const wall = el("div", "show-wall");
+  const pool = shuffled(marks);
+
+  WALL_ROWS.forEach((row, rowIndex) => {
+    const line = [];
+    for (let i = 0; i < 12; i += 1) line.push(pool[(rowIndex * 11 + i) % pool.length]);
+
+    const rowEl = el("div", "wall-row" + (row.reverse ? " rev" : ""));
+    const track = el("div", "wall-track");
+    track.style.setProperty("--dur", row.dur + "s");
+
+    // Two identical sets make the loop seamless at -50%.
+    for (let copy = 0; copy < 2; copy += 1) {
+      const set = el("div", "wall-set");
+      line.forEach((mark) => {
+        const tile = makeTile(mark);
+        tile.classList.add("wall-tile");
+        tile.style.setProperty("--tile", row.tile + "px");
+        set.appendChild(tile);
+      });
+      track.appendChild(set);
+    }
+
+    rowEl.appendChild(track);
+    wall.appendChild(rowEl);
+  });
+
+  scene.appendChild(wall);
 }
 
-// Scene 3: the marks settle into a mosaic under the store count.
-function buildMosaic(scene, stores, stage) {
+// Scene 3: every mark settles into a mosaic.
+function buildMosaic(scene, stage, marks) {
   scene.textContent = "";
-  const grid = document.createElement("div");
-  grid.className = "show-mosaic-grid";
+  const grid = el("div", "show-mosaic-grid");
   const cols = Math.max(4, Math.min(9, Math.floor(stage.clientWidth / 72)));
   const rows = Math.max(3, Math.min(7, Math.floor((stage.clientHeight * 0.56) / 72)));
   grid.style.setProperty("--cols", String(cols));
-  shuffled(stores)
+  shuffled(marks)
     .slice(0, cols * rows)
-    .forEach((store, index) => {
-      const tile = makeTile(store);
+    .forEach((mark, index) => {
+      const tile = makeTile(mark);
       tile.classList.add("show-pop");
       tile.style.animationDelay = Math.min(index * 14, 620) + "ms";
       grid.appendChild(tile);
@@ -196,8 +291,9 @@ function buildMosaic(scene, stores, stage) {
 export function startLogoShow(root, stores) {
   const stage = root.querySelector(".show-stage");
   const scenes = {
+    boot: root.querySelector('[data-scene="boot"]'),
     orbit: root.querySelector('[data-scene="orbit"]'),
-    tunnel: root.querySelector('[data-scene="tunnel"]'),
+    wall: root.querySelector('[data-scene="wall"]'),
     mosaic: root.querySelector('[data-scene="mosaic"]'),
   };
   const stepEl = root.querySelector("[data-show-step]");
@@ -205,13 +301,20 @@ export function startLogoShow(root, stores) {
   const noteEl = root.querySelector("[data-show-note]");
   const barEl = root.querySelector("[data-show-bar]");
   const browseEl = root.querySelector("[data-show-browse]");
-  if (!stage || !scenes.orbit) return () => {};
+  const stepEls = Array.from(root.querySelectorAll("[data-step]"));
+  if (!stage || !scenes.boot) return () => {};
+
+  const marks = BRAND_MARKS;
+  const totalStores = stores.length;
+  const reduce =
+    window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
   let stopped = false;
   const timers = [];
   const later = (fn, ms) => {
     timers.push(setTimeout(fn, ms));
   };
+  const sleep = (ms) => new Promise((resolve) => later(resolve, ms));
 
   const stop = () => {
     stopped = true;
@@ -220,71 +323,149 @@ export function startLogoShow(root, stores) {
     root.classList.remove("done", "playing");
   };
 
-  const copy = (step, title, note) => {
+  const say = (step, title, note) => {
     if (stepEl) stepEl.textContent = step;
     if (titleEl) titleEl.textContent = title;
     if (noteEl) noteEl.textContent = note;
   };
+  const note = (text) => {
+    if (noteEl) noteEl.textContent = text;
+  };
+  const bar = (pct) => {
+    if (barEl) barEl.style.width = pct + "%";
+  };
+  const step = (key, state) => {
+    const item = stepEls.find((node) => node.dataset.step === key);
+    if (!item) return;
+    item.classList.toggle("on", state === "on");
+    item.classList.toggle("done", state === "done");
+  };
   const showScene = (key) => {
-    Object.entries(scenes).forEach(([name, el]) => {
-      if (el) el.classList.toggle("on", name === key);
+    Object.entries(scenes).forEach(([name, node]) => {
+      if (!node) return;
+      if (name === key) {
+        node.classList.add("on");
+        node.classList.remove("leaving");
+      } else if (node.classList.contains("on")) {
+        node.classList.remove("on");
+        node.classList.add("leaving");
+      }
     });
   };
 
-  Object.values(scenes).forEach((el) => el && el.classList.remove("on", "leaving"));
+  Object.values(scenes).forEach((node) => node && node.classList.remove("on", "leaving"));
   root.classList.remove("done");
   root.classList.add("playing");
   if (browseEl) browseEl.hidden = true;
-  if (barEl) barEl.style.width = "0%";
-  copy("All stores", "Loading logos", "Preloading every store's mark so nothing pops in mid-show.");
+  bar(0);
+  stepEls.forEach((node) => node.classList.remove("on", "done"));
 
-  const reduce =
-    window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  const startedAt = Date.now();
+  const boot = buildBoot(scenes.boot, marks.length, later, (count, mark) => {
+    if (stopped) return;
+    boot.progress(count);
+    bar(Math.round((count / marks.length) * AT.cache));
+    note("Caching " + mark.name + " · " + count + " of " + marks.length + ".");
+  });
+  showScene("boot");
+  step("cache", "on");
+  say("All stores", "Caching the logos", "Fetching every popular mark once, so the film never stutters.");
+  boot.progress(0);
+
+  async function gather() {
+    if (preloadRun) {
+      // A previous open already warmed the cache: pour it straight into the
+      // dial, which paces the fill on its own.
+      await preloadRun;
+      if (stopped) return false;
+      shuffled(marks).forEach((mark) => boot.paint(mark));
+      return true;
+    }
+
+    await preload((mark) => {
+      if (!stopped) boot.paint(mark);
+    });
+    return true;
+  }
 
   function finish() {
     if (stopped) return;
-    buildMosaic(scenes.mosaic, stores, stage);
     showScene("mosaic");
-    copy("All stores", stores.length + " stores, one panel", "Tap Browse to open any of them.");
-    if (barEl) barEl.style.width = "100%";
+    step("play", "done");
+    say(
+      "Act 3 · Your panel",
+      marks.length + " marks, " + totalStores + " stores",
+      "Every one of them is in All stores — tap Browse to open any of them."
+    );
+    bar(AT.done);
     if (browseEl) browseEl.hidden = false;
     root.classList.add("done");
     root.classList.remove("playing");
   }
 
-  function flyThrough() {
+  function play() {
     if (stopped) return;
-    scenes.orbit.classList.add("leaving");
-    buildTunnel(scenes.tunnel, stores, stage);
-    showScene("tunnel");
-    copy("Scene 2 of 3 · Every aisle", "One panel", "Codes, cashback and prices, wherever you shop.");
-    if (barEl) barEl.style.width = "68%";
-    later(finish, TUNNEL_MS);
+    step("build", "done");
+    step("play", "on");
+    say(
+      "Act 1 · The shortlist",
+      "The names you know",
+      "The storefronts shoppers reach for most, orbiting in one panel."
+    );
+    bar(AT.orbit);
+    showScene("orbit");
+
+    later(() => {
+      if (stopped) return;
+      bar(AT.wall);
+      say(
+        "Act 2 · Every aisle",
+        "Every aisle, one panel",
+        "Fashion, tech, home and travel — codes, cashback and price history everywhere."
+      );
+      showScene("wall");
+      later(finish, WALL_MS);
+    }, ORBIT_MS);
   }
 
-  function begin() {
+  (async () => {
+    await gather();
     if (stopped) return;
-    // Reduced motion goes straight to the result instead of the moving scenes.
+    await boot.settle();
+    if (stopped) return;
+    boot.progress(marks.length);
+    note("All " + marks.length + " popular marks are cached.");
+    await sleep(520);
+    if (stopped) return;
+    step("cache", "done");
+
+    // Decode pass: paint-ready before any tile is shown.
+    step("decode", "on");
+    bar(AT.cache);
+    say("All stores", "Decoding the marks", "Making every logo ready to paint, so no tile flickers mid-scene.");
+    const frames = marks.map((mark) => cache.get(mark.host)).filter(Boolean);
+    await Promise.all([
+      Promise.all(frames.map((img) => (img.decode ? img.decode().catch(() => {}) : null))),
+      sleep(420),
+    ]);
+    if (stopped) return;
+    step("decode", "done");
+
+    // Build every scene up front: the show itself does no layout work.
+    step("build", "on");
+    bar(AT.decode);
+    say("All stores", "Building the scenes", "Laying out the orbit, the logo wall and the mosaic before the film rolls.");
+    buildOrbit(scenes.orbit, stage, marks);
+    buildWall(scenes.wall, marks);
+    buildMosaic(scenes.mosaic, stage, marks);
+    await sleep(480);
+    if (stopped) return;
+
     if (reduce) {
       finish();
       return;
     }
-    buildOrbit(scenes.orbit, stores, stage);
-    showScene("orbit");
-    copy("Scene 1 of 3 · The catalog", stores.length + " stores", "Every store Savings works on, in one orbit.");
-    if (barEl) barEl.style.width = "34%";
-    later(flyThrough, ORBIT_MS);
-  }
-
-  preload(stores, (done, total) => {
-    if (stopped) return;
-    if (barEl) barEl.style.width = Math.round((done / total) * 100) + "%";
-    copy("All stores", "Loading logos", "Preloading every store's mark — " + done + " of " + total + ".");
-  }).then(() => {
-    if (stopped) return;
-    later(begin, Math.max(0, 600 - (Date.now() - startedAt)));
-  });
+    play();
+  })();
 
   return stop;
 }

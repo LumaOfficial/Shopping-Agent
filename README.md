@@ -95,10 +95,12 @@ empty list, and the extension never invents an offer.
 - **Popular stores and categories** — a shuffleable rail of ten popular stores
   (each one tap from its site) and a category grid that opens the All stores
   list already filtered, so the panel is useful before a store is visited.
-- **Animate** — a full-screen trailer for the catalog. Every store's mark is
-  preloaded first (with a progress bar), then the show runs an orbit of logos,
-  a fly-through and a mosaic before settling on the store count and a *Browse
-  all stores* button. `prefers-reduced-motion` skips straight to the mosaic.
+- **Animate** — a full-screen trailer of the 50 best-known storefronts. It
+  caches and decodes every mark first, then builds all three scenes before the
+  film rolls: a progress dial that fills with the logos as they arrive, an
+  orbit, a tilted logo wall and a mosaic, ending on the store count and a
+  *Browse all stores* button. `prefers-reduced-motion` skips straight to the
+  mosaic.
 - **Coupon apply** — the side panel sends the code to the content script, which
   finds the promo field (searching open shadow roots too, and skipping search,
   zip, gift-card and card fields), types it with native setters and real
@@ -247,7 +249,8 @@ between the shopper, the browser and the merchant.
 | `src/lib/site-request.js` | Normalizes the tab's host into the site key |
 | `src/lib/stores.js` | Merchant catalog and host matching |
 | `src/lib/panel-extras.js` | Popular-store rail and category tiles, both from the catalog |
-| `src/lib/logo-show.js` | The *Animate* logo parade over the whole catalog |
+| `src/lib/logo-show.js` | The *Animate* trailer: cache, decode, build, then orbit → wall → mosaic |
+| `src/lib/brand-marks.js` | The popular storefronts the trailer leads with, and their brand inks |
 | `src/lib/codes.js` | One code shape, de-duplication order, expiry rule |
 | `src/lib/settings.js` | Stored settings defaults, shared by worker and options |
 | `src/lib/format.js` | Money (minor units), relative times |
