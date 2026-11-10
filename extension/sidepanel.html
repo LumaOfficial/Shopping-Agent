@@ -12,12 +12,13 @@
   <body class="sidepanel">
     <div class="bloom" aria-hidden="true"></div>
 
-    <div class="in">
+    <div class="in" id="panel">
       <header class="top">
         <div class="brand">
           <strong>Savings</strong>
           <em id="store-name">Checking this page…</em>
         </div>
+        <button class="who" id="account-chip" type="button" hidden></button>
         <a class="gear" href="options.html" target="_blank" title="Settings" aria-label="Open settings">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true">
             <path d="M4 8h9M18 8h2M4 16h3M12 16h8" />
@@ -26,6 +27,63 @@
           </svg>
         </a>
       </header>
+
+      <section class="card auth c1" id="auth-block" hidden>
+        <div class="seg" role="tablist" aria-label="Account">
+          <button class="seg-btn" id="auth-tab-signup" type="button" role="tab" aria-selected="true">
+            Create account
+          </button>
+          <button class="seg-btn" id="auth-tab-signin" type="button" role="tab" aria-selected="false">
+            Sign in
+          </button>
+        </div>
+
+        <form id="signup-form" novalidate>
+          <h2>Your money, your account</h2>
+          <p class="muted tiny">
+            Cashback, savings and ad value stay with this account on this browser, so two people
+            never share a balance.
+          </p>
+          <div class="field">
+            <label for="su-name">Full name</label>
+            <input id="su-name" type="text" autocomplete="name" placeholder="Jordan Blake" />
+          </div>
+          <div class="field">
+            <label for="su-email">Email</label>
+            <input id="su-email" type="email" autocomplete="email" placeholder="you@example.com" />
+          </div>
+          <div class="field">
+            <label for="su-phone">Phone number</label>
+            <input id="su-phone" type="tel" autocomplete="tel" placeholder="+1 555 010 3344" />
+          </div>
+          <div class="field">
+            <label for="su-dob">Date of birth</label>
+            <input id="su-dob" type="date" autocomplete="bday" />
+            <p class="hint">You must be 18 or older to cash out.</p>
+          </div>
+          <div class="field">
+            <label for="su-pass">Password</label>
+            <input id="su-pass" type="password" autocomplete="new-password" placeholder="At least 8 characters" />
+          </div>
+          <button class="btn w" id="signup-submit" type="submit">Create account</button>
+        </form>
+
+        <form id="signin-form" novalidate hidden>
+          <h2>Welcome back</h2>
+          <p class="muted tiny">Sign in to see the cashback and savings on this account.</p>
+          <div class="field">
+            <label for="si-email">Email</label>
+            <input id="si-email" type="email" autocomplete="username" placeholder="you@example.com" />
+          </div>
+          <div class="field">
+            <label for="si-pass">Password</label>
+            <input id="si-pass" type="password" autocomplete="current-password" placeholder="Your password" />
+          </div>
+          <button class="btn w" id="signin-submit" type="submit">Sign in</button>
+        </form>
+
+        <div class="status" id="auth-status" role="status" aria-live="polite" hidden></div>
+      </section>
 
       <section class="hero">
         <div class="glow" aria-hidden="true"></div>

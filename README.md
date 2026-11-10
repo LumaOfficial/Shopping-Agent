@@ -85,6 +85,12 @@ empty list, and the extension never invents an offer.
 
 ### What works
 
+- **Accounts keep money apart.** The panel opens on a signup or sign-in card.
+  An account is a profile on this browser — full name, email, phone number, date
+  of birth (18 or older to cash out) and a password stored only as a salted
+  PBKDF2 hash. Cashback, savings and ad value are stored under that account's own
+  key prefix, so two people sharing one browser never see or spend each other's
+  balance, and signing out hides every figure again.
 - **Codes only for the store you are on.** The panel resolves the tab's host
   against a catalog of **769 stores / 787 host patterns** (including regional
   Amazon, eBay and other domains). Any other page shows an empty state, plus a
@@ -226,6 +232,35 @@ title) and the category is *Added by you*. An added site can be removed again
 from the same card; that unregisters the content script and drops it from the
 enabled list, while saved codes stay on the device.
 
+### Accounts and money
+
+The panel will not show a balance until someone is signed in. Signup collects
+what a payout partner needs to pay a real person — full name, email, phone
+number and date of birth, with 18 as the age gate for cashing out — plus a
+password of at least 8 characters. The date of birth is stored as the date you
+entered it and only ever read back to compute the age.
+
+Accounts live on this browser and nowhere else:
+
+| What | Where it lives |
+| --- | --- |
+| Account records | `chrome.storage.local`, key `accounts` |
+| Password | PBKDF2-SHA-256, 120 000 iterations, 16-byte random salt per account; only the hash is stored |
+| Session | `chrome.storage.local`, key `session` |
+| Wallet, savings, ad value, codes, prices | `acct:<account id>:<name>` keys |
+
+Signed out, figures are written under a `guest:` prefix that nothing displays, so
+an unattributed balance can never be read as someone else's. The first account
+created on a browser takes over any `guest:` figures, so a balance earned before
+accounts existed is not lost. **Clear data** in Settings removes only the
+signed-in account's keys.
+
+Because there is no server, an account does not sync between browsers or
+devices, and there is no password reset — a forgotten password cannot be
+recovered from a hash, so the account's balance has to be recovered by signing
+up again. Cross-device accounts would need a backend with an email
+verification flow; nothing in the extension currently talks to one.
+
 ### Privacy: card data
 
 Payment fields are detected from field *attributes* only (`autocomplete`, `name`,
@@ -245,6 +280,7 @@ between the shopper, the browser and the merchant.
 | `src/content/ad-guard.js` | Hides the page's ad slots and counts them, one report per page |
 | `rules/ads.json` | Declarative ruleset that blocks ad and tracker requests |
 | `src/lib/ad-value.js` | What a blocked ad is worth, and the running ad record |
+| `src/lib/accounts.js` | Signup validation, salted password hashing, the session, and the per-account key prefix every money figure sits under |
 | `src/lib/site-add.js` | Add-or-remove decision from that evidence, plus the store's display name |
 | `src/lib/site-request.js` | Normalizes the tab's host into the site key |
 | `src/lib/stores.js` | Merchant catalog and host matching |

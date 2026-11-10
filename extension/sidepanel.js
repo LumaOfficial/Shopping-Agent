@@ -9,6 +9,7 @@ import { HOLD_DAYS } from "./src/partners/cashback-ledger.js";
 import { startLogoShow } from "./src/lib/logo-show.js";
 import { startPanelExtras } from "./src/lib/panel-extras.js";
 import { siteHost } from "./src/lib/site-request.js";
+import { currentAccount, hasAccounts, signUp, signIn, signOut } from "./src/lib/accounts.js";
 
 const byId = (id) => document.getElementById(id);
 
@@ -27,6 +28,9 @@ const state = {
   site: null,
   // The outcome of the last add-or-remove check, shown on the coverage card.
   verdict: null,
+  // Nobody signed in means no money is shown and no page is resolved.
+  account: null,
+  locked: true,
 };
 
 const BLOCKS = [
@@ -1016,6 +1020,7 @@ async function removeSite(button) {
 
 // ---- render -------------------------------------------------------------
 async function render() {
+  if (state.locked) return;
   const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
   const previousUrl = state.url;
   state.tabId = tab && typeof tab.id === "number" ? tab.id : null;
@@ -1093,6 +1098,105 @@ async function render() {
   loadWallet();
   loadSponsor();
 }
+
+// ---- accounts -----------------------------------------------------------
+function firstName(fullName) {
+  return String(fullName || "").trim().split(/\s+/)[0] || "Account";
+}
+
+function authStatus(message, kind) {
+  const status = byId("auth-status");
+  status.hidden = !message;
+  status.className = "status " + (kind || "bad");
+  status.textContent = message || "";
+}
+
+function showAuthTab(which) {
+  const signup = which !== "signin";
+  byId("auth-tab-signup").setAttribute("aria-selected", String(signup));
+  byId("auth-tab-signin").setAttribute("aria-selected", String(!signup));
+  byId("signup-form").hidden = !signup;
+  byId("signin-form").hidden = signup;
+  authStatus("");
+}
+
+async function applyAccount(account) {
+  state.account = account;
+  state.locked = !account;
+  byId("panel").classList.toggle("locked", !account);
+  byId("auth-block").hidden = Boolean(account);
+  const chip = byId("account-chip");
+  chip.hidden = !account;
+  if (account) {
+    chip.textContent = firstName(account.fullName);
+    chip.title = "Signed in as " + account.email + " · Click to sign out";
+  } else {
+    byId("store-name").textContent = "Sign in to start";
+    showAuthTab("signin");
+  }
+}
+
+async function boot() {
+  const account = await currentAccount();
+  await applyAccount(account);
+  if (account) {
+    render();
+    return;
+  }
+  // A fresh browser has nothing to sign in to yet, so open on signup.
+  showAuthTab((await hasAccounts()) ? "signin" : "signup");
+}
+
+byId("auth-tab-signup").addEventListener("click", () => showAuthTab("signup"));
+byId("auth-tab-signin").addEventListener("click", () => showAuthTab("signin"));
+
+byId("signup-form").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const button = byId("signup-submit");
+  button.disabled = true;
+  button.textContent = "Creating…";
+  const result = await signUp({
+    fullName: byId("su-name").value,
+    email: byId("su-email").value,
+    phone: byId("su-phone").value,
+    dob: byId("su-dob").value,
+    password: byId("su-pass").value,
+  });
+  button.disabled = false;
+  button.textContent = "Create account";
+  if (!result.ok) {
+    authStatus(result.error);
+    return;
+  }
+  byId("signup-form").reset();
+  authStatus("");
+  await applyAccount(result.account);
+  render();
+});
+
+byId("signin-form").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const button = byId("signin-submit");
+  button.disabled = true;
+  button.textContent = "Signing in…";
+  const result = await signIn(byId("si-email").value, byId("si-pass").value);
+  button.disabled = false;
+  button.textContent = "Sign in";
+  if (!result.ok) {
+    authStatus(result.error);
+    return;
+  }
+  byId("signin-form").reset();
+  authStatus("");
+  await applyAccount(result.account);
+  render();
+});
+
+byId("account-chip").addEventListener("click", async () => {
+  await signOut();
+  reset();
+  await applyAccount(null);
+});
 
 // ---- wiring -------------------------------------------------------------
 byId("refresh").addEventListener("click", async () => {
@@ -1383,4 +1487,4 @@ byId("store-list").addEventListener("click", (event) => {
 });
 
 applyBrowserCopy();
-render();
+boot();

@@ -497,6 +497,129 @@ body.sidepanel .gear:active {
   opacity: 0.85;
 }
 
+/* ---------- Account ---------- */
+
+/* Signed out, the panel is the account card and nothing else. */
+body.sidepanel .in.locked > :not(.top):not(#auth-block) {
+  display: none;
+}
+
+body.sidepanel .who {
+  flex: none;
+  max-width: 132px;
+  padding: 9px 14px;
+  border-radius: 999px;
+  border: 1px solid #e1dbf6;
+  background: #fff;
+  color: #5d4cc1;
+  font: 650 12px/1 system-ui, sans-serif;
+  letter-spacing: 0.02em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+
+body.sidepanel .who:hover {
+  background: #f4f0ff;
+}
+
+body.sidepanel .who:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 4px rgba(124, 107, 245, 0.16);
+}
+
+body.sidepanel .auth {
+  padding: 26px 26px 22px;
+}
+
+body.sidepanel .seg {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  padding: 5px;
+  margin-bottom: 22px;
+  border-radius: 999px;
+  background: #f3efff;
+}
+
+body.sidepanel .seg button {
+  padding: 10px 12px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: #6d6590;
+  font: 600 12.5px/1 system-ui, sans-serif;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+
+body.sidepanel .seg button[aria-selected="true"] {
+  background: #fff;
+  color: #2d2d3a;
+  box-shadow: 0 6px 16px rgba(93, 76, 193, 0.12);
+}
+
+body.sidepanel .seg button:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 4px rgba(124, 107, 245, 0.16);
+}
+
+body.sidepanel .auth h2 {
+  margin: 0 0 8px;
+  font-weight: 300;
+  font-size: 25px;
+  letter-spacing: -0.02em;
+}
+
+body.sidepanel .auth form > .muted {
+  margin: 0 0 20px;
+}
+
+body.sidepanel .auth .field {
+  margin-bottom: 14px;
+}
+
+body.sidepanel .auth .field label {
+  margin-bottom: 6px;
+  color: #6d6590;
+  font: 650 11.5px/1 system-ui, sans-serif;
+  letter-spacing: 0.02em;
+}
+
+body.sidepanel .auth .field input {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 16px;
+  border: 1px solid #e1dbf6;
+  background: #faf9ff;
+  color: #2d2d3a;
+  font: 400 14px/1.4 system-ui, sans-serif;
+  transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+}
+
+body.sidepanel .auth .field input:focus {
+  outline: none;
+  border-color: #b7a8f5;
+  background: #fff;
+  box-shadow: 0 0 0 4px rgba(124, 107, 245, 0.12);
+}
+
+body.sidepanel .auth .field .hint {
+  margin: 6px 0 0;
+  font-size: 11.5px;
+  color: #8a83a8;
+}
+
+body.sidepanel .auth .btn.w {
+  margin-top: 6px;
+}
+
+body.sidepanel .auth .status {
+  margin-top: 14px;
+}
+
 /* ---------- Hero ---------- */
 
 body.sidepanel .hero {

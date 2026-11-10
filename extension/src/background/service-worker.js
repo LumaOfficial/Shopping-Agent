@@ -27,6 +27,7 @@ import { siteHost } from "../lib/site-request.js";
 import { decideSite } from "../lib/site-add.js";
 import { mergeCodes, cleanCode } from "../lib/codes.js";
 import { normalizeRecord, addAds, summaryOf } from "../lib/ad-value.js";
+import { scopedKey, scopePrefix } from "../lib/accounts.js";
 
 const FEED_TTL_MS = 10 * 60 * 1000;
 const MAX_VERIFIED = 40;
@@ -45,13 +46,23 @@ const CONTENT_FILES = [
 
 const feedCache = new Map();
 
+// Every figure belongs to the signed-in account, so the key carries its prefix.
+async function readScoped(key) {
+  const name = await scopedKey(key);
+  const stored = await chrome.storage.local.get(name);
+  return stored[name];
+}
+
+async function writeScoped(key, value) {
+  await chrome.storage.local.set({ [await scopedKey(key)]: value });
+}
+
 async function readMap(key) {
-  const stored = await chrome.storage.local.get(key);
-  return stored[key] || {};
+  return (await readScoped(key)) || {};
 }
 
 async function writeMap(key, value) {
-  await chrome.storage.local.set({ [key]: value });
+  await writeScoped(key, value);
 }
 
 function cachedOffers(store, settings, refresh) {
@@ -183,11 +194,11 @@ async function recordVerified(storeId, input, saving) {
 
   // Only a total the page itself confirmed becomes a savings figure.
   const cents = Math.round(Number(saving || 0) * 100);
-  const savings = (await chrome.storage.local.get("savings")).savings || { total: 0, count: 0 };
+  const savings = (await readScoped("savings")) || { total: 0, count: 0 };
   savings.count += 1;
   if (isFinite(cents) && cents > 0) savings.total += cents;
   savings.updatedAt = Date.now();
-  await chrome.storage.local.set({ savings });
+  await writeScoped("savings", savings);
 
   return { ok: true, savings };
 }
@@ -260,8 +271,7 @@ async function getPrice(key) {
 // rules/ads.json blocks the ad requests; each page reports the slots it hid,
 // and that count is what the panel turns into money.
 async function readAdRecord() {
-  const stored = await chrome.storage.local.get("adBlock");
-  return normalizeRecord(stored.adBlock);
+  return normalizeRecord(await readScoped("adBlock"));
 }
 
 async function adsSummary() {
@@ -273,7 +283,7 @@ async function adsSummary() {
 async function reportAds(count) {
   const record = await readAdRecord();
   addAds(record, count);
-  await chrome.storage.local.set({ adBlock: record });
+  await writeScoped("adBlock", record);
   return adsSummary();
 }
 
@@ -376,12 +386,11 @@ async function activateCashback(url, total, currency) {
 
 // ---- cashback wallet ----------------------------------------------------
 async function readWallet() {
-  const stored = await chrome.storage.local.get("cashback");
-  return normalizeWallet(stored.cashback);
+  return normalizeWallet(await readScoped("cashback"));
 }
 
 async function writeWallet(wallet) {
-  await chrome.storage.local.set({ cashback: wallet });
+  await writeScoped("cashback", wallet);
 }
 
 async function walletSummary() {
@@ -634,7 +643,7 @@ async function stats() {
     readMap("saved"),
     readMap("verified"),
     readMap("prices"),
-    chrome.storage.local.get("savings"),
+    readScoped("savings"),
     readWallet().then((loaded) => {
       settle(loaded);
       return loaded;
@@ -646,7 +655,7 @@ async function stats() {
     saved: countCodes(saved),
     verified: countCodes(verified),
     products: Object.keys(prices).length,
-    savings: stored.savings || { total: 0, count: 0 },
+    savings: stored || { total: 0, count: 0 },
     wallet: balances(wallet),
   };
 }
@@ -656,7 +665,7 @@ async function exportData() {
     readMap("saved"),
     readMap("verified"),
     readMap("prices"),
-    chrome.storage.local.get("savings"),
+    readScoped("savings"),
     readSettings(),
     readWallet(),
   ]);
@@ -675,13 +684,18 @@ async function exportData() {
     saved,
     verified,
     prices,
-    savings: stored.savings || null,
+    savings: stored || null,
     cashback: wallet,
   };
 }
 
+// Only the signed-in account's figures are cleared; another account on the same
+// browser keeps its own balance untouched.
 async function clearData() {
-  await chrome.storage.local.remove(["saved", "verified", "dead", "prices", "savings", "cashback", "adBlock"]);
+  const prefix = await scopePrefix();
+  const all = (await chrome.storage.local.get(null)) || {};
+  const mine = Object.keys(all).filter((key) => key.indexOf(prefix) === 0);
+  if (mine.length) await chrome.storage.local.remove(mine);
   feedCache.clear();
   return { ok: true };
 }
