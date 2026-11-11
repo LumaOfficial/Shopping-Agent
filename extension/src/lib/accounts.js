@@ -97,6 +97,35 @@ export function validateSignup(input, now) {
   return { ok: true, error: "", account: { fullName, email, phone, dob, password } };
 }
 
+// A session is kept on this device by default, so opening the panel again does
+// not ask for the password. Unticking "Keep me signed in" parks it in the
+// browser-session store instead, which the browser empties when it quits.
+function sessionArea(remember) {
+  return remember ? chrome.storage.local : chrome.storage.session || chrome.storage.local;
+}
+
+async function readSession() {
+  const areas = [chrome.storage.local];
+  if (chrome.storage.session) areas.push(chrome.storage.session);
+  for (const area of areas) {
+    const stored = await area.get(SESSION_KEY);
+    if (stored && stored[SESSION_KEY]) return stored[SESSION_KEY];
+  }
+  return null;
+}
+
+async function clearSession() {
+  await chrome.storage.local.remove(SESSION_KEY);
+  if (chrome.storage.session) await chrome.storage.session.remove(SESSION_KEY);
+}
+
+async function writeSession(accountId, remember) {
+  const keep = remember !== false;
+  await clearSession();
+  await sessionArea(keep).set({ [SESSION_KEY]: { accountId, at: Date.now(), remember: keep } });
+  return keep;
+}
+
 async function readAccounts() {
   const stored = await chrome.storage.local.get(ACCOUNTS_KEY);
   return stored[ACCOUNTS_KEY] || {};
@@ -133,7 +162,7 @@ async function adoptGuestData(accountId) {
   await chrome.storage.local.remove(drops);
 }
 
-export async function signUp(input, now) {
+export async function signUp(input, now, options) {
   const checked = validateSignup(input, now);
   if (!checked.ok) return { ok: false, error: checked.error };
 
@@ -158,11 +187,13 @@ export async function signUp(input, now) {
   accounts[account.id] = account;
   await writeAccounts(accounts);
   if (first) await adoptGuestData(account.id);
-  await chrome.storage.local.set({ [SESSION_KEY]: { accountId: account.id, at: Date.now() } });
-  return { ok: true, account: publicProfile(account) };
+  const remember = await writeSession(account.id, !(options && options.remember === false));
+  return { ok: true, account: publicProfile(account), remember };
 }
 
-export async function signIn(email, password) {
+// `options.remember` defaults to true: signing in on a device you own should not
+// have to be repeated every time the panel opens.
+export async function signIn(email, password, options) {
   const wanted = normalizeEmail(email);
   const accounts = await readAccounts();
   const account = Object.keys(accounts)
@@ -177,12 +208,12 @@ export async function signIn(email, password) {
   const hash = await derive(password, secret.salt, secret.iterations || ITERATIONS);
   if (hash !== secret.hash) return refused;
 
-  await chrome.storage.local.set({ [SESSION_KEY]: { accountId: account.id, at: Date.now() } });
-  return { ok: true, account: publicProfile(account) };
+  const remember = await writeSession(account.id, !(options && options.remember === false));
+  return { ok: true, account: publicProfile(account), remember };
 }
 
 export async function signOut() {
-  await chrome.storage.local.remove(SESSION_KEY);
+  await clearSession();
   return { ok: true };
 }
 
@@ -191,8 +222,7 @@ export async function hasAccounts() {
 }
 
 export async function currentAccountId() {
-  const stored = await chrome.storage.local.get(SESSION_KEY);
-  const session = stored[SESSION_KEY];
+  const session = await readSession();
   if (!session || !session.accountId) return null;
   const accounts = await readAccounts();
   // A session for an account that no longer exists signs nobody in.

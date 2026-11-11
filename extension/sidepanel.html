@@ -28,6 +28,11 @@
         </a>
       </header>
 
+      <section class="card acct-menu" id="acct-menu" hidden>
+        <p class="muted tiny" id="acct-line"></p>
+        <button class="mini" id="acct-signout" type="button">Sign out of this device</button>
+      </section>
+
       <section class="card auth c1" id="auth-block" hidden>
         <div class="seg" role="tablist" aria-label="Account">
           <button class="seg-btn" id="auth-tab-signup" type="button" role="tab" aria-selected="true">
@@ -79,6 +84,10 @@
             <label for="si-pass">Password</label>
             <input id="si-pass" type="password" autocomplete="current-password" placeholder="Your password" />
           </div>
+          <label class="age-agree keep">
+            <input id="si-remember" type="checkbox" checked />
+            <span>Keep me signed in on this device</span>
+          </label>
           <button class="btn w" id="signin-submit" type="submit">Sign in</button>
         </form>
 

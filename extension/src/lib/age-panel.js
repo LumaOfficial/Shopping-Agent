@@ -3,19 +3,24 @@
 // and reports what came back.
 import {
   BOOST_RATE,
-  CONSENT_FACTS,
   MIN_AGE,
+  consentFacts,
   isVerified,
   normalizeStatus,
   relayConfigured,
-  relayHost,
   statusCopy,
 } from "./age-verify.js";
+import { motion, summarize } from "./age-local.js";
 
 // One square frame, small enough for a free provider tier and big enough for a
 // face to be recognisable in it.
 const SIDE = 512;
 const QUALITY = 0.86;
+
+// The on-device check compares two frames this far apart, which is long enough
+// for a person to shift and short enough to feel instant.
+const MEASURE_SIDE = 256;
+const GAP_MS = 420;
 
 const byId = (id) => document.getElementById(id);
 
@@ -56,7 +61,7 @@ export function startAgeCheck(options) {
   function buildConsent() {
     const list = byId("age-facts");
     if (list.children.length) return;
-    CONSENT_FACTS.forEach((fact) => {
+    consentFacts(settings).forEach((fact) => {
       const item = document.createElement("li");
       item.textContent = fact;
       list.appendChild(item);
@@ -67,7 +72,6 @@ export function startAgeCheck(options) {
     const copy = statusCopy(status, settings);
     const verified = isVerified(status);
     const connected = relayConfigured(settings);
-    const host = relayHost(settings);
 
     byId("age-state").textContent = copy.headline;
     byId("age-note").textContent = copy.detail;
@@ -84,23 +88,23 @@ export function startAgeCheck(options) {
     meta.textContent = parts.join(" · ");
     meta.hidden = !parts.length;
 
-    byId("age-facts-wrap").hidden = verified || !connected;
-    byId("age-start").hidden = verified || !connected;
-    byId("age-photo-btn").hidden = verified || !connected;
+    // Both paths scan: on this device when no relay is configured, through the
+    // relay's provider when one is.
+    byId("age-facts-wrap").hidden = verified;
+    byId("age-start").hidden = verified;
+    byId("age-photo-btn").hidden = verified;
+    // Only offered as an upgrade, never as a requirement.
     byId("age-settings").hidden = connected;
-    if (!connected) {
-      setStatus("Face check isn't connected on this build yet — add an age check relay in Settings.", "wait");
-    }
+    byId("age-settings").textContent = "Use a provider instead";
     buildConsent();
     syncStartButton();
   }
 
   function syncStartButton() {
-    const connected = relayConfigured(settings);
     const verified = isVerified(status);
-    const ready = connected && !verified && agree.checked && !busy;
+    const ready = !verified && agree.checked && !busy;
     start.disabled = !ready;
-    start.textContent = status.state === "none" ? "Verify with a face scan" : "Try the scan again";
+    start.textContent = status.state === "none" ? "Check my face" : "Try the scan again";
   }
 
   function stop() {
@@ -145,6 +149,30 @@ export function startAgeCheck(options) {
     return encode(canvas);
   }
 
+  // A small copy of the frame, measured in place: skin share, brightness and a
+  // luma buffer the next frame is compared against for movement.
+  function measure(source, sized) {
+    const canvas = document.createElement("canvas");
+    canvas.width = MEASURE_SIDE;
+    canvas.height = MEASURE_SIDE;
+    const context = canvas.getContext("2d", { willReadFrequently: true });
+    const box = sized ? { width: source.videoWidth || 0, height: source.videoHeight || 0 } : { width: source.width || 0, height: source.height || 0 };
+    if (!box.width || !box.height) return null;
+    const side = Math.min(box.width, box.height);
+    context.drawImage(
+      source,
+      (box.width - side) / 2,
+      (box.height - side) / 2,
+      side,
+      side,
+      0,
+      0,
+      MEASURE_SIDE,
+      MEASURE_SIDE
+    );
+    return summarize(context.getImageData(0, 0, MEASURE_SIDE, MEASURE_SIDE).data, MEASURE_SIDE, MEASURE_SIDE);
+  }
+
   function scaledFromImage(image) {
     const longest = Math.max(image.width || 0, image.height || 0);
     if (!longest) return null;
@@ -156,12 +184,12 @@ export function startAgeCheck(options) {
     return encode(canvas);
   }
 
-  async function submit(image) {
+  async function ask(message, waiting) {
     if (busy) return;
     busy = true;
     syncStartButton();
-    setStatus("Checking your face with the provider…", "wait");
-    const reply = await send({ type: "age:verify", image });
+    setStatus(waiting, "wait");
+    const reply = await send(message);
     busy = false;
 
     if (!reply || reply.error || !reply.state) {
@@ -177,9 +205,19 @@ export function startAgeCheck(options) {
     } else if (status.state === "under") {
       setStatus("The check put you under " + MIN_AGE + ", so cash outs stay locked.", "bad");
     } else {
-      setStatus("Couldn't confirm your age — try again in even light, facing the camera.", "wait");
+      setStatus("Couldn't confirm it — try again in even light, facing the camera.", "wait");
     }
     onChange(status);
+  }
+
+  function submit(image) {
+    return ask({ type: "age:verify", image }, "Checking your face with the provider…");
+  }
+
+  // With no relay the numbers go to the worker, which judges them and decides —
+  // the panel never marks an account verified on its own.
+  function submitLocal(stats) {
+    return ask({ type: "age:local", stats }, "Measuring the frame on this device…");
   }
 
   async function openCamera() {
@@ -207,13 +245,37 @@ export function startAgeCheck(options) {
   }
 
   function takeShot() {
-    const image = squareFromVideo();
-    stop();
-    if (!image) {
+    if (relayConfigured(settings)) {
+      const image = squareFromVideo();
+      stop();
+      if (!image) {
+        setStatus("The camera was not ready yet. Give it a moment and take the scan again.", "wait");
+        return;
+      }
+      submit(image);
+      return;
+    }
+
+    const first = measure(video, true);
+    if (!first) {
       setStatus("The camera was not ready yet. Give it a moment and take the scan again.", "wait");
       return;
     }
-    submit(image);
+    setStatus("Hold still for a moment…", "wait");
+    // The second frame is what tells a person apart from a photo of one.
+    setTimeout(() => {
+      const second = measure(video, true);
+      stop();
+      if (!second) {
+        setStatus("The camera closed before the scan finished. Try again.", "wait");
+        return;
+      }
+      submitLocal({
+        skinShare: Math.max(first.skinShare, second.skinShare),
+        brightness: (first.brightness + second.brightness) / 2,
+        motion: motion(first.luma, second.luma),
+      });
+    }, GAP_MS);
   }
 
   photo.addEventListener("change", () => {
@@ -228,6 +290,16 @@ export function startAgeCheck(options) {
     reader.onload = () => {
       const image = new Image();
       image.onload = () => {
+        if (!relayConfigured(settings)) {
+          const stats = measure(image, false);
+          if (!stats) {
+            setStatus("That picture could not be read. Try another one.", "bad");
+            return;
+          }
+          // A chosen picture cannot show movement, so only the face itself counts.
+          submitLocal({ skinShare: stats.skinShare, brightness: stats.brightness, motion: null });
+          return;
+        }
         const frame = scaledFromImage(image);
         if (!frame) {
           setStatus("That picture could not be read. Try another one.", "bad");

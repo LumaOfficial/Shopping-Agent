@@ -1140,13 +1140,16 @@ async function applyAccount(account) {
   state.locked = !account;
   byId("panel").classList.toggle("locked", !account);
   byId("auth-block").hidden = Boolean(account);
+  byId("acct-menu").hidden = true;
   const chip = byId("account-chip");
   chip.hidden = !account;
   // Verification belongs to the account, so the card follows the session.
   ageCheck.show(Boolean(account));
   if (account) {
     chip.textContent = firstName(account.fullName);
-    chip.title = "Signed in as " + account.email + " · Click to sign out";
+    chip.title = "Signed in as " + account.email + " · Open account";
+    byId("acct-line").textContent =
+      account.email + " · this device stays signed in until you sign out.";
   } else {
     byId("store-name").textContent = "Sign in to start";
     showAuthTab("signin");
@@ -1196,7 +1199,9 @@ byId("signin-form").addEventListener("submit", async (event) => {
   const button = byId("signin-submit");
   button.disabled = true;
   button.textContent = "Signing in…";
-  const result = await signIn(byId("si-email").value, byId("si-pass").value);
+  const result = await signIn(byId("si-email").value, byId("si-pass").value, {
+    remember: byId("si-remember").checked,
+  });
   button.disabled = false;
   button.textContent = "Sign in";
   if (!result.ok) {
@@ -1209,7 +1214,15 @@ byId("signin-form").addEventListener("submit", async (event) => {
   render();
 });
 
-byId("account-chip").addEventListener("click", async () => {
+// The chip opens the account card: signing out is a deliberate second tap, so a
+// stray click never costs someone their session.
+byId("account-chip").addEventListener("click", () => {
+  const menu = byId("acct-menu");
+  menu.hidden = !menu.hidden;
+  if (!menu.hidden) menu.scrollIntoView({ behavior: "smooth", block: "nearest" });
+});
+
+byId("acct-signout").addEventListener("click", async () => {
   await signOut();
   reset();
   await applyAccount(null);

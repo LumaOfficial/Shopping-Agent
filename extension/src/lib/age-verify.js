@@ -1,11 +1,15 @@
-// Face age check. Cashing out and the earnings boost are unlocked only by a
-// result that came back from the operator's age check relay — never by anything
-// this extension decides on its own. The relay (see server/age-verify.mjs) holds
-// the face provider's credentials, sends one still frame to it, throws the frame
-// away and answers with a verdict alone.
+// Face check. Cashing out and the earnings boost are unlocked only by a verdict
+// stored against the account: either the operator's age check relay (see
+// server/age-verify.mjs, which holds a provider's credentials) or, when no relay
+// is configured, the on-device measurement in age-local.js.
 //
 // What is kept here: the verdict, the provider's name, its reference and the
 // time. Never the frame, never a face template.
+//
+// With no relay configured the check runs on this device instead (age-local.js),
+// so the feature works on a fresh install with no key of any kind.
+import { LOCAL_PROVIDER } from "./age-local.js";
+
 export const MIN_AGE = 18;
 // Age estimation is an estimate, so the provider's figure has to clear 18 by a
 // margin before this counts as proof. Anything inside the margin comes back
@@ -13,8 +17,9 @@ export const MIN_AGE = 18;
 export const DECISION_AGE = 21;
 export const BOOST_RATE = 0.03;
 
-// Shown, in this order, before the camera opens.
-export const CONSENT_FACTS = [
+// Shown, in this order, before the camera opens. With nothing configured the
+// check runs entirely on this device, so the facts say exactly that.
+const RELAY_FACTS = [
   "One still frame is taken here in your browser — not a video, and nothing else on your screen.",
   "The frame is posted over HTTPS to the age check relay your operator configured, which passes it to the face provider.",
   "The provider estimates your age from that frame and the relay discards the frame. No image and no face template is stored by this extension.",
@@ -22,14 +27,26 @@ export const CONSENT_FACTS = [
   "The scan is optional: without it your savings, codes and prices still work, but cash outs stay locked.",
 ];
 
+const ON_DEVICE_FACTS = [
+  "One still frame is taken here in your browser — not a video, and nothing else on your screen.",
+  "Nothing leaves this device: the frame is measured in the panel and then dropped. No provider, no account, no key.",
+  "A second frame half a second later checks that you are really in front of the camera rather than a photo of someone.",
+  "Only the outcome, the words \"On-device check\" and the time are saved with your account.",
+  "The scan is optional: without it your savings, codes and prices still work, but cash outs stay locked.",
+];
+
+export function consentFacts(settings) {
+  return relayConfigured(settings) ? RELAY_FACTS : ON_DEVICE_FACTS;
+}
+
 export const VERIFIED_STATES = ["verified", "under", "unclear", "none"];
 
 export function relayUrl(settings) {
   return String((settings && settings.ageCheckUrl) || "").trim();
 }
 
-// Nothing can be checked without an endpoint, so the panel says so plainly
-// instead of offering a scan that cannot finish.
+// With no relay the panel uses the on-device check, so this only decides which
+// of the two paths runs.
 export function relayConfigured(settings) {
   return /^https?:\/\//i.test(relayUrl(settings));
 }
@@ -77,11 +94,13 @@ export function statusCopy(status, settings) {
   const value = normalizeStatus(status);
   const host = relayHost(settings);
   if (value.state === "verified") {
+    const onDevice = value.provider === LOCAL_PROVIDER;
     return {
       headline: "Verified " + MIN_AGE + "+",
       detail:
-        "Confirmed by " +
-        (value.provider || host || "the age check service") +
+        (onDevice
+          ? "Checked here on this device, with your date of birth from signup — no picture left the browser"
+          : "Confirmed by " + (value.provider || host || "the age check service")) +
         ". Cash outs are unlocked and every new cashback earning is boosted by " +
         Math.round(BOOST_RATE * 100) +
         "%.",
@@ -110,7 +129,10 @@ export function statusCopy(status, settings) {
       MIN_AGE +
       "+ and unlock cash outs plus a " +
       Math.round(BOOST_RATE * 100) +
-      "% boost on new earnings.",
+      "% boost on new earnings. " +
+      (relayConfigured(settings)
+        ? "The frame goes to your age check relay and comes back as a verdict."
+        : "The scan runs on this device — nothing to set up and no picture leaves the browser."),
   };
 }
 

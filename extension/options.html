@@ -279,13 +279,14 @@
 
         <h2>Face age check</h2>
         <p class="muted">
-          Proving an account is 18+ needs a face estimate, and that needs a provider account — so the
-          credentials live on a small relay you run, never in this extension. Point the panel at that
-          relay and it gets back only a verdict. Blank means the panel says the check is not connected
-          and cash outs stay locked.
+          Works with nothing set up: the panel measures two frames on this device, keeps the verdict
+          and never sends a picture anywhere. A relay is optional — only worth it if you want a
+          provider-backed age estimate instead. Its credentials then live on that relay, never in this
+          extension, and the panel gets back only a verdict. Leave both fields blank to use the
+          on-device check.
         </p>
         <div class="field">
-          <label for="age-url">Age check relay endpoint</label>
+          <label for="age-url">Age check relay endpoint (optional)</label>
           <input id="age-url" type="url" placeholder="https://age.example.com/verify" />
           <p class="hint">
             <code>POST</code> with <code>{"image": "data:image/jpeg;base64,…"}</code> answers

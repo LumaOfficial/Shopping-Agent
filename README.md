@@ -90,7 +90,9 @@ empty list, and the extension never invents an offer.
   of birth (18 or older to cash out) and a password stored only as a salted
   PBKDF2 hash. Cashback, savings and ad value are stored under that account's own
   key prefix, so two people sharing one browser never see or spend each other's
-  balance, and signing out hides every figure again.
+  balance, and signing out hides every figure again. The device remembers who
+  signed in, so opening the panel does not ask for the password again; signing
+  out is a second, deliberate tap on the account chip.
 - **Codes only for the store you are on.** The panel resolves the tab's host
   against a catalog of **769 stores / 787 host patterns** (including regional
   Amazon, eBay and other domains). Any other page shows an empty state, plus a
@@ -246,7 +248,7 @@ Accounts live on this browser and nowhere else:
 | --- | --- |
 | Account records | `chrome.storage.local`, key `accounts` |
 | Password | PBKDF2-SHA-256, 120 000 iterations, 16-byte random salt per account; only the hash is stored |
-| Session | `chrome.storage.local`, key `session` |
+| Session | `chrome.storage.local`, key `session` — kept until you sign out. Untick **Keep me signed in on this device** and it goes to `chrome.storage.session` instead, which the browser empties when it quits |
 | Wallet, savings, ad value, codes, prices | `acct:<account id>:<name>` keys |
 
 Signed out, figures are written under a `guest:` prefix that nothing displays, so
@@ -263,20 +265,28 @@ verification flow; nothing in the extension currently talks to one.
 
 ### Face age check: 18+ and the 3% boost
 
-Cashing out asks for more than a typed date of birth. The panel can take one
-still frame of your face, have a face provider estimate the age in it, and unlock
-cash outs plus a **3% boost on new cashback earnings** only when that estimate
-comes back over 18.
+Cashing out asks for more than a typed date of birth. The panel takes a still
+frame of your face, checks it, and unlocks cash outs plus a **3% boost on new
+cashback earnings** only once a verdict is stored against the account.
 
-The estimate is never trusted from the extension side. A small relay holds the
-provider's credentials, and the extension only ever receives a verdict:
+**The check needs no key and nothing set up.** With no relay configured it runs
+on this device (`src/lib/age-local.js`): one frame is measured for a face in
+ordinary light, a second frame a moment later separates a person from a photo of
+one, the frames are dropped, and only the verdict is stored. The numbers are
+judged in the service worker, so the panel never marks an account verified on its
+own. It is a liveness check against the date of birth the account was opened
+with, not a third-party age estimate, and the card says exactly that.
+
+A provider-backed estimate is optional and only worth adding if you want one. A
+small relay holds the provider's credentials, and the extension only ever
+receives a verdict:
 
 ```
 panel ──one still frame──▶ relay (holds provider key) ──▶ face provider
       ◀── verdict only ───                                (frame discarded)
 ```
 
-Run it yourself — it has no dependencies beyond Node 18:
+Run the relay yourself — it has no dependencies beyond Node 18:
 
 ```bash
 AGE_PROVIDER=huggingface HF_TOKEN=hf_… node server/age-verify.mjs
@@ -296,7 +306,7 @@ is accepted for a relay on your own machine, anything else has to be `https://`.
 | What is stored | `acct:<id>:ageCheck` — the verdict, the provider's name, its reference and the timestamp. No image, no face template. |
 | The 18+ margin | The estimate has to reach 21 before it counts as proof, so a frame one year either way does not let someone through. Between 16 and 21 comes back `unclear` and can be tried again. |
 | The 3% boost | Added when a new cashback earning is recorded for a verified account, and kept as its own figure on that entry. Balances banked before verification do not change, and an entry is only ever boosted once. |
-| No provider configured | The panel says the check is not connected and cash outs stay locked. Nothing pretends verification happened. |
+| No relay configured | The on-device check runs instead: two frames measured in the panel, judged in the worker, and no picture leaving the browser. |
 | Trust | The verdict arrives from the relay, not from the page, and the payout and boost are applied in the service worker. As with the rest of this extension the wallet itself lives on the device, so a person who edits their own storage owns the consequences. |
 
 An automated age estimate is not a legal identity check. It is a reasonable gate
@@ -324,6 +334,7 @@ between the shopper, the browser and the merchant.
 | `src/lib/ad-value.js` | What a blocked ad is worth, and the running ad record |
 | `src/lib/accounts.js` | Signup validation, salted password hashing, the session, and the per-account key prefix every money figure sits under |
 | `src/lib/age-verify.js` | Face age check: consent copy, the relay call, the verdict shape, the 18+ margin and the boost figure |
+| `src/lib/age-local.js` | The on-device check that needs no provider and no key: frame measurement, the liveness comparison and the verdict rules |
 | `src/lib/age-panel.js` | The age check card: disclosure, one-frame camera or photo capture, and what came back |
 | `src/lib/site-add.js` | Add-or-remove decision from that evidence, plus the store's display name |
 | `src/lib/site-request.js` | Normalizes the tab's host into the site key |

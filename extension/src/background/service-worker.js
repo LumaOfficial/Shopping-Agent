@@ -37,6 +37,7 @@ import {
   relayConfigured,
   relayHost,
 } from "../lib/age-verify.js";
+import { LOCAL_PROVIDER, judgeLocal } from "../lib/age-local.js";
 
 const FEED_TTL_MS = 10 * 60 * 1000;
 const MAX_VERIFIED = 40;
@@ -415,6 +416,24 @@ async function ageStatus() {
   });
 }
 
+// No provider and no key: the panel measures two frames, the judgement happens
+// here so the numbers — not the panel — decide when money unlocks.
+async function verifyAgeLocally(message) {
+  const verdict = judgeLocal(message && message.stats);
+  if (verdict.state !== "verified") {
+    return { ok: false, error: verdict.message || "The check did not finish. Try again." };
+  }
+  const status = normalizeStatus({
+    state: "verified",
+    provider: LOCAL_PROVIDER,
+    reference: "on-device",
+    estimate: null,
+    checkedAt: Date.now(),
+  });
+  await writeScoped("ageCheck", status);
+  return Object.assign({ ok: true }, status);
+}
+
 async function verifyAge(message) {
   const image = String((message && message.image) || "");
   if (!image) return { ok: false, error: "No frame was captured, so nothing was checked." };
@@ -770,6 +789,8 @@ async function handle(message, sender) {
       return ageStatus();
     case "age:verify":
       return verifyAge(message);
+    case "age:local":
+      return verifyAgeLocally(message);
     case "payout:detect":
       return detectPayoutService(await readSettings());
     case "sponsor:offers":

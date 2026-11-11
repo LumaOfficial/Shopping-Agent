@@ -530,6 +530,19 @@ body.sidepanel .who:focus-visible {
   box-shadow: 0 0 0 4px rgba(124, 107, 245, 0.16);
 }
 
+body.sidepanel .acct-menu {
+  margin-top: 10px;
+  padding: 14px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+body.sidepanel .acct-menu .mini {
+  align-self: flex-start;
+}
+
 body.sidepanel .auth {
   padding: 26px 26px 22px;
 }
@@ -790,6 +803,16 @@ body.sidepanel .age-agree input {
   width: 16px;
   height: 16px;
   accent-color: #7c6bf5;
+}
+
+/* The "keep me signed in" row on the sign-in form. */
+body.sidepanel .age-agree.keep {
+  margin: 4px 0 16px;
+  font-size: 12px;
+}
+
+body.sidepanel .age-agree.keep input {
+  flex: none;
 }
 
 body.sidepanel .age-cam {
