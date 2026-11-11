@@ -19,9 +19,9 @@ export function ownSender(sender) {
 }
 
 // A content script speaks for a web page, so its sender URL is that page's. An
-// extension page — the panel, the settings tab — carries a chrome-extension://
-// URL instead (and may still sit in a tab, which is why the URL decides and the
-// tab does not). Messages from a page are the narrowest set in the extension:
+// extension page — the panel, the settings tab — carries the extension's own URL
+// instead (and may still sit in a tab, which is why the URL decides and the tab
+// does not). Messages from a page are the narrowest set in the extension:
 // the page can influence what its content script says, so it may only report the
 // ad slots it hid.
 export function fromContentScript(sender) {
@@ -30,18 +30,29 @@ export function fromContentScript(sender) {
   return /^https?:\/\//i.test(origin);
 }
 
+// Where this extension's own pages live, with a trailing slash. Chromium serves
+// them from chrome-extension://, Firefox from moz-extension:// and Safari from
+// safari-web-extension://, so the base is asked of the browser instead of being
+// written out with one browser's scheme. "" when there is no runtime at all.
+function extensionBase() {
+  const runtime = typeof chrome !== "undefined" && chrome && chrome.runtime;
+  if (!runtime || !runtime.id) return "";
+  const base = typeof runtime.getURL === "function" ? String(runtime.getURL("")) : "";
+  return base ? base.replace(/\/+$/, "") + "/" : "";
+}
+
 // Which of the extension's own pages is speaking, as a bare file name, or "" when
 // the sender is not one of them. A page script, a content script and another
 // extension all come back empty, so a command that only the settings page should
 // answer can be held to it instead of being handed to every caller.
 export function extensionPage(sender) {
   if (!ownSender(sender)) return "";
-  const runtime = typeof chrome !== "undefined" && chrome && chrome.runtime;
-  const prefix = "chrome-extension://" + runtime.id + "/";
+  const base = extensionBase();
+  if (!base) return "";
   const url = String(sender.url || "");
-  if (url.indexOf(prefix) !== 0) return "";
+  if (url.indexOf(base) !== 0) return "";
   return url
-    .slice(prefix.length)
+    .slice(base.length)
     .replace(/[?#].*$/, "")
     .replace(/^\/+/, "");
 }

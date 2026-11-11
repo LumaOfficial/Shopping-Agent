@@ -253,6 +253,33 @@ test("the panel is handed settings without credentials", async (t) => {
   assert.equal(full.ageCheckToken, "relay-token");
 });
 
+test("Firefox's moz-extension:// pages are the extension's own", async (t) => {
+  const fake = await boot(t);
+  fake.store.settings = {
+    ageCheckUrl: "https://age.test/verify",
+    ageCheckToken: "relay-token",
+    feedUrl: "https://feed.test/offers/{store}",
+    feedKey: "feed-secret",
+  };
+
+  // Firefox serves the extension from moz-extension://<uuid>/, so the page test
+  // cannot be keyed on Chromium's scheme or the settings page reads nothing back.
+  const id = fake.chrome.runtime.id;
+  fake.chrome.runtime.getURL = (path) => "moz-extension://4f1a9c7e-0f2b/" + path;
+
+  const panel = await fake.send({ type: "settings:get" });
+  assert.equal(panel.feedKey, "", "the panel still sees only public settings");
+
+  const settingsPage = { id, url: "moz-extension://4f1a9c7e-0f2b/options.html" };
+  const full = await fake.send({ type: "settings:get" }, settingsPage);
+  assert.equal(full.feedKey, "feed-secret");
+  assert.equal(full.ageCheckToken, "relay-token");
+
+  const someoneElse = { id, url: "moz-extension://another-addon/page.html" };
+  const refused = await fake.send({ type: "settings:get" }, someoneElse);
+  assert.equal(refused.feedKey, "", "a different moz-extension origin is not ours");
+});
+
 test("a session that has aged out signs nobody in", async (t) => {
   const fake = await boot(t);
   const day = 24 * 60 * 60 * 1000;

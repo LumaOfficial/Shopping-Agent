@@ -10,7 +10,7 @@ fill the store's own promo field.
 | Browser | Package | Where the panel lives |
 | --- | --- | --- |
 | Chrome, Edge, Brave, Opera, Vivaldi, Arc, Chromium | `dist/chromium` | the browser's side panel |
-| Firefox 128+ | `dist/firefox` | Firefox's sidebar |
+| Firefox 140+ desktop, 142+ Android | `dist/firefox` | Firefox's sidebar |
 | any other Chromium build, including older ones | `dist/chromium` | the panel in a small window |
 
 Safari needs Apple's Xcode conversion of a WebExtension package and is not
@@ -29,18 +29,32 @@ addons.mozilla.org.
 
 Only the Firefox manifest differs, because Manifest V3 in Firefox has no
 background service worker (the same file is loaded as an event page) and no Side
-Panel API (the panel is declared as a `sidebar_action` instead). AMO also
-requires a `browser_specific_settings.gecko.id` — replace the placeholder with
-your own. `data_collection_permissions` is declared as `browsingActivity` because
-the offer request carries the store you are on to the feed you configured; set it
-to `none` if your feed never receives anything about the page. `web-ext lint`
-reports no errors on the package — its three warnings are the guarded Side Panel
-calls, which never run outside Chromium.
+Panel API (the panel is declared as a `sidebar_action` instead). Three things the
+Firefox package needs that the Chromium one must not carry:
 
-Firefox does not reopen the sidebar by itself when you switch back to a tab it was
-open on, so click the toolbar button or press `Alt+Shift+S`; if another extension
-owns that shortcut, reassign it in `about:addons` → gear → **Manage Extension
-Shortcuts**.
+- `browser_specific_settings.gecko.id` — AMO requires an id. `build.mjs` writes a
+  placeholder, `savings@shopping-agent.example`; replace it with your own before
+  uploading, and keep it the same across releases or Firefox treats each version
+  as a new add-on.
+- `strict_min_version` 140 on desktop and 142 on Android. That is the first
+  release of each that reads `data_collection_permissions`, which AMO has
+  required of every new submission since 3 November 2025. An older floor would
+  install the extension where that consent is never shown, so AMO's linter flags
+  it (`KEY_FIREFOX_UNSUPPORTED_BY_MIN_VERSION`).
+- `data_collection_permissions`, declared as `browsingActivity` (the offer request
+  carries the store you are on to the feed you configured) and
+  `personallyIdentifyingInfo` (the age check posts one straight-on frame to the
+  relay you configured). Set the list to `["none"]` if you remove those features.
+
+`web-ext lint` reports no errors on the package — its three warnings are the
+guarded Side Panel calls, which never run outside Chromium.
+
+Firefox has no Side Panel API, so the toolbar button toggles the sidebar (open,
+then closed again), and `Alt+Shift+S` does the same. Firefox does not reopen the
+sidebar by itself when you switch back to a tab it was open on; if another
+extension owns that shortcut, reassign it in `about:addons` → gear → **Manage
+Extension Shortcuts**. Firefox for Android has no sidebar either, so there the
+button opens the panel in a window, or in a tab where windows cannot be opened.
 
 ### Load it unpacked
 

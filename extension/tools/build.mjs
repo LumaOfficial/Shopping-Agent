@@ -11,7 +11,8 @@
 //   nothing about).
 // dist/firefox — Firefox has no service worker in Manifest V3 and no Side Panel
 //   API, so the same background script is loaded as an event page and the panel
-//   is declared as a sidebar instead. Firefox 128+ (optional host permissions).
+//   is declared as a sidebar instead. Firefox 140+ desktop, 142+ on Android: the
+//   data_collection_permissions AMO requires is only read from those versions.
 //
 // Nothing else differs: src/lib/compat.js points `chrome` at `browser` where the
 // browser only offers promises there, and the background script opens whichever
@@ -48,12 +49,21 @@ function firefoxManifest() {
     gecko: {
       // AMO does not assign an ID; replace this with your own before publishing.
       id: "savings@shopping-agent.example",
-      strict_min_version: "128.0",
+      // 140 is the first desktop release that reads data_collection_permissions
+      // (Firefox for Android reads it from 142). AMO requires that declaration
+      // for every new submission, so an older floor would install the extension
+      // somewhere the consent it describes is never shown.
+      strict_min_version: "140.0",
       // The offer request carries the store you are on to the feed you
-      // configured, so that is browsing activity. Set "none" if your feed
-      // never receives anything about the page.
-      data_collection_permissions: { required: ["browsingActivity"] },
+      // configured, so that is browsing activity. The age check posts one
+      // straight-on frame to the relay you configured, which is a recording of
+      // the shopper: personally identifying information. Set the list to
+      // ["none"] if neither feature ever leaves the device.
+      data_collection_permissions: {
+        required: ["browsingActivity", "personallyIdentifyingInfo"],
+      },
     },
+    gecko_android: { strict_min_version: "142.0" },
   };
   return manifest;
 }

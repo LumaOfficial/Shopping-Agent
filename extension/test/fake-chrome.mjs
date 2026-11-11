@@ -87,8 +87,11 @@ export function createFakeChrome(seed) {
     action: { onClicked: { addListener() {} } },
     commands: { onCommand: { addListener() {} } },
     windows: {
-      getLastFocused(_options, done) {
-        done({ id: 1 });
+      // Promise-only, like the `browser` object compat.js installs in Firefox:
+      // Firefox ignores a callback, so a callback-style fake would hide a call
+      // that never answers there.
+      async getLastFocused() {
+        return { id: 1 };
       },
       async create() {
         return { id: 2 };

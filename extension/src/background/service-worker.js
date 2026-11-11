@@ -975,29 +975,56 @@ chrome.storage.onChanged.addListener(function (changes, area) {
 
 // Toolbar click opens the panel — the whole UI lives there. Chromium browsers
 // have the Side Panel API, Firefox has its sidebar, and a browser with neither
-// gets the panel in a small window.
+// (Firefox for Android, for one) gets the panel in a window or a tab.
 const HAS_SIDE_PANEL = !!(chrome.sidePanel && chrome.sidePanel.open);
 const HAS_SIDEBAR = !!(chrome.sidebarAction && chrome.sidebarAction.open);
 
-function openPanel(windowId) {
-  if (HAS_SIDE_PANEL) {
-    return chrome.sidePanel.open({ windowId }).catch(function () {
-      /* Only opens from a user gesture; a click or a command is one. */
-    });
+// Firefox hands out the promise-only `browser` object under the `chrome` name,
+// so these calls are awaited rather than given a callback that Firefox ignores.
+async function lastWindowId() {
+  try {
+    const win = await chrome.windows.getLastFocused({ populate: false });
+    return win && typeof win.id === "number" ? win.id : null;
+  } catch (_error) {
+    return null;
   }
-  if (HAS_SIDEBAR) {
-    return chrome.sidebarAction.open().catch(function () {
-      /* Firefox opens it from the toolbar button or its own shortcut. */
-    });
-  }
+}
+
+async function openSidePanel() {
+  const windowId = await lastWindowId();
+  if (windowId === null) return;
+  await chrome.sidePanel.open({ windowId }).catch(function () {
+    /* Only opens from a user gesture; a click or a command is one. */
+  });
+}
+
+function openSidebar() {
+  const sidebar = chrome.sidebarAction;
+  // toggle() closes the sidebar on a second click, which is what the toolbar
+  // button should do; open() is the fallback where toggle() is missing.
+  const opened = typeof sidebar.toggle === "function" ? sidebar.toggle() : sidebar.open();
+  return Promise.resolve(opened).catch(function () {
+    /* Firefox opens it from the toolbar button or its own shortcut. */
+  });
+}
+
+function openPanelWindow() {
+  const url = chrome.runtime.getURL("sidepanel.html");
+  const inTab = function () {
+    return chrome.tabs.create({ url: url }).catch(function () {});
+  };
+  if (!chrome.windows || !chrome.windows.create) return inTab();
   return chrome.windows
-    .create({
-      url: chrome.runtime.getURL("sidepanel.html"),
-      type: "popup",
-      width: 400,
-      height: 760,
-    })
-    .catch(function () {});
+    .create({ url: url, type: "popup", width: 400, height: 760 })
+    .catch(inTab);
+}
+
+function openPanel() {
+  // Called straight from the click or the command handler: Firefox only opens
+  // its sidebar while the user gesture is live, so nothing is awaited before it.
+  if (HAS_SIDEBAR) return openSidebar();
+  if (HAS_SIDE_PANEL) return openSidePanel();
+  return openPanelWindow();
 }
 
 function openPanelOnActionClick() {
@@ -1019,9 +1046,7 @@ chrome.action.onClicked.addListener(function () {
 
 chrome.commands.onCommand.addListener(function (command) {
   if (command !== "open-panel") return;
-  chrome.windows.getLastFocused({ populate: false }, function (win) {
-    if (win && typeof win.id === "number") openPanel(win.id);
-  });
+  openPanel();
 });
 
 chrome.runtime.onInstalled.addListener(function () {
