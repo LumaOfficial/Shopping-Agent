@@ -25,7 +25,7 @@ const source = resolve(here, "..");
 const dist = resolve(source, "..", "dist");
 
 // Build output and build tools are not part of a shipped package.
-const SKIP = new Set(["tools", "dist"]);
+const SKIP = new Set(["tools", "test", "dist"]);
 
 const targets = process.argv.includes("--target")
   ? [process.argv[process.argv.indexOf("--target") + 1]]

@@ -484,11 +484,34 @@ agree and exits non-zero when they do not.
 
 ### Checks
 
-The pure modules and both content scripts are covered by tests that run in Node
-with jsdom (kept out of the repo): the coupon engine is driven against fixture
-cart pages — success, rejection, shadow DOM, no field, ignored search/gift-card
-inputs — and the service worker and side panel are exercised against a stubbed
-`chrome` API.
+The face check and the boost it unlocks have a suite in `test/`, run in Node with
+no browser, camera or network:
+
+```bash
+cd extension && node --test test/*.test.mjs
+```
+
+It imports the real service worker behind a stubbed `chrome` API (`test/fake-chrome.mjs`)
+and sends it the same messages the panel sends, then reads the wallet back. The
+frames come from `test/frames.mjs`, drawn in memory and measured by the real
+detector in `src/lib/age-local.js`. What it confirms:
+
+- an account with no verdict earns the plain rate — $100 at 5% records a 500-cent
+  earning with no boost;
+- a scan that clears the check (two frames of a person moving) unlocks the boost
+  on the next earning only — 15 extra cents on the same cart — and leaves the
+  earning recorded before the check at 500;
+- the boost is 3% of the base and stays in whole cents ($12.34 → 62 + 2 = 64);
+- a relay verdict unlocks the same boost as an on-device scan;
+- a frame with no face, and a still photo (identical second frame), are both
+  refused and leave the next earning unboosted;
+- the verdict is stored against the account, so a second account on the same
+  browser earns the plain rate until it is checked itself.
+
+The pure modules and both content scripts are covered by tests that also run in
+Node with jsdom: the coupon engine is driven against fixture cart pages —
+success, rejection, shadow DOM, no field, ignored search/gift-card inputs — and
+the side panel is exercised against a stubbed `chrome` API.
 
 The cashback wallet has its own Node test (also kept out of the repo): rate
 parsing, the 30-day hold, pending → cashable → paid, and the payout request
