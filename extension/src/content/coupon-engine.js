@@ -283,6 +283,11 @@
     field.scrollIntoView({ block: "center", behavior: "smooth" });
     setValue(field, code);
     await sleep(120);
+    // Typing is what enables some carts' Apply button, and a disabled button is
+    // not a candidate earlier, so look again before falling back to Enter.
+    if (!button || button.disabled) {
+      button = findApplyButton(field);
+    }
     if (button) {
       button.click();
     } else {
