@@ -1,5 +1,7 @@
 import { withDefaults } from "./src/lib/settings.js";
 import { money } from "./src/lib/format.js";
+import { currentAccount, hasAccounts, signOut } from "./src/lib/accounts.js";
+import { endpoint } from "./src/lib/guard.js";
 
 const byId = (id) => document.getElementById(id);
 
@@ -146,9 +148,30 @@ function ageEndpointInsecure(settings) {
   return !/^http:\/\/(localhost|127\.0\.0\.1|\[::1\])(:\d+)?(\/|$)/i.test(url);
 }
 
+// Addresses the extension contacts, in the words the fields use, so a refused
+// address is named rather than silently dropped on save.
+const ENDPOINT_FIELDS = [
+  { key: "feedUrl", label: "the coupon feed" },
+  { key: "cashbackTemplate", label: "the tracked link template" },
+  { key: "payoutUrl", label: "the payout proxy" },
+  { key: "sponsorUrl", label: "the sponsor service" },
+  { key: "ageCheckUrl", label: "the age check relay" },
+];
+
 async function save() {
   const stored = await chrome.storage.local.get("settings");
-  const settings = withDefaults(Object.assign({}, stored.settings, collect()));
+  const typed = collect();
+  const refused = ENDPOINT_FIELDS.find((field) => typed[field.key] && !endpoint(typed[field.key]));
+  if (refused) {
+    return {
+      ok: false,
+      message:
+        "Use an https:// address for " +
+        refused.label +
+        ". Plain HTTP, credentials inside the address and any other scheme are refused, so nothing travels in the clear.",
+    };
+  }
+  const settings = withDefaults(Object.assign({}, stored.settings, typed));
   if (payoutEndpointInsecure(settings)) {
     return {
       ok: false,
@@ -281,7 +304,37 @@ async function loadData() {
   list.textContent = sites.length ? "Enabled on: " + sites.join(", ") : "";
 
   renderSimpleWallet(stats);
+  renderSecurity(settings);
 }
+
+// The security section states what is true on this device right now. Every line
+// it fills in is read back from storage, not assumed.
+async function renderSecurity(settings) {
+  const configured = [settings.feedUrl, settings.cashbackTemplate, settings.payoutUrl, settings.sponsorUrl, settings.ageCheckUrl]
+    .filter(Boolean).length;
+  byId("guard-endpoints").textContent = configured
+    ? "All " + configured + " of your endpoints use HTTPS (or a listener on this machine). Plain HTTP on the open internet is refused."
+    : "None configured yet, so nothing leaves this device.";
+
+  const [signedIn, accounts] = await Promise.all([currentAccount(), hasAccounts()]);
+  byId("guard-device").textContent = accounts
+    ? signedIn
+      ? "Signed in as " + signedIn.email + " on this device."
+      : "An account exists on this device and is signed out."
+    : "No account on this device yet.";
+  byId("guard-signout").disabled = !signedIn;
+}
+
+byId("guard-signout").addEventListener("click", async () => {
+  await signOut();
+  const status = byId("guard-status");
+  status.textContent = "Signed out";
+  status.hidden = false;
+  await loadData();
+  setTimeout(() => {
+    status.hidden = true;
+  }, 2400);
+});
 
 // Settings opens in its own tab, so "Back" closes that tab. Where the page is
 // shown without a tab to close it returns to the savings panel instead, so the
@@ -370,7 +423,9 @@ byId("clear-data").addEventListener("click", async () => {
     "Delete the codes you saved, the codes you verified, the prices tracked on this device and the cashback wallet?"
   );
   if (!confirmed) return;
-  await chrome.runtime.sendMessage({ type: "data:clear" }).catch(() => null);
+  // The worker only clears on a request that says it was confirmed, so no other
+  // message can empty the figures by itself.
+  await chrome.runtime.sendMessage({ type: "data:clear", confirm: true }).catch(() => null);
   status.textContent = "Cleared";
   status.hidden = false;
   await loadData();

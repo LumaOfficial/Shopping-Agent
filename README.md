@@ -325,6 +325,59 @@ Payment fields are detected from field *attributes* only (`autocomplete`, `name`
 `id`, `placeholder`, `aria-label`). No field value is ever read. Card details stay
 between the shopper, the browser and the merchant.
 
+### Security model
+
+A browser extension ships as readable source. Anyone who installs it has the
+code, so nothing here is protected by being hidden — each protection works even
+when the attacker has read every line, opened the panel's console and pointed the
+extension at a page of their own.
+
+**What is in the repo:** no key, token or password. Every credential is entered
+by the operator or shopper, stored in that browser profile, and sent only to the
+host they named. There is no bundled offer data either, so the code has nothing
+worth extracting.
+
+**One door into the worker.** `chrome.runtime.onMessage` is the only way to make
+the extension do anything, and every message is checked before a handler runs
+(`src/lib/guard.js`):
+
+| Check | Why it matters |
+| --- | --- |
+| `sender.id` must be this extension | Another extension cannot drive the worker. A web page cannot at all: there is no `externally_connectable`, and nothing is `web_accessible`. |
+| A page's content script may send only `ads:report` | The page can influence what its content script says, so that is the one message it can produce — and it cannot reach settings, clearing or a payout. A sender URL decides this, not the presence of a tab, so the settings page opened in a tab keeps its full access. |
+| Each handler's payload is checked first | A page address has to be `http(s)`, a cart total has to be a finite number, an ad count is an integer inside a range, a code has to match the code pattern, and clearing needs an explicit `confirm: true`. |
+| Repeated actions are capped per session | Ad reports, settings writes and payouts are throttled, so no page can inflate a figure or issue two cards by looping one message. |
+
+**Settings are an allowlist.** `sanitizeSettings` keeps only the keys in
+`DEFAULTS`, so an injected key — including `__proto__` — is dropped rather than
+merged. Addresses must be HTTPS, or plain HTTP on `127.0.0.1`/`localhost` while a
+relay is being built; a URL carrying credentials (`https://user:pass@…`) is
+refused. The options page says which field it refused instead of saving it
+silently.
+
+**Accounts.** A password is never stored: signup keeps a per-account random salt
+and a PBKDF2-SHA-256 hash at 210,000 rounds, compared in constant time. Five
+wrong passwords pause sign-in for 30 seconds and each further miss doubles the
+pause, up to 15 minutes. Attempts are counted under a hash of the email, so the
+address typed is not kept. Sessions are `chrome.storage.local` (kept between
+reloads) or `chrome.storage.session` (cleared on quit) — the panel's "keep me
+signed in" box chooses.
+
+**Rendering.** Nothing from a page, feed or relay is ever put through
+`innerHTML`: the panel builds text nodes, so a coupon title is a coupon title and
+never markup. Extension pages declare `script-src 'self'; object-src 'self'`.
+
+**Face frames.** A frame is measured and dropped, or posted to the relay the
+operator configured and discarded there. The verdict is re-judged in the worker
+from the numbers the panel measured, so the panel cannot mark an account
+verified.
+
+What this cannot do: a person with full control of their own browser profile can
+edit their own storage and give themselves a number. The accounts, wallet and
+verdict are device-local by design — there is no server to check them against —
+so the model protects the operator's credentials and other people's data, not a
+user from themselves.
+
 ### Files
 
 | File | Role |
@@ -349,7 +402,8 @@ between the shopper, the browser and the merchant.
 | `src/lib/logo-show.js` | The *Animate* trailer: cache, decode, build, then orbit → wall → mosaic |
 | `src/lib/brand-marks.js` | The popular storefronts the trailer leads with, and their brand inks |
 | `src/lib/codes.js` | One code shape, de-duplication order, expiry rule |
-| `src/lib/settings.js` | Stored settings defaults, shared by worker and options |
+| `src/lib/guard.js` | The trust boundary: who sent a message, which addresses and figures are allowed, constant-time hash compare, per-action rate caps |
+| `src/lib/settings.js` | Stored settings defaults, and the allowlist that sanitizes them on the way in |
 | `src/lib/format.js` | Money (minor units), relative times |
 | `src/lib/copy.js` | All "Partner Platforms" wording |
 | `src/lib/browser.js` | Which browser is running, for the autofill wording |
@@ -507,6 +561,25 @@ detector in `src/lib/age-local.js`. What it confirms:
   refused and leave the next earning unboosted;
 - the verdict is stored against the account, so a second account on the same
   browser earns the plain rate until it is checked itself.
+
+The security rules have their own suite in `test/security.test.mjs`, driven the
+same way — real worker, real messages, no browser. What it confirms:
+
+- another extension, and a sender with no id at all, cannot change settings or
+  read data;
+- a content script may report ads and nothing else, while the settings page
+  opened in a tab keeps its full access;
+- an unknown message type is refused without being echoed back;
+- a settings object with an injected `__proto__` or an unknown key stores only
+  the known keys and leaves the shared prototype untouched;
+- a plain-HTTP endpoint is dropped, HTTPS and a loopback listener are kept, and
+  an impossible payout minimum falls back to the default;
+- clearing data needs `confirm: true`;
+- an ad count of 100000 or −4 is refused, so a page cannot inflate what it is
+  paid for;
+- a page address has to be `http(s)` — `javascript:` and `file:` are refused;
+- five wrong passwords pause sign-in even for the right password, and the stored
+  account holds a salted hash with no trace of the plaintext.
 
 The pure modules and both content scripts are covered by tests that also run in
 Node with jsdom: the coupon engine is driven against fixture cart pages —

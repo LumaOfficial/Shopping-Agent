@@ -24,6 +24,16 @@ import { getSponsoredOffers, claimOffer, sponsorConfigured } from "../partners/s
 import { payoutConfigured, payoutHost, detectPayoutService, requestVirtualCard, requestSimpleVisa, requestPreviewCard } from "../partners/cashback-payout.js";
 import { readSettings, writeSettings } from "../lib/settings.js";
 import { siteHost } from "../lib/site-request.js";
+import {
+  allowance,
+  fromContentScript,
+  intValue,
+  isPlainObject,
+  moneyValue,
+  ownSender,
+  textValue,
+  webUrl,
+} from "../lib/guard.js";
 import { decideSite } from "../lib/site-add.js";
 import { mergeCodes, cleanCode } from "../lib/codes.js";
 import { normalizeRecord, addAds, summaryOf } from "../lib/ad-value.js";
@@ -773,8 +783,77 @@ async function clearData() {
   return { ok: true };
 }
 
+// A content script speaks for a web page, so its message carries that page's URL
+// as the sender. Those messages may only report the ad slots that content script
+// itself hid; every other command has to come from one of the extension's own
+// pages, where no page script can reach the listener.
+const CONTENT_MESSAGES = ["ads:report"];
+
+const NEEDS_URL = ["site:resolve", "offers:refresh", "cashback:activate", "site:remove"];
+
+// The payload each handler is about to read, checked before it is read. A message
+// that fails here never touches storage.
+function payloadProblem(type, message) {
+  if (NEEDS_URL.indexOf(type) !== -1 && !webUrl(message.url)) return "That is not a web page address.";
+
+  switch (type) {
+    case "site:detect":
+      // Either the panel names the page, or a content script in a tab does.
+      if (!message.url && typeof message.tabId !== "number") return "That is not a web page address.";
+      if (message.url && !webUrl(message.url)) return "That is not a web page address.";
+      return "";
+    case "cashback:activate":
+      if (moneyValue(message.total) === null) return "That cart total is not a number.";
+      return "";
+    case "cashback:cashout":
+      // One payout attempt at a time: a double click issues one card, not two.
+      return allowance("cashout", 1, 15000) ? "" : "A cash out is already in flight.";
+    case "ads:report": {
+      const count = intValue(message.count, 1, 200);
+      if (count === null) return "That ad count is not a number.";
+      message.count = count;
+      return allowance("ads", 40, 60000) ? "" : "Too many ad reports just now.";
+    }
+    case "settings:set":
+      if (!isPlainObject(message.settings)) return "Those settings could not be read.";
+      return allowance("settings", 30, 60000) ? "" : "Too many settings changes just now.";
+    case "data:clear":
+      // Only a deliberate, confirmed request empties the figures.
+      return message.confirm === true ? "" : "Clearing data has to be confirmed.";
+    case "age:local":
+      return isPlainObject(message.stats) ? "" : "No measurement arrived, so nothing was checked.";
+    case "age:verify": {
+      const frame = typeof message.image === "string" ? message.image : "";
+      if (!frame) return "No frame was captured, so nothing was checked.";
+      if (frame.length > 8000000) return "That frame was too large to check.";
+      return "";
+    }
+    case "price:record":
+      return isPlainObject(message.product) ? "" : "No product arrived, so nothing was recorded.";
+    case "verified:record":
+    case "codes:save":
+    case "codes:delete":
+    case "codes:dead":
+    case "sponsor:claim":
+      return textValue(message.storeId || message.offerId, 80) ? "" : "That record has no usable id.";
+    default:
+      return "";
+  }
+}
+
+// Every message is refused here before a handler sees it. `sender` is the browser
+// telling us who is speaking, which is why it is checked first: it is the one part
+// of a message a sender cannot forge.
 async function handle(message, sender) {
-  switch (message && message.type) {
+  if (!isPlainObject(message)) return { error: "refused" };
+  const type = typeof message.type === "string" ? textValue(message.type, 40) : "";
+  if (!type) return { error: "refused" };
+  if (!ownSender(sender)) return { error: "refused" };
+  if (fromContentScript(sender) && CONTENT_MESSAGES.indexOf(type) === -1) return { error: "refused" };
+  const problem = payloadProblem(type, message);
+  if (problem) return { ok: false, error: problem };
+
+  switch (type) {
     case "site:resolve":
       return resolveSite(message.url);
     case "offers:refresh":
@@ -819,11 +898,14 @@ async function handle(message, sender) {
       return removeSite(message.url);
     case "settings:get":
       return readSettings();
-    case "settings:set":
-      await writeSettings(message.settings);
+    case "settings:set": {
+      // What was stored, not what was sent: an address that is not HTTPS, an
+      // unknown key or an impossible figure is dropped here and reported back.
+      const clean = await writeSettings(message.settings);
       feedCache.clear();
       await syncAdBlock();
-      return { ok: true };
+      return { ok: true, settings: clean };
+    }
     case "source:test":
       return testSource();
     case "stats:get":
@@ -833,7 +915,9 @@ async function handle(message, sender) {
     case "data:clear":
       return clearData();
     default:
-      return { error: "unknown message: " + (message && message.type) };
+      // The type is not one this worker implements, so it is not described back
+      // to whoever sent it.
+      return { error: "refused" };
   }
 }
 

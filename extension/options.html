@@ -177,6 +177,39 @@
           Everything above lives in this browser profile. Nothing is uploaded, sold or shared, and
           card details are never read.
         </p>
+
+        <h2>Security</h2>
+        <p class="muted">
+          Anyone who installs this extension can read its code, so it is built so that reading it
+          gains nothing: no keys live inside it, and nothing it stores hands over an account.
+        </p>
+        <ul class="guard">
+          <li>
+            <strong>No secrets in the code.</strong> Every credential is one you entered. It stays in
+            this browser profile and travels only to the host you named.
+          </li>
+          <li>
+            <strong>Encrypted endpoints only.</strong>
+            <span id="guard-endpoints">Checking…</span>
+          </li>
+          <li>
+            <strong>Commands come from this extension only.</strong> A page or another extension
+            cannot drive the worker, and what a page can influence stops at the ad slots it hid.
+          </li>
+          <li>
+            <strong>No password is stored.</strong> Only a salted PBKDF2-SHA-256 hash at 210,000
+            rounds — and five wrong tries pause sign-in.
+          </li>
+          <li>
+            <strong>No pictures are kept.</strong> A camera frame is measured and then dropped; only
+            the verdict and its time are saved.
+          </li>
+        </ul>
+        <div class="actions">
+          <button class="btn ghost" id="guard-signout" type="button">Sign out of this device</button>
+          <span class="saved" id="guard-status" hidden></span>
+        </div>
+        <p class="muted small" id="guard-device">Reading this device…</p>
       </div>
 
       <div id="panel-developer" role="tabpanel" aria-labelledby="tab-developer" hidden>

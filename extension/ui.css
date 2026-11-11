@@ -376,6 +376,27 @@ body.options {
   color: var(--good);
 }
 
+/* The security checklist on the settings page: plain lines, no decoration, so
+   it reads as a statement of fact rather than a feature. */
+.guard {
+  margin: 14px 0 0;
+  padding: 0 0 0 18px;
+  display: grid;
+  gap: 9px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.guard li::marker {
+  color: var(--good);
+}
+
+.guard strong {
+  color: var(--text);
+  font-weight: 650;
+}
+
 .test-line {
   margin-top: 10px;
   font-size: 12px;

@@ -1,5 +1,12 @@
 // One definition of the stored settings, shared by the service worker (which
 // reads them) and the options page (which writes them).
+//
+// Everything written here is sanitized on the way in: only the keys below are
+// stored, addresses must be HTTPS (or a loopback listener) and figures are whole
+// numbers inside a range. A stored object that somehow carries extra keys — a
+// tampered profile, an edited import — loses them on the next read.
+import { endpoint, hostKey, intValue, isPlainObject, textValue } from "./guard.js";
+
 export const DEFAULTS = {
   feedUrl: "",
   feedAuth: "bearer",
@@ -34,11 +41,83 @@ export const DEFAULTS = {
   },
 };
 
-export function withDefaults(stored) {
-  const settings = Object.assign({}, DEFAULTS, stored || {});
-  settings.enabled = Object.assign({}, DEFAULTS.enabled, (stored && stored.enabled) || {});
-  settings.enabledSites = Array.isArray(settings.enabledSites) ? settings.enabledSites : [];
+// How much of each free-text value is kept. A credential is the longest because
+// a provider token has to arrive intact.
+const TEXT_LIMITS = {
+  feedUser: 200,
+  feedKey: 600,
+  cashbackSiteId: 120,
+  payoutKey: 600,
+  payoutPlatform: 60,
+  payoutPlatformKey: 600,
+  payoutAccount: 120,
+  payoutCustomer: 120,
+  payoutUtid: 120,
+  sponsorKey: 600,
+  priceHistoryKey: 600,
+  ageCheckToken: 600,
+  partnerMembers: 200,
+};
+
+// Addresses this extension contacts. Each is validated in guard.js, so a plain
+// HTTP address on the open internet is dropped rather than sent a credential.
+const ENDPOINTS = ["feedUrl", "cashbackTemplate", "payoutUrl", "sponsorUrl", "ageCheckUrl"];
+
+const MAX_SITES = 500;
+
+function cleanSites(value) {
+  if (!Array.isArray(value)) return [];
+  const seen = new Set();
+  value.forEach((entry) => {
+    const host = hostKey(textValue(entry, 253));
+    if (host) seen.add(host);
+  });
+  return Array.from(seen).slice(0, MAX_SITES);
+}
+
+function cleanEnabled(value) {
+  const input = isPlainObject(value) ? value : {};
+  const enabled = {};
+  Object.keys(DEFAULTS.enabled).forEach((key) => {
+    enabled[key] = typeof input[key] === "boolean" ? input[key] : DEFAULTS.enabled[key];
+  });
+  return enabled;
+}
+
+export function sanitizeSettings(raw) {
+  const input = isPlainObject(raw) ? raw : {};
+  const settings = {};
+
+  Object.keys(DEFAULTS).forEach((key) => {
+    if (key === "enabled") {
+      settings.enabled = cleanEnabled(input.enabled);
+      return;
+    }
+    if (key === "enabledSites") {
+      settings.enabledSites = cleanSites(input.enabledSites);
+      return;
+    }
+    if (key === "payoutMinimum") {
+      const minimum = intValue(input.payoutMinimum, 0, 10000000);
+      settings.payoutMinimum = minimum === null ? DEFAULTS.payoutMinimum : minimum;
+      return;
+    }
+    if (ENDPOINTS.indexOf(key) !== -1) {
+      settings[key] = endpoint(input[key]);
+      return;
+    }
+    if (key === "feedAuth") {
+      settings.feedAuth = input.feedAuth === "basic" ? "basic" : "bearer";
+      return;
+    }
+    settings[key] = textValue(input[key], TEXT_LIMITS[key] || 200);
+  });
+
   return settings;
+}
+
+export function withDefaults(stored) {
+  return sanitizeSettings(stored);
 }
 
 export async function readSettings() {
@@ -46,6 +125,10 @@ export async function readSettings() {
   return withDefaults(stored.settings);
 }
 
+// Returns what was actually stored, so a caller can show the value that took
+// effect rather than the one it typed.
 export async function writeSettings(settings) {
-  await chrome.storage.local.set({ settings: withDefaults(settings) });
+  const clean = sanitizeSettings(settings);
+  await chrome.storage.local.set({ settings: clean });
+  return clean;
 }

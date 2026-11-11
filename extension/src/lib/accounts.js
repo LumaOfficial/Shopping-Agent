@@ -2,9 +2,18 @@
 // profile on this browser, its password is stored only as a salted PBKDF2 hash,
 // and every figure that can turn into money (wallet, savings, ad value) lives
 // under that account's own key prefix. Nothing here is ever sent anywhere.
+import { constantTimeEquals } from "./guard.js";
+
 const ACCOUNTS_KEY = "accounts";
 const SESSION_KEY = "session";
-const ITERATIONS = 120000;
+const GUARD_KEY = "signInGuard";
+// OWASP's floor for PBKDF2-SHA-256, slow enough that trying a stolen hash list
+// costs real time on real hardware. Accounts made before this figure keep the
+// iteration count stored with them, so signing in still works.
+const ITERATIONS = 210000;
+const MAX_TRIES = 5;
+const BASE_LOCK_MS = 30 * 1000;
+const MAX_LOCK_MS = 15 * 60 * 1000;
 const GUEST_PREFIX = "guest:";
 
 export const MIN_PASSWORD = 8;
@@ -191,10 +200,59 @@ export async function signUp(input, now, options) {
   return { ok: true, account: publicProfile(account), remember };
 }
 
+// Failed attempts are counted per address, under a hash of it, so a locked
+// account is recognised without keeping the address that was typed. Five misses
+// pause sign-in briefly, and each further miss doubles the pause.
+async function attemptId(email) {
+  const digest = await crypto.subtle.digest(
+    "SHA-256",
+    new TextEncoder().encode("signin:" + normalizeEmail(email))
+  );
+  return toHex(new Uint8Array(digest)).slice(0, 32);
+}
+
+async function readGuard() {
+  const stored = await chrome.storage.local.get(GUARD_KEY);
+  const map = stored[GUARD_KEY];
+  return map && typeof map === "object" ? map : {};
+}
+
+async function writeGuard(guard) {
+  const keys = Object.keys(guard);
+  if (keys.length > 200) keys.slice(0, keys.length - 200).forEach((key) => delete guard[key]);
+  await chrome.storage.local.set({ [GUARD_KEY]: guard });
+}
+
+function waitFor(record, now) {
+  const until = Number(record && record.until) || 0;
+  return until > now ? until - now : 0;
+}
+
+async function noteFailure(guard, id, refused) {
+  const record = guard[id] || { tries: 0, until: 0 };
+  record.tries = Math.min(Number(record.tries) + 1 || 1, 50);
+  if (record.tries >= MAX_TRIES) {
+    record.until = Date.now() + Math.min(MAX_LOCK_MS, BASE_LOCK_MS * Math.pow(2, record.tries - MAX_TRIES));
+  }
+  guard[id] = record;
+  await writeGuard(guard);
+  return refused;
+}
+
 // `options.remember` defaults to true: signing in on a device you own should not
 // have to be repeated every time the panel opens.
 export async function signIn(email, password, options) {
   const wanted = normalizeEmail(email);
+  const guard = await readGuard();
+  const id = await attemptId(wanted);
+  const wait = waitFor(guard[id], Date.now());
+  if (wait) {
+    return {
+      ok: false,
+      error: "Too many attempts. Try again in " + Math.ceil(wait / 1000) + " seconds.",
+    };
+  }
+
   const accounts = await readAccounts();
   const account = Object.keys(accounts)
     .map((id) => accounts[id])
@@ -202,12 +260,16 @@ export async function signIn(email, password, options) {
   // Same answer for an unknown email and a wrong password, so the panel never
   // says which emails exist.
   const refused = { ok: false, error: "That email and password don't match an account." };
-  if (!account) return refused;
+  if (!account) return noteFailure(guard, id, refused);
 
   const secret = account.password || {};
   const hash = await derive(password, secret.salt, secret.iterations || ITERATIONS);
-  if (hash !== secret.hash) return refused;
+  // Compared in constant time: the hash is never trusted to be compared by a
+  // short-circuit, which is what leaks a hash byte by byte.
+  if (!constantTimeEquals(hash, secret.hash)) return noteFailure(guard, id, refused);
 
+  delete guard[id];
+  await writeGuard(guard);
   const remember = await writeSession(account.id, !(options && options.remember === false));
   return { ok: true, account: publicProfile(account), remember };
 }

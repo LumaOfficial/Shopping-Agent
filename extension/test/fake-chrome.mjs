@@ -108,13 +108,17 @@ export function createFakeChrome(seed) {
     },
   };
 
-  // What the panel does with chrome.runtime.sendMessage, without a browser.
+  // What the panel does with chrome.runtime.sendMessage, without a browser. The
+  // default sender is one of the extension's own pages, which is what a panel
+  // message really carries; a test that wants a different speaker passes its own.
+  const PANEL = { id: chrome.runtime.id, url: chrome.runtime.getURL("sidepanel.html") };
+
   function send(message, sender) {
     const listener = listeners.onMessage[0];
     if (!listener) return Promise.reject(new Error("the worker registered no message listener"));
     return new Promise((resolve, reject) => {
       const timer = setTimeout(() => reject(new Error("the worker never answered " + message.type)), 5000);
-      listener(message, sender || {}, (reply) => {
+      listener(message, sender || PANEL, (reply) => {
         clearTimeout(timer);
         resolve(reply);
       });
