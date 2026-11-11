@@ -167,6 +167,42 @@
         <div class="status" id="wallet-status" role="status" aria-live="polite" hidden></div>
       </section>
 
+      <section class="card c4a age" id="age-block" hidden>
+        <div class="lbl">Face age check</div>
+        <div class="age-top">
+          <strong id="age-state">Not verified yet</strong>
+          <span class="chip pending" id="age-boost">3% boost locked</span>
+        </div>
+        <p class="muted tiny" id="age-note"></p>
+        <p class="age-meta" id="age-meta" hidden></p>
+
+        <div id="age-facts-wrap">
+          <ul class="age-facts" id="age-facts"></ul>
+          <label class="age-agree">
+            <input id="age-agree" type="checkbox" />
+            <span>I agree to this one-frame face scan</span>
+          </label>
+        </div>
+
+        <button class="btn w" id="age-start" type="button" disabled>Verify with a face scan</button>
+
+        <div class="age-cam" id="age-cam" hidden>
+          <video id="age-video" playsinline muted autoplay></video>
+          <div class="age-cam-row">
+            <button class="mini" id="age-shot" type="button">Take the scan</button>
+            <button class="mini" id="age-cancel" type="button">Cancel</button>
+          </div>
+        </div>
+
+        <input id="age-photo" type="file" accept="image/*" capture="user" hidden />
+        <div class="age-actions">
+          <button class="mini" id="age-photo-btn" type="button">Use a photo instead</button>
+          <button class="mini" id="age-settings" type="button" hidden>Connect an age check</button>
+        </div>
+
+        <div class="status" id="age-status" role="status" aria-live="polite" hidden></div>
+      </section>
+
       <section class="card c4d ads" id="ads-block" hidden>
         <div class="lbl" style="margin-bottom: 10px">Ad value</div>
         <div class="bal" id="ads-value">$0.00</div>

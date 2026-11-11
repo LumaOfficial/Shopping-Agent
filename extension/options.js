@@ -55,6 +55,8 @@ function fill(settings) {
   byId("sponsor-key").value = settings.sponsorKey;
   byId("payout-minimum").value = settings.payoutMinimum ? settings.payoutMinimum / 100 : "";
   byId("price-key").value = settings.priceHistoryKey;
+  byId("age-url").value = settings.ageCheckUrl;
+  byId("age-token").value = settings.ageCheckToken;
   byId("members").value = settings.partnerMembers;
   byId("toggle-coupons").checked = settings.enabled.coupons;
   byId("toggle-cashback").checked = settings.enabled.cashback;
@@ -92,6 +94,8 @@ function collect() {
     sponsorUrl: byId("sponsor-url").value.trim(),
     sponsorKey: byId("sponsor-key").value.trim(),
     priceHistoryKey: byId("price-key").value.trim(),
+    ageCheckUrl: byId("age-url").value.trim(),
+    ageCheckToken: byId("age-token").value.trim(),
     partnerMembers: byId("members").value.trim(),
     enabled: {
       coupons: byId("toggle-coupons").checked,
@@ -133,6 +137,15 @@ function payoutEndpointInsecure(settings) {
   return Boolean(key) && !/^https:\/\//i.test(url);
 }
 
+// A face frame leaves the browser for this address, so it travels encrypted
+// unless the relay is on this machine.
+function ageEndpointInsecure(settings) {
+  const url = String(settings.ageCheckUrl || "").trim();
+  if (!url) return false;
+  if (/^https:\/\//i.test(url)) return false;
+  return !/^http:\/\/(localhost|127\.0\.0\.1|\[::1\])(:\d+)?(\/|$)/i.test(url);
+}
+
 async function save() {
   const stored = await chrome.storage.local.get("settings");
   const settings = withDefaults(Object.assign({}, stored.settings, collect()));
@@ -142,9 +155,16 @@ async function save() {
       message: "Use an https:// payout proxy address — platform credentials are only sent encrypted.",
     };
   }
+  if (ageEndpointInsecure(settings)) {
+    return {
+      ok: false,
+      message: "Use an https:// age check relay address — the relay token is only sent encrypted.",
+    };
+  }
   const granted = await ensureHost(settings.feedUrl);
   const payoutGranted = await ensureHost(settings.payoutUrl);
   const sponsorGranted = await ensureHost(settings.sponsorUrl);
+  await ensureHost(settings.ageCheckUrl);
   await chrome.storage.local.set({ settings });
   if (!(granted && payoutGranted && sponsorGranted)) {
     return { ok: false, message: "Saved, but access to that source host was denied." };

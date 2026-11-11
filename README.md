@@ -261,6 +261,48 @@ recovered from a hash, so the account's balance has to be recovered by signing
 up again. Cross-device accounts would need a backend with an email
 verification flow; nothing in the extension currently talks to one.
 
+### Face age check: 18+ and the 3% boost
+
+Cashing out asks for more than a typed date of birth. The panel can take one
+still frame of your face, have a face provider estimate the age in it, and unlock
+cash outs plus a **3% boost on new cashback earnings** only when that estimate
+comes back over 18.
+
+The estimate is never trusted from the extension side. A small relay holds the
+provider's credentials, and the extension only ever receives a verdict:
+
+```
+panel ──one still frame──▶ relay (holds provider key) ──▶ face provider
+      ◀── verdict only ───                                (frame discarded)
+```
+
+Run it yourself — it has no dependencies beyond Node 18:
+
+```bash
+AGE_PROVIDER=huggingface HF_TOKEN=hf_… node server/age-verify.mjs
+# or
+AGE_PROVIDER=azure-face AZURE_FACE_KEY=… AZURE_FACE_ENDPOINT=https://westus.api.cognitive.microsoft.com node server/age-verify.mjs
+```
+
+Both are free to start: Hugging Face's inference API works from a free account
+token (`HF_MODEL` defaults to an age classifier), and Azure AI Face has a free F0
+tier (its limited-access form has to be approved first). Then paste the relay's
+address under **Settings → Developer → Face age check**; `http://localhost:8787`
+is accepted for a relay on your own machine, anything else has to be `https://`.
+
+| Concern | How it is handled |
+| --- | --- |
+| Face images | Taken in the panel as a single 512 px frame, sent to the relay, passed to the provider, then dropped. Nothing is written to disk or logged. |
+| What is stored | `acct:<id>:ageCheck` — the verdict, the provider's name, its reference and the timestamp. No image, no face template. |
+| The 18+ margin | The estimate has to reach 21 before it counts as proof, so a frame one year either way does not let someone through. Between 16 and 21 comes back `unclear` and can be tried again. |
+| The 3% boost | Added when a new cashback earning is recorded for a verified account, and kept as its own figure on that entry. Balances banked before verification do not change, and an entry is only ever boosted once. |
+| No provider configured | The panel says the check is not connected and cash outs stay locked. Nothing pretends verification happened. |
+| Trust | The verdict arrives from the relay, not from the page, and the payout and boost are applied in the service worker. As with the rest of this extension the wallet itself lives on the device, so a person who edits their own storage owns the consequences. |
+
+An automated age estimate is not a legal identity check. It is a reasonable gate
+for a cashback balance; if you need a document check, drop in a provider that
+returns a verified attribute and map it in `server/age-verify.mjs`.
+
 ### Privacy: card data
 
 Payment fields are detected from field *attributes* only (`autocomplete`, `name`,
@@ -281,6 +323,8 @@ between the shopper, the browser and the merchant.
 | `rules/ads.json` | Declarative ruleset that blocks ad and tracker requests |
 | `src/lib/ad-value.js` | What a blocked ad is worth, and the running ad record |
 | `src/lib/accounts.js` | Signup validation, salted password hashing, the session, and the per-account key prefix every money figure sits under |
+| `src/lib/age-verify.js` | Face age check: consent copy, the relay call, the verdict shape, the 18+ margin and the boost figure |
+| `src/lib/age-panel.js` | The age check card: disclosure, one-frame camera or photo capture, and what came back |
 | `src/lib/site-add.js` | Add-or-remove decision from that evidence, plus the store's display name |
 | `src/lib/site-request.js` | Normalizes the tab's host into the site key |
 | `src/lib/stores.js` | Merchant catalog and host matching |

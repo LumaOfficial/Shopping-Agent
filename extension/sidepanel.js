@@ -10,6 +10,8 @@ import { startLogoShow } from "./src/lib/logo-show.js";
 import { startPanelExtras } from "./src/lib/panel-extras.js";
 import { siteHost } from "./src/lib/site-request.js";
 import { currentAccount, hasAccounts, signUp, signIn, signOut } from "./src/lib/accounts.js";
+import { startAgeCheck } from "./src/lib/age-panel.js";
+import { MIN_AGE } from "./src/lib/age-verify.js";
 
 const byId = (id) => document.getElementById(id);
 
@@ -596,8 +598,12 @@ function renderWallet(wallet) {
   byId("wallet-pending").textContent = money(totals.pending, currency);
   byId("wallet-paid").textContent = money(totals.paid, currency);
 
-  byId("wallet-mode").textContent =
-    wallet.mode === "service"
+  // Cash outs are gated on the face age check; the panel says where to go
+  // instead of leaving a dead button.
+  const ageLocked = wallet.ageVerified === false;
+  byId("wallet-mode").textContent = ageLocked
+    ? "Cash outs unlock once your face age check clears " + MIN_AGE + "."
+    : wallet.mode === "service"
       ? "Cards are issued by " + (wallet.payoutHost || "your payout service") + "."
       : "No reward service connected — cash outs are issued as preview cards here.";
 
@@ -608,7 +614,9 @@ function renderWallet(wallet) {
   // not a reward service is connected.
   button.disabled = !ready;
   button.textContent = ready
-    ? "Cash out " + money(totals.available, currency) + " to a virtual Visa"
+    ? ageLocked
+      ? "Verify your age to cash out " + money(totals.available, currency)
+      : "Cash out " + money(totals.available, currency) + " to a virtual Visa"
     : minimum > 0
       ? "Cash out from " + money(minimum, currency)
       : "Nothing to cash out yet";
@@ -634,6 +642,13 @@ function renderWallet(wallet) {
     state.className = "chip " + entry.status;
     state.textContent = entry.status;
     row.append(name, amount, state);
+    // The boost is its own figure, so the extra is never mistaken for the rate.
+    if (entry.boost) {
+      const boosted = document.createElement("span");
+      boosted.className = "chip verified";
+      boosted.textContent = "+" + money(entry.boost, entry.currency) + " age boost";
+      row.appendChild(boosted);
+    }
     list.appendChild(row);
   });
   list.hidden = !(wallet.entries || []).length;
@@ -1127,6 +1142,8 @@ async function applyAccount(account) {
   byId("auth-block").hidden = Boolean(account);
   const chip = byId("account-chip");
   chip.hidden = !account;
+  // Verification belongs to the account, so the card follows the session.
+  ageCheck.show(Boolean(account));
   if (account) {
     chip.textContent = firstName(account.fullName);
     chip.title = "Signed in as " + account.email + " · Click to sign out";
@@ -1319,6 +1336,12 @@ byId("cash-out").addEventListener("click", async () => {
     status.textContent = "Cashback has to reach the payout minimum before it can be cashed out.";
     return;
   }
+  if (reply && reply.reason === "age-unverified") {
+    status.className = "status wait";
+    status.textContent = "Cash out needs an " + MIN_AGE + "+ face check first — the card below does it.";
+    byId("age-block").scrollIntoView({ behavior: "smooth", block: "center" });
+    return;
+  }
   status.className = "status bad";
   status.textContent = (reply && reply.error) || "The payout did not go through.";
 });
@@ -1487,4 +1510,13 @@ byId("store-list").addEventListener("click", (event) => {
 });
 
 applyBrowserCopy();
+
+// The face age check card owns its own consent and capture; the panel only tells
+// it who is signed in, and refreshes the wallet once a verdict lands.
+const ageCheck = startAgeCheck({
+  onChange: () => {
+    loadWallet();
+  },
+});
+
 boot();

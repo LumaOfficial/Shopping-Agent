@@ -277,6 +277,33 @@
           <p class="hint">Sent only to the endpoint above, and never exported.</p>
         </div>
 
+        <h2>Face age check</h2>
+        <p class="muted">
+          Proving an account is 18+ needs a face estimate, and that needs a provider account — so the
+          credentials live on a small relay you run, never in this extension. Point the panel at that
+          relay and it gets back only a verdict. Blank means the panel says the check is not connected
+          and cash outs stay locked.
+        </p>
+        <div class="field">
+          <label for="age-url">Age check relay endpoint</label>
+          <input id="age-url" type="url" placeholder="https://age.example.com/verify" />
+          <p class="hint">
+            <code>POST</code> with <code>{"image": "data:image/jpeg;base64,…"}</code> answers
+            <code>{"verdict": "over" | "under" | "unclear", "estimate", "provider", "reference"}</code>.
+            <code>server/age-verify.mjs</code> in this repository is that relay — Hugging Face (free
+            tier) and Azure AI Face (F0 free tier) are both wired up. Only the verdict, the provider
+            name, its reference and the time are stored.
+          </p>
+        </div>
+        <div class="field">
+          <label for="age-token">Relay token</label>
+          <input id="age-token" type="password" autocomplete="off" placeholder="Bearer ******" />
+          <p class="hint">
+            Optional. Authenticates the extension to your relay only; the face provider's credentials
+            stay on the relay. Use <code>https://</code> unless the relay is on your own machine.
+          </p>
+        </div>
+
         <h2>Partner wording</h2>
         <div class="field">
           <label for="members">Verified member count</label>

@@ -18,6 +18,10 @@ export const DEFAULTS = {
   sponsorUrl: "",
   sponsorKey: "",
   priceHistoryKey: "",
+  // The relay that holds a face provider's credentials (server/age-verify.mjs).
+  // The extension only ever stores its address and an optional bearer token.
+  ageCheckUrl: "",
+  ageCheckToken: "",
   partnerMembers: "",
   enabledSites: [],
   enabled: {

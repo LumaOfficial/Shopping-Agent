@@ -28,6 +28,15 @@ import { decideSite } from "../lib/site-add.js";
 import { mergeCodes, cleanCode } from "../lib/codes.js";
 import { normalizeRecord, addAds, summaryOf } from "../lib/ad-value.js";
 import { scopedKey, scopePrefix } from "../lib/accounts.js";
+import {
+  BOOST_RATE,
+  canCashOut,
+  checkAge,
+  isVerified,
+  normalizeStatus,
+  relayConfigured,
+  relayHost,
+} from "../lib/age-verify.js";
 
 const FEED_TTL_MS = 10 * 60 * 1000;
 const MAX_VERIFIED = 40;
@@ -364,6 +373,10 @@ async function activateCashback(url, total, currency) {
   // It stays pending until the return window has passed.
   const wallet = await readWallet();
   const amount = estimate(total, offers.cashback && offers.cashback.rate);
+  // The boost rides on this earning from the moment it is recorded: a verified
+  // account earns it, an unverified one does not, and nothing already banked
+  // changes.
+  const boost = isVerified(await readAge()) ? BOOST_RATE : 0;
   const recentlyTracked = wallet.entries.some(
     (entry) => entry.storeId === store.id && Date.now() - entry.at < 10 * 60 * 1000
   );
@@ -376,12 +389,41 @@ async function activateCashback(url, total, currency) {
         total,
         rate: offers.cashback.rate,
         currency: normalizeCurrency(currency),
+        boost,
       })
     );
     if (tracked) await writeWallet(wallet);
   }
 
   return { ok: true, url: link, tracked, wallet: await walletSummary() };
+}
+
+// ---- age check ----------------------------------------------------------
+// The verdict is the relay's, stored with the account it was reached for. Only
+// the outcome, the provider, its reference and the time are kept.
+async function readAge() {
+  return normalizeStatus(await readScoped("ageCheck"));
+}
+
+async function ageStatus() {
+  const settings = await readSettings();
+  return Object.assign({}, await readAge(), {
+    configured: relayConfigured(settings),
+    relayHost: relayHost(settings),
+    minAge: 18,
+    boost: BOOST_RATE,
+  });
+}
+
+async function verifyAge(message) {
+  const image = String((message && message.image) || "");
+  if (!image) return { ok: false, error: "No frame was captured, so nothing was checked." };
+  const settings = await readSettings();
+  const outcome = await checkAge(settings, image);
+  // The frame was handed to the relay and is not kept anywhere.
+  if (!outcome.ok) return { ok: false, error: outcome.error, unavailable: Boolean(outcome.unavailable) };
+  await writeScoped("ageCheck", outcome.status);
+  return Object.assign({ ok: true }, outcome.status);
 }
 
 // ---- cashback wallet ----------------------------------------------------
@@ -397,6 +439,7 @@ async function walletSummary() {
   const settings = await readSettings();
   const wallet = await readWallet();
   if (settle(wallet)) await writeWallet(wallet);
+  const age = await readAge();
 
   const currency = walletCurrency(wallet);
   return {
@@ -405,6 +448,10 @@ async function walletSummary() {
     minimum: Number(settings.payoutMinimum) || 0,
     mode: payoutConfigured(settings) ? "service" : "unconfigured",
     payoutHost: payoutHost(settings),
+    // Cash outs are gated on the age check, so the panel is told here rather
+    // than deciding for itself.
+    ageVerified: isVerified(age),
+    boost: BOOST_RATE,
     entries: wallet.entries.slice(0, 6).map((entry) => ({
       id: entry.id,
       storeName: entry.storeName,
@@ -412,6 +459,8 @@ async function walletSummary() {
       currency: entry.currency,
       status: entry.status,
       at: entry.at,
+      base: entry.base || null,
+      boost: entry.boost || 0,
     })),
     payouts: wallet.payouts.slice(0, 3),
   };
@@ -421,6 +470,11 @@ async function cashOut(message) {
   const settings = await readSettings();
   const wallet = await readWallet();
   settle(wallet);
+
+  // A face check that came back over 18 is the only thing that unlocks a payout.
+  if (!canCashOut(await readAge())) {
+    return { ok: false, reason: "age-unverified", wallet: await walletSummary() };
+  }
 
   const currency = walletCurrency(wallet);
   const totals = balances(wallet, currency);
@@ -712,6 +766,10 @@ async function handle(message, sender) {
       return walletSummary();
     case "cashback:cashout":
       return cashOut(message);
+    case "age:status":
+      return ageStatus();
+    case "age:verify":
+      return verifyAge(message);
     case "payout:detect":
       return detectPayoutService(await readSettings());
     case "sponsor:offers":

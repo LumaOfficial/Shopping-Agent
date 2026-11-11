@@ -87,11 +87,14 @@ export function settle(wallet, now) {
 
 // Records what the shopper's cart was worth at the rate the store published.
 // Anything without a known total or rate is not recorded — the wallet never
-// invents a figure.
+// invents a figure. An age verification boost, when the account holds one, is
+// added to this earning only, and is kept as its own figure so the panel can
+// say where the extra came from.
 export function addEarning(wallet, earning, now) {
   const at = now || Date.now();
-  const amount = estimate(earning.total, earning.rate);
-  if (!amount || !earning.storeId) return null;
+  const base = estimate(earning.total, earning.rate);
+  if (!base || !earning.storeId) return null;
+  const boost = Math.max(0, Math.round(base * (Number(earning.boost) || 0)));
 
   const entry = {
     id: "e_" + at.toString(36) + Math.random().toString(36).slice(2, 6),
@@ -99,7 +102,9 @@ export function addEarning(wallet, earning, now) {
     storeName: earning.storeName || earning.storeId,
     rate: parseRate(earning.rate),
     total: earning.total,
-    amount,
+    base,
+    boost,
+    amount: base + boost,
     currency: normalizeCurrency(earning.currency),
     status: "pending",
     at,

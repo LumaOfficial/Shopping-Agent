@@ -717,6 +717,107 @@ body.sidepanel .c6 { animation-delay: 0.7s; }
 body.sidepanel .c7 { animation-delay: 0.8s; }
 body.sidepanel .c8 { animation-delay: 0.9s; }
 body.sidepanel .c4b { animation-delay: 0.55s; }
+body.sidepanel .c4a { animation-delay: 0.5s; }
+
+/* ---------- Face age check ---------- */
+
+body.sidepanel .age-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+body.sidepanel .age-top strong {
+  font-weight: 400;
+  font-size: 24px;
+  letter-spacing: -0.02em;
+  color: #2a2440;
+}
+
+body.sidepanel .age-meta {
+  margin: 8px 0 0;
+  font-size: 11px;
+  color: #8b82ad;
+}
+
+body.sidepanel .age-facts {
+  list-style: none;
+  margin: 16px 0 14px;
+  padding: 14px 16px;
+  border-radius: 20px;
+  background: #faf7ff;
+  border: 1px solid #ece4ff;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+body.sidepanel .age-facts li {
+  position: relative;
+  padding-left: 16px;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: #6d6590;
+}
+
+body.sidepanel .age-facts li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 6px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #c9bdf5;
+}
+
+body.sidepanel .age-agree {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 14px;
+  border-radius: 16px;
+  border: 1px solid #ece4ff;
+  background: #fff;
+  font-size: 12.5px;
+  color: #4a4463;
+  cursor: pointer;
+}
+
+body.sidepanel .age-agree input {
+  width: 16px;
+  height: 16px;
+  accent-color: #7c6bf5;
+}
+
+body.sidepanel .age-cam {
+  margin-top: 16px;
+}
+
+body.sidepanel .age-cam video {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  max-height: 260px;
+  object-fit: cover;
+  border-radius: 22px;
+  background: #14102a;
+  transform: scaleX(-1);
+}
+
+body.sidepanel .age-cam-row,
+body.sidepanel .age-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+
+body.sidepanel .age-actions:empty {
+  display: none;
+}
+
 
 body.sidepanel .card h3 {
   margin: 0 0 12px;
