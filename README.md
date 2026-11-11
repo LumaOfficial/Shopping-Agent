@@ -270,12 +270,18 @@ frame of your face, checks it, and unlocks cash outs plus a **3% boost on new
 cashback earnings** only once a verdict is stored against the account.
 
 **The check needs no key and nothing set up.** With no relay configured it runs
-on this device (`src/lib/age-local.js`): one frame is measured for a face in
-ordinary light, a second frame a moment later separates a person from a photo of
-one, the frames are dropped, and only the verdict is stored. The numbers are
-judged in the service worker, so the panel never marks an account verified on its
-own. It is a liveness check against the date of birth the account was opened
-with, not a third-party age estimate, and the card says exactly that.
+on this device (`src/lib/age-local.js`). The live camera preview is analysed a few
+times a second, so the card says whether a face is actually in the frame —
+*looking for your face*, *face found* — instead of guessing when the button was
+pressed. A scan then reads the biggest face-shaped patch of skin in the frame
+(its size, outline, fill and facial detail), and a second frame a moment later
+separates a person from a photo of one; both frames are dropped, and only the
+verdict is stored. Where a camera cannot be opened at all — no device, or the
+browser refuses it — the scan continues with the device's own camera app or a
+photo, so the card never dead-ends on an error. The numbers are judged in the
+service worker, so the panel never marks an account verified on its own. It is a
+liveness check against the date of birth the account was opened with, not a
+third-party age estimate, and the card says exactly that.
 
 A provider-backed estimate is optional and only worth adding if you want one. A
 small relay holds the provider's credentials, and the extension only ever

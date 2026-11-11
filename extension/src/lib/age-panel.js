@@ -10,7 +10,7 @@ import {
   relayConfigured,
   statusCopy,
 } from "./age-verify.js";
-import { motion, summarize } from "./age-local.js";
+import { MIN_ASPECT, MIN_FACE_SHARE, MIN_FILL, MAX_ASPECT, motion, summarize } from "./age-local.js";
 
 // One square frame, small enough for a free provider tier and big enough for a
 // face to be recognisable in it.
@@ -49,6 +49,7 @@ export function startAgeCheck(options) {
   let settings = null;
   let status = normalizeStatus(null);
   let stream = null;
+  let watcher = null;
   let busy = false;
 
   function setStatus(message, kind) {
@@ -107,7 +108,36 @@ export function startAgeCheck(options) {
     start.textContent = status.state === "none" ? "Check my face" : "Try the scan again";
   }
 
+  function stopWatch() {
+    if (watcher) {
+      clearInterval(watcher);
+      watcher = null;
+    }
+  }
+
+  // While the preview is live, the frame is measured a few times a second so the
+  // card can say whether a face is actually in it — the scan is not a guess taken
+  // at whatever moment the button was pressed.
+  function watchFace() {
+    stopWatch();
+    watcher = setInterval(() => {
+      if (!stream || !video.videoWidth) return;
+      const live = measure(video, true, 96);
+      if (!live) return;
+      const shaped =
+        live.aspect >= MIN_ASPECT && live.aspect <= MAX_ASPECT && live.fill >= MIN_FILL;
+      if (live.found && live.share >= MIN_FACE_SHARE && shaped) {
+        setStatus("Face found — hold still, then take the scan.", "ok");
+      } else if (live.found && live.share >= MIN_FACE_SHARE) {
+        setStatus("Straighten up and fill the frame with your face, then take the scan.", "wait");
+      } else {
+        setStatus("Looking for your face — face the camera in even light.", "wait");
+      }
+    }, 450);
+  }
+
   function stop() {
+    stopWatch();
     if (stream) {
       stream.getTracks().forEach((track) => track.stop());
       stream = null;
@@ -151,26 +181,45 @@ export function startAgeCheck(options) {
 
   // A small copy of the frame, measured in place: skin share, brightness and a
   // luma buffer the next frame is compared against for movement.
-  function measure(source, sized) {
+  function measure(source, sized, small) {
+    const size = small || MEASURE_SIDE;
     const canvas = document.createElement("canvas");
-    canvas.width = MEASURE_SIDE;
-    canvas.height = MEASURE_SIDE;
+    canvas.width = size;
+    canvas.height = size;
     const context = canvas.getContext("2d", { willReadFrequently: true });
     const box = sized ? { width: source.videoWidth || 0, height: source.videoHeight || 0 } : { width: source.width || 0, height: source.height || 0 };
     if (!box.width || !box.height) return null;
-    const side = Math.min(box.width, box.height);
+    const edge = Math.min(box.width, box.height);
     context.drawImage(
       source,
-      (box.width - side) / 2,
-      (box.height - side) / 2,
-      side,
-      side,
+      (box.width - edge) / 2,
+      (box.height - edge) / 2,
+      edge,
+      edge,
       0,
       0,
-      MEASURE_SIDE,
-      MEASURE_SIDE
+      size,
+      size
     );
-    return summarize(context.getImageData(0, 0, MEASURE_SIDE, MEASURE_SIDE).data, MEASURE_SIDE, MEASURE_SIDE);
+    return summarize(context.getImageData(0, 0, size, size).data, size, size);
+  }
+
+  // What the worker judges. One frame describes the face; the pair says whether
+  // it is a person in front of the camera or a picture of one moved across it.
+  function localStats(first, second) {
+    const best = second && second.share > first.share ? second : first;
+    const box = best.box;
+    return {
+      faceFound: best.found,
+      faceShare: best.share,
+      fill: best.fill,
+      aspect: best.aspect,
+      contrast: best.contrast,
+      brightness: second ? (first.brightness + second.brightness) / 2 : best.brightness,
+      motion: second && box ? motion(first.luma, second.luma, box) : null,
+      // The same figure under the older name, so a host that still reads it works.
+      skinShare: best.share,
+    };
   }
 
   function scaledFromImage(image) {
@@ -232,15 +281,25 @@ export function startAgeCheck(options) {
       await video.play().catch(() => {});
       cam.hidden = false;
       byId("age-shot").focus();
+      setStatus("Looking for your face — face the camera in even light.", "wait");
+      watchFace();
     } catch (error) {
       stop();
-      const denied = error && (error.name === "NotAllowedError" || error.name === "SecurityError");
+      // No camera here, or the browser will not hand one over: the scan carries
+      // on with the device's own camera app or a photo, so it is never a dead end.
+      const name = (error && error.name) || "";
+      const missing =
+        !navigator.mediaDevices ||
+        name === "NotFoundError" ||
+        name === "DevicesNotFoundError" ||
+        name === "OverconstrainedError";
       setStatus(
-        denied
-          ? "Camera access was blocked. Allow it for this panel, or use a photo instead."
-          : "No camera is available here — use a photo instead.",
+        missing
+          ? "This browser has no camera to open, so the scan continues with your camera app or a photo you pick."
+          : "The camera could not be opened here, so the scan continues with your camera app or a photo you pick.",
         "wait"
       );
+      photo.click();
     }
   }
 
@@ -256,9 +315,11 @@ export function startAgeCheck(options) {
       return;
     }
 
+    stopWatch();
     const first = measure(video, true);
     if (!first) {
       setStatus("The camera was not ready yet. Give it a moment and take the scan again.", "wait");
+      watchFace();
       return;
     }
     setStatus("Hold still for a moment…", "wait");
@@ -270,11 +331,7 @@ export function startAgeCheck(options) {
         setStatus("The camera closed before the scan finished. Try again.", "wait");
         return;
       }
-      submitLocal({
-        skinShare: Math.max(first.skinShare, second.skinShare),
-        brightness: (first.brightness + second.brightness) / 2,
-        motion: motion(first.luma, second.luma),
-      });
+      submitLocal(localStats(first, second));
     }, GAP_MS);
   }
 
@@ -297,7 +354,7 @@ export function startAgeCheck(options) {
             return;
           }
           // A chosen picture cannot show movement, so only the face itself counts.
-          submitLocal({ skinShare: stats.skinShare, brightness: stats.brightness, motion: null });
+          submitLocal(localStats(stats, null));
           return;
         }
         const frame = scaledFromImage(image);
