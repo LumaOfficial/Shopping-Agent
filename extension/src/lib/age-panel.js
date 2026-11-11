@@ -10,7 +10,8 @@ import {
   relayConfigured,
   statusCopy,
 } from "./age-verify.js";
-import { MIN_ASPECT, MIN_FACE_SHARE, MIN_FILL, MAX_ASPECT, motion, summarize } from "./age-local.js";
+import { motion, summarize } from "./age-local.js";
+import { HOLD, STEPS, compareModel, judgePose, poseFrom } from "./face-rotate.js";
 
 // One square frame, small enough for a free provider tier and big enough for a
 // face to be recognisable in it.
@@ -20,7 +21,8 @@ const QUALITY = 0.86;
 // The on-device check compares two frames this far apart, which is long enough
 // for a person to shift and short enough to feel instant.
 const MEASURE_SIDE = 256;
-const GAP_MS = 420;
+// How often the frame is measured while the guided rotation is running.
+const GUIDE_MS = 200;
 
 const byId = (id) => document.getElementById(id);
 
@@ -49,8 +51,21 @@ export function startAgeCheck(options) {
   let settings = null;
   let status = normalizeStatus(null);
   let stream = null;
-  let watcher = null;
   let busy = false;
+
+  // One guided scan: the angle being asked for, the views already kept, and the
+  // straight-on one they are all measured against.
+  const guide = {
+    timer: null,
+    index: 0,
+    hits: 0,
+    baseline: null,
+    views: [],
+    lastLuma: null,
+    moved: 0,
+    samples: 0,
+    image: null,
+  };
 
   function setStatus(message, kind) {
     const line = byId("age-status");
@@ -108,36 +123,159 @@ export function startAgeCheck(options) {
     start.textContent = status.state === "none" ? "Check my face" : "Try the scan again";
   }
 
-  function stopWatch() {
-    if (watcher) {
-      clearInterval(watcher);
-      watcher = null;
+  // ---- guided rotation ------------------------------------------------
+  // The scan is a few angles in turn, not one press of a button: the straight-on
+  // view, then each turn. Each angle is measured as the preview runs and kept
+  // only once the face has actually reached it.
+
+  function setHint(message) {
+    const tip = byId("age-guide-tip");
+    if (tip) tip.textContent = message;
+  }
+
+  function paintGuide() {
+    const step = STEPS[Math.min(guide.index, STEPS.length - 1)];
+    const label = byId("age-guide-label");
+    const ring = byId("age-ring");
+    const head = byId("age-head");
+    const steps = byId("age-steps");
+    if (label) label.textContent = step.label;
+    setHint(step.tip);
+    if (head) {
+      head.style.setProperty("--ry", (step.turn.x || 0) + "deg");
+      head.style.setProperty("--rx", (step.turn.y || 0) + "deg");
+    }
+    if (ring) ring.style.setProperty("--turn", String(Math.round((guide.index / STEPS.length) * 100)));
+    if (steps) {
+      while (steps.firstChild) steps.removeChild(steps.firstChild);
+      STEPS.forEach((_step, at) => {
+        const dot = document.createElement("i");
+        if (at < guide.index) dot.className = "on";
+        steps.appendChild(dot);
+      });
     }
   }
 
-  // While the preview is live, the frame is measured a few times a second so the
-  // card can say whether a face is actually in it — the scan is not a guess taken
-  // at whatever moment the button was pressed.
-  function watchFace() {
-    stopWatch();
-    watcher = setInterval(() => {
-      if (!stream || !video.videoWidth) return;
-      const live = measure(video, true, 96);
-      if (!live) return;
-      const shaped =
-        live.aspect >= MIN_ASPECT && live.aspect <= MAX_ASPECT && live.fill >= MIN_FILL;
-      if (live.found && live.share >= MIN_FACE_SHARE && shaped) {
-        setStatus("Face found — hold still, then take the scan.", "ok");
-      } else if (live.found && live.share >= MIN_FACE_SHARE) {
-        setStatus("Straighten up and fill the frame with your face, then take the scan.", "wait");
-      } else {
-        setStatus("Looking for your face — face the camera in even light.", "wait");
+  function armGuide(text) {
+    const shot = byId("age-shot");
+    shot.disabled = false;
+    shot.textContent = text || "Start over";
+    syncStartButton();
+  }
+
+  function stopGuide() {
+    if (guide.timer) {
+      clearInterval(guide.timer);
+      guide.timer = null;
+    }
+  }
+
+  function restartGuide() {
+    stopGuide();
+    guide.index = 0;
+    guide.hits = 0;
+    guide.baseline = null;
+    guide.views = [];
+    guide.lastLuma = null;
+    guide.moved = 0;
+    guide.samples = 0;
+    guide.image = null;
+    setStatus("");
+    paintGuide();
+  }
+
+  function startGuide() {
+    if (!stream || !video.videoWidth) return;
+    restartGuide();
+    const shot = byId("age-shot");
+    shot.disabled = true;
+    shot.textContent = "Scanning…";
+    guide.timer = setInterval(tickGuide, GUIDE_MS);
+    tickGuide();
+  }
+
+  function tickGuide() {
+    if (!stream || !video.videoWidth) return;
+    const stats = measure(video, true, MEASURE_SIDE);
+    const pose = poseFrom(stats, MEASURE_SIDE);
+    const verdict = judgePose(STEPS[guide.index], pose, guide.baseline);
+    if (!verdict.ok) {
+      guide.hits = 0;
+      setHint(verdict.hint);
+      return;
+    }
+    guide.hits += 1;
+    if (guide.hits < HOLD) {
+      setHint("Hold it there…");
+      return;
+    }
+    keepView(STEPS[guide.index], pose, stats);
+  }
+
+  // One angle reached: keep the measurement (never the picture) and move on.
+  function keepView(step, pose, stats) {
+    guide.hits = 0;
+    if (step.axis === "center") {
+      guide.baseline = pose;
+      // The relay path needs one frame; the straight-on view is the one it gets.
+      guide.image = relayConfigured(settings) ? squareFromVideo() : null;
+    }
+    if (guide.lastLuma) {
+      const moved = motion(guide.lastLuma, stats.luma, stats.box);
+      if (moved !== null) {
+        guide.moved += moved;
+        guide.samples += 1;
       }
-    }, 450);
+    }
+    guide.lastLuma = stats.luma;
+    guide.views.push({ id: step.id, pose, stats });
+    guide.index += 1;
+    paintGuide();
+    if (guide.index >= STEPS.length) finishGuide();
+  }
+
+  // Every angle is in: the views are compared as one temporary face model before
+  // anything is judged, and a scan that does not hold together is not submitted.
+  function finishGuide() {
+    stopGuide();
+    const label = byId("age-guide-label");
+    if (label) label.textContent = "Double-checking your face model…";
+    setHint("Comparing the angles you just turned through");
+    const verdict = compareModel(guide.views);
+    const line = byId("age-model");
+    if (line) {
+      line.hidden = false;
+      line.className = "age-model " + (verdict.ok ? "ok" : "bad");
+      line.textContent = verdict.ok
+        ? "Face model held up across all " + guide.views.length + " angles."
+        : "Face model did not match — " + verdict.message + ".";
+    }
+    if (!verdict.ok) {
+      // Nothing is submitted: the camera stays open and the angles start again.
+      restartGuide();
+      setStatus("That scan did not hold together (" + verdict.message + "). Keep your face in the ring and scan again.", "wait");
+      setHint("Straighten up, then start the scan again.");
+      armGuide("Scan again");
+      return;
+    }
+
+    const centre = guide.views[0].stats;
+    const averageMoved = guide.samples ? guide.moved / guide.samples : null;
+    const image = guide.image;
+    stop();
+    if (relayConfigured(settings)) {
+      if (!image) {
+        setStatus("The camera was not ready when the scan started. Try again.", "wait");
+        return;
+      }
+      submit(image);
+      return;
+    }
+    submitLocal(statsFromView(centre, averageMoved));
   }
 
   function stop() {
-    stopWatch();
+    stopGuide();
     if (stream) {
       stream.getTracks().forEach((track) => track.stop());
       stream = null;
@@ -204,8 +342,24 @@ export function startAgeCheck(options) {
     return summarize(context.getImageData(0, 0, size, size).data, size, size);
   }
 
-  // What the worker judges. One frame describes the face; the pair says whether
-  // it is a person in front of the camera or a picture of one moved across it.
+  // One kept view, in the shape the worker judges: the straight-on numbers, with
+  // the movement seen across the turns standing in for a second frame.
+  function statsFromView(stats, moved) {
+    return {
+      faceFound: stats.found,
+      faceShare: stats.share,
+      fill: stats.fill,
+      aspect: stats.aspect,
+      contrast: stats.contrast,
+      brightness: stats.brightness,
+      motion: typeof moved === "number" ? moved : null,
+      skinShare: stats.share,
+    };
+  }
+
+  // What the worker judges for a chosen photo. One frame describes the face; the
+  // pair says whether it is a person in front of the camera or a picture of one
+  // moved across it.
   function localStats(first, second) {
     const best = second && second.share > first.share ? second : first;
     const box = best.box;
@@ -280,9 +434,10 @@ export function startAgeCheck(options) {
       video.srcObject = stream;
       await video.play().catch(() => {});
       cam.hidden = false;
+      armGuide();
       byId("age-shot").focus();
-      setStatus("Looking for your face — face the camera in even light.", "wait");
-      watchFace();
+      setStatus("");
+      startGuide();
     } catch (error) {
       stop();
       // No camera here, or the browser will not hand one over: the scan carries
@@ -303,36 +458,14 @@ export function startAgeCheck(options) {
     }
   }
 
-  function takeShot() {
-    if (relayConfigured(settings)) {
-      const image = squareFromVideo();
-      stop();
-      if (!image) {
-        setStatus("The camera was not ready yet. Give it a moment and take the scan again.", "wait");
-        return;
-      }
-      submit(image);
+  // Anything short of a finished scan is simply run again, from the straight-on
+  // view, with the camera still open.
+  function restartScan() {
+    if (!stream) {
+      openCamera();
       return;
     }
-
-    stopWatch();
-    const first = measure(video, true);
-    if (!first) {
-      setStatus("The camera was not ready yet. Give it a moment and take the scan again.", "wait");
-      watchFace();
-      return;
-    }
-    setStatus("Hold still for a moment…", "wait");
-    // The second frame is what tells a person apart from a photo of one.
-    setTimeout(() => {
-      const second = measure(video, true);
-      stop();
-      if (!second) {
-        setStatus("The camera closed before the scan finished. Try again.", "wait");
-        return;
-      }
-      submitLocal(localStats(first, second));
-    }, GAP_MS);
+    startGuide();
   }
 
   photo.addEventListener("change", () => {
@@ -372,7 +505,7 @@ export function startAgeCheck(options) {
   });
 
   start.addEventListener("click", openCamera);
-  byId("age-shot").addEventListener("click", takeShot);
+  byId("age-shot").addEventListener("click", restartScan);
   byId("age-cancel").addEventListener("click", () => {
     stop();
     setStatus("");

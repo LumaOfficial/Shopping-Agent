@@ -265,23 +265,35 @@ verification flow; nothing in the extension currently talks to one.
 
 ### Face age check: 18+ and the 3% boost
 
-Cashing out asks for more than a typed date of birth. The panel takes a still
-frame of your face, checks it, and unlocks cash outs plus a **3% boost on new
-cashback earnings** only once a verdict is stored against the account.
+Cashing out asks for more than a typed date of birth. The panel guides your head
+through a few angles, checks what it saw, and unlocks cash outs plus a **3% boost
+on new cashback earnings** only once a verdict is stored against the account.
 
 **The check needs no key and nothing set up.** With no relay configured it runs
 on this device (`src/lib/age-local.js`). The live camera preview is analysed a few
 times a second, so the card says whether a face is actually in the frame —
 *looking for your face*, *face found* — instead of guessing when the button was
-pressed. A scan then reads the biggest face-shaped patch of skin in the frame
-(its size, outline, fill and facial detail), and a second frame a moment later
-separates a person from a photo of one; both frames are dropped, and only the
-verdict is stored. Where a camera cannot be opened at all — no device, or the
-browser refuses it — the scan continues with the device's own camera app or a
-photo, so the card never dead-ends on an error. The numbers are judged in the
-service worker, so the panel never marks an account verified on its own. It is a
-liveness check against the date of birth the account was opened with, not a
-third-party age estimate, and the card says exactly that.
+pressed, and the small head model on screen turns to the angle being asked for.
+The scan asks for straight-on, then left, right and up (`src/lib/face-rotate.js`):
+the face has to hold each angle for a moment before it is kept, a turn the wrong
+way is answered with a correction, and an angle that is never reached simply does
+not count. Each kept angle reads the biggest face-shaped patch of skin in the
+frame (its size, outline, fill and facial detail).
+
+**The model is the double check.** The kept angles are compared as one temporary
+face model — the same face, in the same light, really having moved between them.
+If they do not agree, nothing is submitted and the card asks for the angles
+again; a scan is never allowed to reach the worker on a model that failed. The
+angles are dropped as soon as the check is over: only the verdict is stored.
+
+The numbers are judged in the service worker, so the panel never marks an account
+verified on its own, and the movement between the angles stands in for the second
+frame that used to prove a person rather than a photo of one. Where a camera
+cannot be opened at all — no device, or the browser refuses it — the scan
+continues with the device's own camera app or a photo, so the card never
+dead-ends on an error. It is a liveness check against the date of birth the
+account was opened with, not a third-party age estimate, and the card says
+exactly that.
 
 A provider-backed estimate is optional and only worth adding if you want one. A
 small relay holds the provider's credentials, and the extension only ever
@@ -414,7 +426,8 @@ user from themselves.
 | `src/lib/accounts.js` | Signup validation, salted password hashing, the session, and the per-account key prefix every money figure sits under |
 | `src/lib/age-verify.js` | Face age check: consent copy, the relay call, the verdict shape, the 18+ margin and the boost figure |
 | `src/lib/age-local.js` | The on-device check that needs no provider and no key: frame measurement, the liveness comparison and the verdict rules |
-| `src/lib/age-panel.js` | The age check card: disclosure, one-frame camera or photo capture, and what came back |
+| `src/lib/face-rotate.js` | The guided rotation: which angle is being asked for, whether the face has reached it, and whether the kept angles hold together as one face |
+| `src/lib/age-panel.js` | The age check card: disclosure, the guided camera scan (or a photo) and what came back |
 | `src/lib/site-add.js` | Add-or-remove decision from that evidence, plus the store's display name |
 | `src/lib/site-request.js` | Normalizes the tab's host into the site key |
 | `src/lib/stores.js` | Merchant catalog and host matching |
@@ -580,7 +593,11 @@ detector in `src/lib/age-local.js`. What it confirms:
 - a frame with no face, and a still photo (identical second frame), are both
   refused and leave the next earning unboosted;
 - the verdict is stored against the account, so a second account on the same
-  browser earns the plain rate until it is checked itself.
+  browser earns the plain rate until it is checked itself;
+- the guided rotation reads a turn on the side the mirrored preview shows,
+  answers a turn the wrong way with a correction, and keeps a tilt up;
+- a set of angles that never moved, and a scan that stopped halfway, are not a
+  face model and are refused before anything is submitted.
 
 The security rules have their own suite in `test/security.test.mjs`, driven the
 same way — real worker, real messages, no browser. What it confirms:

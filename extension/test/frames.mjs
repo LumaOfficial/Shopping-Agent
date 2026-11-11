@@ -8,20 +8,30 @@ export const SIDE = 256;
 // frame carries the facial detail a real one does. `shift` moves the head, which
 // is what the second frame of a live scan does.
 export function faceFrame(shift) {
-  const offset = Number(shift) || 0;
+  return drawFace(Number(shift) || 0, 0, 1);
+}
+
+// The same face seen from another angle: the head moved by dx/dy pixels and, as
+// a turned head really does, reading a little narrower across (narrow < 1).
+export function turnFrame(dx, dy, narrow) {
+  return drawFace(Number(dx) || 0, Number(dy) || 0, narrow || 1);
+}
+
+function drawFace(offsetX, offsetY, narrow) {
+  const halfWidth = 78 * narrow;
   const data = new Uint8Array(SIDE * SIDE * 4);
   for (let y = 0; y < SIDE; y += 1) {
     for (let x = 0; x < SIDE; x += 1) {
       const at = (y * SIDE + x) * 4;
       let colour = [60, 60, 62];
-      const dx = x - SIDE / 2 - offset;
-      const dy = y - SIDE / 2;
-      if ((dx * dx) / (78 * 78) + (dy * dy) / (96 * 96) < 1) {
+      const dx = x - SIDE / 2 - offsetX;
+      const dy = y - SIDE / 2 - offsetY;
+      if ((dx * dx) / (halfWidth * halfWidth) + (dy * dy) / (96 * 96) < 1) {
         colour = [205, 160, 135];
-        if (Math.abs(y - 92) < 4 && Math.abs(dx) < 30) colour = [90, 60, 50];
-        if ((x - 108 - offset) ** 2 + (y - 108) ** 2 < 60) colour = [55, 40, 38];
-        if ((x - 148 - offset) ** 2 + (y - 108) ** 2 < 60) colour = [55, 40, 38];
-        if (Math.abs(y - 165) < 5 && Math.abs(dx) < 22) colour = [150, 85, 85];
+        if (Math.abs(y - 92 - offsetY) < 4 && Math.abs(dx) < 30) colour = [90, 60, 50];
+        if ((x - 108 - offsetX) ** 2 + (y - 108 - offsetY) ** 2 < 60) colour = [55, 40, 38];
+        if ((x - 148 - offsetX) ** 2 + (y - 108 - offsetY) ** 2 < 60) colour = [55, 40, 38];
+        if (Math.abs(y - 165 - offsetY) < 5 && Math.abs(dx) < 22) colour = [150, 85, 85];
       }
       data[at] = colour[0];
       data[at + 1] = colour[1];

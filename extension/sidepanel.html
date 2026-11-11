@@ -189,16 +189,35 @@
           <ul class="age-facts" id="age-facts"></ul>
           <label class="age-agree">
             <input id="age-agree" type="checkbox" />
-            <span>I agree to this one-frame face scan</span>
+            <span>I agree to this guided face scan</span>
           </label>
         </div>
 
         <button class="btn w" id="age-start" type="button" disabled>Verify with a face scan</button>
 
         <div class="age-cam" id="age-cam" hidden>
-          <video id="age-video" playsinline muted autoplay></video>
+          <div class="age-stage">
+            <video id="age-video" playsinline muted autoplay></video>
+            <div class="age-guide" aria-hidden="true">
+              <div class="age-ring" id="age-ring"></div>
+              <div class="age-head" id="age-head">
+                <svg viewBox="0 0 64 80" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
+                  <ellipse cx="32" cy="36" rx="19" ry="25" />
+                  <path d="M13 33c0-13 8.5-21 19-21s19 8 19 21" opacity="0.45" />
+                  <circle cx="24.5" cy="33" r="2.1" fill="currentColor" stroke="none" />
+                  <circle cx="39.5" cy="33" r="2.1" fill="currentColor" stroke="none" />
+                  <path d="M32 37v9" opacity="0.5" stroke-width="1.4" />
+                  <path d="M26 53q6 3.6 12 0" />
+                </svg>
+              </div>
+            </div>
+          </div>
+          <p class="age-guide-label" id="age-guide-label" role="status" aria-live="polite">Look straight at the camera</p>
+          <p class="age-guide-tip" id="age-guide-tip">Line your face up with the ring</p>
+          <div class="age-steps" id="age-steps" aria-hidden="true"></div>
+          <p class="age-model" id="age-model" hidden></p>
           <div class="age-cam-row">
-            <button class="mini" id="age-shot" type="button">Take the scan</button>
+            <button class="mini" id="age-shot" type="button">Start over</button>
             <button class="mini" id="age-cancel" type="button">Cancel</button>
           </div>
         </div>

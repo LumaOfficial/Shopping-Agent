@@ -20,17 +20,17 @@ export const BOOST_RATE = 0.03;
 // Shown, in this order, before the camera opens. With nothing configured the
 // check runs entirely on this device, so the facts say exactly that.
 const RELAY_FACTS = [
-  "One still frame is taken here in your browser — not a video, and nothing else on your screen.",
-  "The frame is posted over HTTPS to the age check relay your operator configured, which passes it to the face provider.",
-  "The provider estimates your age from that frame and the relay discards the frame. No image and no face template is stored by this extension.",
+  "You turn your head to a few angles while the panel measures small copies of the camera picture — not a video, and nothing else on your screen.",
+  "Only the straight-on frame is posted over HTTPS to the age check relay your operator configured, which passes it to the face provider.",
+  "The provider estimates your age from that frame and the relay discards it. The angles you turned through are compared here as a temporary face model and dropped too — no image and no face template is stored.",
   "Only the outcome, the provider's name, its reference and the time are saved with your account.",
   "The scan is optional: without it your savings, codes and prices still work, but cash outs stay locked.",
 ];
 
 const ON_DEVICE_FACTS = [
-  "One still frame is taken here in your browser — not a video, and nothing else on your screen.",
-  "Nothing leaves this device: the frame is measured in the panel and then dropped. No provider, no account, no key.",
-  "A second frame half a second later checks that you are really in front of the camera rather than a photo of someone.",
+  "You turn your head to a few angles while the panel measures small copies of the camera picture — not a video, and nothing else on your screen.",
+  "Nothing leaves this device: the measurements are compared here as a temporary face model and then dropped. No provider, no account, no key.",
+  "Turning through those angles checks that you are really in front of the camera rather than a photo of someone, and the views have to agree before anything is decided.",
   "Only the outcome, the words \"On-device check\" and the time are saved with your account.",
   "The scan is optional: without it your savings, codes and prices still work, but cash outs stay locked.",
 ];

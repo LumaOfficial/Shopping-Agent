@@ -840,7 +840,12 @@ body.sidepanel .age-cam {
   margin-top: 16px;
 }
 
+body.sidepanel .age-stage {
+  position: relative;
+}
+
 body.sidepanel .age-cam video {
+  display: block;
   width: 100%;
   aspect-ratio: 1 / 1;
   max-height: 260px;
@@ -848,6 +853,109 @@ body.sidepanel .age-cam video {
   border-radius: 22px;
   background: #14102a;
   transform: scaleX(-1);
+}
+
+/* The guide sits over the live picture: a ring to fill, and the head model that
+   turns to the angle being asked for. */
+body.sidepanel .age-guide {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+}
+
+body.sidepanel .age-ring {
+  position: absolute;
+  width: 62%;
+  aspect-ratio: 1 / 1;
+  max-width: 168px;
+  border-radius: 50%;
+  background: conic-gradient(#a99bff calc(var(--turn, 0) * 1%), rgba(255, 255, 255, 0.16) 0);
+  -webkit-mask: radial-gradient(circle, transparent 0 76%, #000 78%);
+  mask: radial-gradient(circle, transparent 0 76%, #000 78%);
+  transition: background 0.35s ease;
+}
+
+body.sidepanel .age-head {
+  width: 74px;
+  height: 92px;
+  color: rgba(255, 255, 255, 0.82);
+  transform-style: preserve-3d;
+  transform: perspective(420px) rotateY(var(--ry, 0deg)) rotateX(var(--rx, 0deg));
+  transition: transform 0.55s cubic-bezier(0.22, 0.8, 0.28, 1);
+  filter: drop-shadow(0 8px 16px rgba(20, 16, 42, 0.5));
+}
+
+body.sidepanel .age-head svg {
+  width: 100%;
+  height: 100%;
+  animation: age-sway 5.5s ease-in-out infinite;
+}
+
+@keyframes age-sway {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body.sidepanel .age-head {
+    transition: none;
+  }
+  body.sidepanel .age-head svg {
+    animation: none;
+  }
+}
+
+body.sidepanel .age-guide-label {
+  margin: 12px 0 3px;
+  text-align: center;
+  font-size: 14px;
+  letter-spacing: -0.01em;
+  color: #2a2440;
+}
+
+body.sidepanel .age-guide-tip {
+  margin: 0;
+  min-height: 17px;
+  text-align: center;
+  font-size: 11.5px;
+  color: #8b82ad;
+}
+
+body.sidepanel .age-steps {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 9px;
+}
+
+body.sidepanel .age-steps i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #e6defb;
+  transition: background 0.3s ease, transform 0.3s ease;
+}
+
+body.sidepanel .age-steps i.on {
+  background: #8f7cf8;
+  transform: scale(1.2);
+}
+
+body.sidepanel .age-model {
+  margin: 9px 0 0;
+  text-align: center;
+  font-size: 11.5px;
+  color: #6d6590;
+}
+
+body.sidepanel .age-model.ok {
+  color: #2f7d5d;
+}
+
+body.sidepanel .age-model.bad {
+  color: #b4544c;
 }
 
 body.sidepanel .age-cam-row,
