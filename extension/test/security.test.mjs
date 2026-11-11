@@ -9,7 +9,8 @@ import assert from "node:assert/strict";
 import { loadWorker } from "./fake-chrome.mjs";
 import { constantTimeEquals, endpoint, intValue, textValue, webUrl } from "../src/lib/guard.js";
 import { sanitizeSettings } from "../src/lib/settings.js";
-import { signIn, signUp } from "../src/lib/accounts.js";
+import { currentAccount, signIn, signUp } from "../src/lib/accounts.js";
+import { MAX_ADS_PER_DAY, MAX_ADS_PER_TAB } from "../src/lib/ad-value.js";
 
 const PERSON = {
   fullName: "Guard Tester",
@@ -194,6 +195,105 @@ test("the stored account holds a salted hash, never the password", async (t) => 
   const account = Object.values(fake.store.accounts)[0];
   assert.equal(account.password.hash.length, 64, "a SHA-256 sized hash");
   assert.equal(account.password.iterations >= 210000, true);
+});
+
+test("a content script message with no tab is refused", async (t) => {
+  const fake = await boot(t);
+  const claimed = { id: fake.chrome.runtime.id, url: "https://shop.test/" };
+  const reply = await fake.send({ type: "ads:report", count: 5 }, claimed);
+  assert.equal(reply.error, "refused");
+  assert.equal(fake.store.ads, undefined, "nothing was credited");
+});
+
+test("a page cannot mint ad value past the ceilings", async (t) => {
+  const fake = await boot(t);
+  const first = { id: fake.chrome.runtime.id, tab: { id: 7 }, url: "https://shop.test/" };
+  const page = (id) => ({ id: fake.chrome.runtime.id, tab: { id }, url: "https://shop.test/" });
+
+  let reply = null;
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    reply = await fake.send({ type: "ads:report", count: 200 }, first);
+  }
+  assert.equal(reply.total, MAX_ADS_PER_TAB, "one tab is capped for the session");
+
+  // Four more tabs, each still asking for more than it may add.
+  for (let tab = 8; tab < 12; tab += 1) {
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      reply = await fake.send({ type: "ads:report", count: 200 }, page(tab));
+    }
+  }
+  assert.equal(reply.total, MAX_ADS_PER_DAY, "the day stops at its ceiling");
+
+  // A new day starts again: the ceiling is per day, not for ever.
+  const key = Object.keys(fake.store).find((name) => /adBlock$/.test(name));
+  assert.equal(typeof key, "string");
+  fake.store[key] = Object.assign({}, fake.store[key], { day: "1999-1-1", dayCount: 9000 });
+  reply = await fake.send({ type: "ads:report", count: 50 }, page(99));
+  assert.equal(reply.today, 50);
+  assert.equal(reply.total, MAX_ADS_PER_DAY + 50);
+});
+
+test("the panel is handed settings without credentials", async (t) => {
+  const fake = await boot(t);
+  fake.store.settings = {
+    ageCheckUrl: "https://age.test/verify",
+    ageCheckToken: "relay-token",
+    feedUrl: "https://feed.test/offers/{store}",
+    feedKey: "feed-secret",
+  };
+
+  const panel = await fake.send({ type: "settings:get" });
+  assert.equal(panel.ageCheckToken, "");
+  assert.equal(panel.feedKey, "");
+  assert.equal(panel.ageCheckUrl, "https://age.test/verify", "the address is not a credential");
+
+  const settingsPage = { id: fake.chrome.runtime.id, url: fake.chrome.runtime.getURL("options.html") };
+  const full = await fake.send({ type: "settings:get" }, settingsPage);
+  assert.equal(full.feedKey, "feed-secret");
+  assert.equal(full.ageCheckToken, "relay-token");
+});
+
+test("a session that has aged out signs nobody in", async (t) => {
+  const fake = await boot(t);
+  const day = 24 * 60 * 60 * 1000;
+  await signUp(Object.assign({}, PERSON, { email: "aged@example.com" }));
+  assert.equal(Boolean(await currentAccount()), true);
+
+  fake.store.session = Object.assign({}, fake.store.session, {
+    at: Date.now() - 8 * day,
+    startedAt: Date.now() - 8 * day,
+  });
+  assert.equal(await currentAccount(), null, "unused for a week");
+  assert.equal(fake.store.session, undefined, "and the stale session is removed");
+
+  await signIn("aged@example.com", PERSON.password);
+  fake.store.session = Object.assign({}, fake.store.session, {
+    at: Date.now(),
+    startedAt: Date.now() - 31 * day,
+  });
+  assert.equal(await currentAccount(), null, "older than the month a session may live");
+});
+
+test("an obvious password is refused before it is hashed", async (t) => {
+  const fake = await boot(t);
+  for (const password of ["password", "11111111", "qwertyui", "1234567890"]) {
+    const reply = await signUp(Object.assign({}, PERSON, { email: "weak@example.com", password }));
+    assert.equal(reply.ok, false, password);
+    assert.match(reply.error, /predictable/);
+  }
+  assert.equal(fake.store.accounts, undefined, "nothing was stored");
+});
+
+test("the on-device age check cannot stand in for a configured relay", async (t) => {
+  const fake = await boot(t);
+  fake.store.settings = { ageCheckUrl: "https://age.test/verify" };
+  const reply = await fake.send({
+    type: "age:local",
+    stats: { brightness: 120, faceFound: true, faceShare: 0.4, aspect: 1, fill: 0.9, contrast: 40 },
+  });
+  assert.equal(reply.ok, false);
+  assert.match(String(reply.error), /configured/i);
+  assert.equal(fake.store.ageCheck, undefined, "no verdict was written");
 });
 
 test("guard helpers reject the shapes a page would try", () => {

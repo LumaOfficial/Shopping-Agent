@@ -22,10 +22,11 @@ import {
 } from "../partners/cashback-ledger.js";
 import { getSponsoredOffers, claimOffer, sponsorConfigured } from "../partners/sponsor-offers.js";
 import { payoutConfigured, payoutHost, detectPayoutService, requestVirtualCard, requestSimpleVisa, requestPreviewCard } from "../partners/cashback-payout.js";
-import { readSettings, writeSettings } from "../lib/settings.js";
+import { readSettings, writeSettings, publicSettings } from "../lib/settings.js";
 import { siteHost } from "../lib/site-request.js";
 import {
   allowance,
+  extensionPage,
   fromContentScript,
   intValue,
   isPlainObject,
@@ -36,7 +37,7 @@ import {
 } from "../lib/guard.js";
 import { decideSite } from "../lib/site-add.js";
 import { mergeCodes, cleanCode } from "../lib/codes.js";
-import { normalizeRecord, addAds, summaryOf } from "../lib/ad-value.js";
+import { creditAds, normalizeRecord, summaryOf, MAX_ADS_PER_TAB } from "../lib/ad-value.js";
 import { scopedKey, scopePrefix } from "../lib/accounts.js";
 import {
   BOOST_RATE,
@@ -300,10 +301,25 @@ async function adsSummary() {
   return Object.assign(summaryOf(record), { enabled: settings.enabled.adBlock !== false });
 }
 
-async function reportAds(count) {
+// What each tab has been credited so far this session. The day's ceiling in
+// ad-value.js stops a page from minting a balance; this stops a single page from
+// reaching that ceiling on its own by claiming a new load every second.
+const creditedByTab = new Map();
+
+async function reportAds(count, sender) {
+  // A count is only worth something when a real tab's content script reported
+  // it; with no tab there is nothing to credit.
+  const tabId = sender && sender.tab && typeof sender.tab.id === "number" ? sender.tab.id : null;
+  if (tabId === null) return { error: "refused" };
+  const used = creditedByTab.get(tabId) || 0;
+  const room = MAX_ADS_PER_TAB - used;
+  if (room <= 0) return adsSummary();
   const record = await readAdRecord();
-  addAds(record, count);
-  await writeScoped("adBlock", record);
+  const credit = creditAds(record, Math.min(count, room), Date.now());
+  if (credit.granted > 0) {
+    creditedByTab.set(tabId, used + credit.granted);
+    await writeScoped("adBlock", credit.record);
+  }
   return adsSummary();
 }
 
@@ -429,6 +445,12 @@ async function ageStatus() {
 // No provider and no key: the panel measures two frames, the judgement happens
 // here so the numbers — not the panel — decide when money unlocks.
 async function verifyAgeLocally(message) {
+  const settings = await readSettings();
+  // When the operator has wired a relay, that is the check that counts; the
+  // on-device path is for installs with none, not a way around the real one.
+  if (relayConfigured(settings)) {
+    return { ok: false, error: "Your age check service is configured — use that scan." };
+  }
   const verdict = judgeLocal(message && message.stats);
   if (verdict.state !== "verified") {
     return { ok: false, error: verdict.message || "The check did not finish. Try again." };
@@ -820,13 +842,20 @@ function payloadProblem(type, message) {
     case "data:clear":
       // Only a deliberate, confirmed request empties the figures.
       return message.confirm === true ? "" : "Clearing data has to be confirmed.";
+    case "data:export":
+      // A whole-device dump is not something a page should be able to ask for
+      // over and over.
+      return allowance("export", 5, 60000) ? "" : "Too many exports just now.";
     case "age:local":
-      return isPlainObject(message.stats) ? "" : "No measurement arrived, so nothing was checked.";
+      if (!isPlainObject(message.stats)) return "No measurement arrived, so nothing was checked.";
+      // A scan can be retried, but not turned into a guessing loop.
+      return allowance("age-local", 6, 600000) ? "" : "That scan was tried too many times. Try again in a few minutes.";
     case "age:verify": {
       const frame = typeof message.image === "string" ? message.image : "";
       if (!frame) return "No frame was captured, so nothing was checked.";
       if (frame.length > 8000000) return "That frame was too large to check.";
-      return "";
+      // The relay holds the provider's credentials, so it is not a free oracle.
+      return allowance("age-verify", 6, 300000) ? "" : "That scan was tried too many times. Try again in a few minutes.";
     }
     case "price:record":
       return isPlainObject(message.product) ? "" : "No product arrived, so nothing was recorded.";
@@ -849,6 +878,12 @@ async function handle(message, sender) {
   const type = typeof message.type === "string" ? textValue(message.type, 40) : "";
   if (!type) return { error: "refused" };
   if (!ownSender(sender)) return { error: "refused" };
+  // A content script is only ever a script the browser injected into a tab, so a
+  // message that claims to be one but arrives with no tab is refused before its
+  // contents are looked at.
+  if (fromContentScript(sender) && (!sender.tab || typeof sender.tab.id !== "number")) {
+    return { error: "refused" };
+  }
   if (fromContentScript(sender) && CONTENT_MESSAGES.indexOf(type) === -1) return { error: "refused" };
   const problem = payloadProblem(type, message);
   if (problem) return { ok: false, error: problem };
@@ -889,7 +924,7 @@ async function handle(message, sender) {
     case "price:get":
       return getPrice(message.key);
     case "ads:report":
-      return reportAds(message.count);
+      return reportAds(message.count, sender);
     case "ads:stats":
       return adsSummary();
     case "site:detect":
@@ -897,7 +932,11 @@ async function handle(message, sender) {
     case "site:remove":
       return removeSite(message.url);
     case "settings:get":
-      return readSettings();
+      // The panel asks for settings to know how the age check is wired; it has no
+      // use for a key or a payout token, so it never receives one.
+      return extensionPage(sender) === "options.html"
+        ? readSettings()
+        : publicSettings(await readSettings());
     case "settings:set": {
       // What was stored, not what was sent: an address that is not HTTPS, an
       // unknown key or an impossible figure is dropped here and reported back.

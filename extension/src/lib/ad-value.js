@@ -7,6 +7,14 @@ import { money } from "./format.js";
 export const ADS_PER_PACK = 5;
 export const CENTS_PER_PACK = 3;
 
+// The ceiling on what can be claimed. Ad value is money in the wallet, and the
+// count arrives from a page, so the rate alone is not enough: a page that fills
+// itself with fake slots must not be able to mint a balance. One report is a
+// page load; one tab and one day are the two ceilings above it.
+export const MAX_ADS_PER_REPORT = 200;
+export const MAX_ADS_PER_TAB = 600;
+export const MAX_ADS_PER_DAY = 2000;
+
 export function rateLabel() {
   return money(CENTS_PER_PACK) + " per " + ADS_PER_PACK + " ads";
 }
@@ -47,6 +55,17 @@ export function addAds(record, count, now) {
   record.dayCount += added;
   record.updatedAt = typeof now === "number" ? now : Date.now();
   return record;
+}
+
+// Credits a report only as far as the day's ceiling allows, and says how much
+// was actually credited so the caller can keep its own per-page count honest.
+export function creditAds(record, count, now) {
+  const requested = Math.max(0, Math.min(Math.round(Number(count) || 0), MAX_ADS_PER_REPORT));
+  const today = dayKey(now);
+  const used = record.day === today ? record.dayCount : 0;
+  const granted = Math.max(0, Math.min(requested, MAX_ADS_PER_DAY - used));
+  if (granted > 0) addAds(record, granted, now);
+  return { granted, record };
 }
 
 export function summaryOf(record, now) {

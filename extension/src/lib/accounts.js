@@ -15,11 +15,58 @@ const MAX_TRIES = 5;
 const BASE_LOCK_MS = 30 * 1000;
 const MAX_LOCK_MS = 15 * 60 * 1000;
 const GUEST_PREFIX = "guest:";
+// A session is not a permanent key to the wallet. It ends a week after it was
+// last used and a month after it was opened, whichever comes first, so a session
+// copied off a shared machine stops working on its own.
+const SESSION_IDLE_MS = 7 * 24 * 60 * 60 * 1000;
+const SESSION_MAX_MS = 30 * 24 * 60 * 60 * 1000;
+// The idle clock only moves forward when an hour has actually passed, so reading
+// the session does not turn into a storage write on every message.
+const SESSION_TOUCH_MS = 60 * 60 * 1000;
 
 export const MIN_PASSWORD = 8;
 export const MIN_AGE = 18;
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+
+// Passwords people reach for first. A stolen hash list is only as useful as the
+// dictionary that opens it, and a length rule alone lets these straight through.
+const COMMON_PASSWORDS = [
+  "password",
+  "password1",
+  "password123",
+  "passw0rd",
+  "12345678",
+  "123456789",
+  "1234567890",
+  "qwertyui",
+  "qwerty123",
+  "iloveyou",
+  "letmein1",
+  "welcome1",
+  "admin123",
+  "abc12345",
+  "football",
+  "baseball",
+  "sunshine",
+  "princess",
+  "shopping",
+  "cashback",
+  "savings1",
+];
+
+// True for a password that is easy to guess before any hashing happens: a word
+// off the list, one character repeated, or a single run of the keyboard or the
+// alphabet. Length and variety are left to the person; only the obvious ones are
+// refused, with a message that says what to do instead.
+export function weakPassword(password) {
+  const text = String(password || "");
+  const lower = text.toLowerCase();
+  if (COMMON_PASSWORDS.indexOf(lower) !== -1) return true;
+  if (/^(.)\1+$/.test(text)) return true;
+  if (/^(?:0123456789|1234567890|abcdefghij|qwertyuiop|asdfghjkl)/i.test(lower)) return true;
+  return false;
+}
 
 function toHex(bytes) {
   return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
@@ -103,6 +150,12 @@ export function validateSignup(input, now) {
   if (password.length < MIN_PASSWORD) {
     return { ok: false, error: "Choose a password of at least " + MIN_PASSWORD + " characters." };
   }
+  if (weakPassword(password)) {
+    return {
+      ok: false,
+      error: "That password is one of the first an attacker tries — pick something less predictable.",
+    };
+  }
   return { ok: true, error: "", account: { fullName, email, phone, dob, password } };
 }
 
@@ -118,9 +171,39 @@ async function readSession() {
   if (chrome.storage.session) areas.push(chrome.storage.session);
   for (const area of areas) {
     const stored = await area.get(SESSION_KEY);
-    if (stored && stored[SESSION_KEY]) return stored[SESSION_KEY];
+    const session = stored && stored[SESSION_KEY];
+    if (!session) continue;
+    if (staleSession(session, Date.now())) {
+      await area.remove(SESSION_KEY);
+      continue;
+    }
+    return session;
   }
   return null;
+}
+
+// A session that was opened too long ago, or has not been used for a week, is
+// over. `startedAt` is when the person last typed the password; `at` is when the
+// session was last used, so a session in daily use slides forward instead of
+// expiring on a fixed date.
+function staleSession(session, now) {
+  const last = Number(session && session.at) || 0;
+  if (!last) return true;
+  const started = Number(session && session.startedAt) || last;
+  return now - last > SESSION_IDLE_MS || now - started > SESSION_MAX_MS;
+}
+
+// Moves the idle clock forward, at most once an hour, in the area the session
+// was written to. A session that fails here still works; it just ages.
+async function touchSession(session) {
+  const last = Number(session && session.at) || 0;
+  if (Date.now() - last < SESSION_TOUCH_MS) return;
+  const area = sessionArea(session.remember !== false);
+  try {
+    await area.set({ [SESSION_KEY]: Object.assign({}, session, { at: Date.now() }) });
+  } catch (_error) {
+    // The area may be gone after a browser quit; the session simply expires.
+  }
 }
 
 async function clearSession() {
@@ -131,7 +214,10 @@ async function clearSession() {
 async function writeSession(accountId, remember) {
   const keep = remember !== false;
   await clearSession();
-  await sessionArea(keep).set({ [SESSION_KEY]: { accountId, at: Date.now(), remember: keep } });
+  const now = Date.now();
+  await sessionArea(keep).set({
+    [SESSION_KEY]: { accountId, at: now, startedAt: now, remember: keep },
+  });
   return keep;
 }
 
@@ -288,7 +374,9 @@ export async function currentAccountId() {
   if (!session || !session.accountId) return null;
   const accounts = await readAccounts();
   // A session for an account that no longer exists signs nobody in.
-  return accounts[session.accountId] ? session.accountId : null;
+  if (!accounts[session.accountId]) return null;
+  await touchSession(session);
+  return session.accountId;
 }
 
 export async function currentAccount() {

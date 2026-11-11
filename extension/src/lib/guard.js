@@ -30,6 +30,22 @@ export function fromContentScript(sender) {
   return /^https?:\/\//i.test(origin);
 }
 
+// Which of the extension's own pages is speaking, as a bare file name, or "" when
+// the sender is not one of them. A page script, a content script and another
+// extension all come back empty, so a command that only the settings page should
+// answer can be held to it instead of being handed to every caller.
+export function extensionPage(sender) {
+  if (!ownSender(sender)) return "";
+  const runtime = typeof chrome !== "undefined" && chrome && chrome.runtime;
+  const prefix = "chrome-extension://" + runtime.id + "/";
+  const url = String(sender.url || "");
+  if (url.indexOf(prefix) !== 0) return "";
+  return url
+    .slice(prefix.length)
+    .replace(/[?#].*$/, "")
+    .replace(/^\/+/, "");
+}
+
 export function isPlainObject(value) {
   if (!value || typeof value !== "object" || Array.isArray(value)) return false;
   const proto = Object.getPrototypeOf(value);

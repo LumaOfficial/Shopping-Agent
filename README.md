@@ -345,8 +345,17 @@ the extension do anything, and every message is checked before a handler runs
 | --- | --- |
 | `sender.id` must be this extension | Another extension cannot drive the worker. A web page cannot at all: there is no `externally_connectable`, and nothing is `web_accessible`. |
 | A page's content script may send only `ads:report` | The page can influence what its content script says, so that is the one message it can produce — and it cannot reach settings, clearing or a payout. A sender URL decides this, not the presence of a tab, so the settings page opened in a tab keeps its full access. |
+| A content-script message must arrive from a tab | The browser only injects a content script into a tab, so a message that claims to come from a page but carries no tab is refused before its payload is read. |
+| Credentials are blanked for every reader but the settings page | `settings:get` returns a sanitized copy with every key and token emptied unless the caller is `options.html`, so the panel can read how the age check is wired without ever holding a secret it could replay. |
 | Each handler's payload is checked first | A page address has to be `http(s)`, a cart total has to be a finite number, an ad count is an integer inside a range, a code has to match the code pattern, and clearing needs an explicit `confirm: true`. |
-| Repeated actions are capped per session | Ad reports, settings writes and payouts are throttled, so no page can inflate a figure or issue two cards by looping one message. |
+| Repeated actions are capped per session | Ad reports, settings writes, exports and payouts are throttled, so no page can inflate a figure or issue two cards by looping one message. |
+
+**Ad value has a ceiling of its own.** The count of blocked ads becomes money in
+the wallet, and the count arrives from a page, so a page that fills itself with
+fake ad slots must not be able to mint a balance. One report carries at most 200
+ads, a single tab is credited at most 600 for the session, and a day stops at
+2,000 — about $12 at the rate the panel quotes. A report over those figures is
+credited only as far as the ceiling allows; nothing is silently rounded up.
 
 **Settings are an allowlist.** `sanitizeSettings` keeps only the keys in
 `DEFAULTS`, so an injected key — including `__proto__` — is dropped rather than
@@ -356,21 +365,32 @@ refused. The options page says which field it refused instead of saving it
 silently.
 
 **Accounts.** A password is never stored: signup keeps a per-account random salt
-and a PBKDF2-SHA-256 hash at 210,000 rounds, compared in constant time. Five
-wrong passwords pause sign-in for 30 seconds and each further miss doubles the
-pause, up to 15 minutes. Attempts are counted under a hash of the email, so the
-address typed is not kept. Sessions are `chrome.storage.local` (kept between
-reloads) or `chrome.storage.session` (cleared on quit) — the panel's "keep me
-signed in" box chooses.
+and a PBKDF2-SHA-256 hash at 210,000 rounds, compared in constant time. Passwords
+that are the first an attacker tries — a common word, one character repeated, a
+run off the keyboard or the alphabet — are refused at signup with a message
+saying so. Five wrong passwords pause sign-in for 30 seconds and each further
+miss doubles the pause, up to 15 minutes. Attempts are counted under a hash of
+the email, so the address typed is not kept. Sessions are `chrome.storage.local`
+(kept between reloads) or `chrome.storage.session` (cleared on quit) — the
+panel's "keep me signed in" box chooses. A session also ends on its own: a week
+after it was last used, or a month after the password was typed, whichever comes
+first, so a session copied off a shared machine stops working without anyone
+having to notice. Daily use slides the idle clock forward.
 
 **Rendering.** Nothing from a page, feed or relay is ever put through
 `innerHTML`: the panel builds text nodes, so a coupon title is a coupon title and
-never markup. Extension pages declare `script-src 'self'; object-src 'self'`.
+never markup. Extension pages declare `default-src 'self'; script-src 'self';
+object-src 'none'; base-uri 'none'; form-action 'none'` — no remote script, no
+`<object>`, no `<base>` rewriting the page's own addresses, and no form that can
+post what is on screen somewhere else. Images stay limited to the extension, a
+`data:`/`blob:` URL the page made, and HTTPS.
 
 **Face frames.** A frame is measured and dropped, or posted to the relay the
 operator configured and discarded there. The verdict is re-judged in the worker
 from the numbers the panel measured, so the panel cannot mark an account
-verified.
+verified. When a relay *is* configured, the on-device scan is refused rather than
+accepted as a shortcut past it, and both paths are throttled so a scan cannot be
+retried in a loop until one lands the right answer.
 
 What this cannot do: a person with full control of their own browser profile can
 edit their own storage and give themselves a number. The accounts, wallet and

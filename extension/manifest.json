@@ -5,7 +5,7 @@
   "description": "Finds coupon codes, cashback offers and price history from Partner Platforms while you shop. Never reads card details.",
   "minimum_chrome_version": "116",
   "content_security_policy": {
-    "extension_pages": "script-src 'self'; object-src 'self'"
+    "extension_pages": "default-src 'self'; script-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; media-src 'self' data: blob:; connect-src *"
   },
   "permissions": [
     "storage",

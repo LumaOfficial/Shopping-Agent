@@ -116,6 +116,28 @@ export function sanitizeSettings(raw) {
   return settings;
 }
 
+// The values that are credentials rather than preferences: an API key, a payout
+// token, a relay's bearer token. Only the settings page needs them, so every
+// other reader of the same object gets them blanked — a panel that is talked
+// into reading a second time still learns nothing it can replay.
+export const CREDENTIAL_KEYS = [
+  "feedUser",
+  "feedKey",
+  "payoutKey",
+  "payoutPlatformKey",
+  "sponsorKey",
+  "priceHistoryKey",
+  "ageCheckToken",
+];
+
+export function publicSettings(raw) {
+  const clean = sanitizeSettings(raw);
+  CREDENTIAL_KEYS.forEach((key) => {
+    clean[key] = "";
+  });
+  return clean;
+}
+
 export function withDefaults(stored) {
   return sanitizeSettings(stored);
 }
