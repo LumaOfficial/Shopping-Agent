@@ -152,6 +152,24 @@ would ask about it:
   line). The Terms version stays 1.4: nothing about what is collected changed. The rebuilt package
   passes the **120-test suite**, `tools/check-catalog.mjs` and the packaged-page checks.
 
+**Revision 8 — 12 November 2026.** Page-scan precision pass, no new permissions:
+
+- **The scanner reads only what a shopper can see.** Text from a hidden element, an unused template
+  or an `aria-hidden` copy is no longer evidence, so last season's banner in the markup cannot
+  produce a code. Visible banner cards, coupon attributes and `data-clipboard-text` are read.
+- **Prose and identifiers are rejected by rule, not by luck.** A lower-case word next to "code" is
+  prose; a zip code, country code, error code, model number or order id is an identifier. Codes are
+  still deduplicated, and a code the page repeats is ranked above one it mentions once.
+- **The price is the one being paid.** Crossed-out, "was", list, MSRP, shipping, tax and
+  installment figures are skipped, price selectors are tried in order of authority, and the
+  structured-data offer (including `priceSpecification`) wins over any single element.
+- **The panel says what it read.** "Found on this page" now reports the codes, the clip coupons, a
+  price read and when it last read the page; the source strip's single refresh control is labelled
+  "Rescan page" when no feed is configured and "Refresh" when one is.
+- **One product name.** Copy that called the extension "Savings" now says Luma Pay, and the support
+  page names the extension version beside the Terms version instead of only the latter.
+- The rebuilt package passes the **121-test suite** and `tools/check-catalog.mjs`.
+
 ## What the operator is confirming
 
 The review below maps each criterion to what the package actually does, and names the file that

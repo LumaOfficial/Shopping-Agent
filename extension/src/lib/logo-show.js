@@ -221,7 +221,7 @@ function buildOrbit(scene, stage, marks) {
 
   const core = el("div", "orbit-core");
   const word = el("strong");
-  word.textContent = "Savings";
+  word.textContent = "Luma Pay";
   const sub = el("small");
   sub.textContent = marks.length + " popular marks";
   core.append(word, sub);

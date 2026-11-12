@@ -292,6 +292,14 @@ function renderSource(data, connected) {
     ? humanAge(readAt)
     : feed.configured ? "waiting for the feed" : "reading this page";
 
+  // With a feed connected the button checks that too; with none it is simply a
+  // second read of this page, so it says so.
+  const refreshButton = byId("refresh");
+  refreshButton.textContent = feed.configured ? "Refresh" : "Rescan page";
+  refreshButton.title = feed.configured
+    ? "Check the feed and this page again"
+    : "Read this page again";
+
   const note = byId("source-note");
   const text = feed.configured ? feed.error || "" : haveCodes ? "" : PAGE_SOURCE_NOTE;
   note.textContent = text;
@@ -318,7 +326,12 @@ function renderPage(scan, features) {
   if (clips.length) {
     parts.push(clips.length + " clip coupon" + (clips.length === 1 ? "" : "s") + " the store offers here");
   }
-  byId("page-note").textContent = parts.join(" · ") + ".";
+  if (scan && scan.product && scan.product.price) {
+    parts.push("price read for this product");
+  }
+  const read = state.scannedAt ? humanAge(state.scannedAt) : "";
+  byId("page-note").textContent =
+    parts.join(" · ") + "." + (read ? " " + read.charAt(0).toUpperCase() + read.slice(1) + "." : "");
 
   const button = byId("clip-all");
   button.hidden = !clips.length;
@@ -1386,16 +1399,19 @@ byId("acct-signout").addEventListener("click", async () => {
 });
 
 // ---- wiring -------------------------------------------------------------
+// One control re-reads the page the shopper is on and, when a feed is set up,
+// that too. Its label says which of the two it is doing.
 byId("refresh").addEventListener("click", async () => {
   if (!state.url) return;
   const button = byId("refresh");
+  const label = button.textContent;
   button.disabled = true;
   button.textContent = "Checking…";
   ingestScan(await toTab({ type: "page:scan" }, { frameId: 0 }));
   await refreshCodes();
   renderPage(state.scan, state.data && state.data.features);
   button.disabled = false;
-  button.textContent = "Refresh";
+  button.textContent = label;
 });
 
 // One tap re-reads the page the shopper is on and, when an extra feed is

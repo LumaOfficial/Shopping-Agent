@@ -604,7 +604,7 @@ user from themselves.
 | `src/background/service-worker.js` | Only code that calls partner endpoints; caches the feed per store; validates the source; stores saved/verified codes, price points and savings |
 | `src/content/content.js` | Frame-aware bridge: `page:scan`, `page:clip`, `coupon:probe`, `coupon:apply`, `checkout:probe`, `checkout:focus` (attributes only) |
 | `src/content/coupon-engine.js` | Promo-field autofill + outcome detection |
-| `src/content/page-scan.js` | Published codes, clip coupons, product/price reading |
+| `src/content/page-scan.js` | Published codes, clip coupons, product/price reading — reads only rendered text, rejects identifier prose ("zip code", "error code"), and prefers the buy-box price over crossed-out or "was" prices |
 | `src/content/site-detect.js` | What the page declares about itself as a shop: structured data, platform, cart/checkout |
 | `src/content/ad-guard.js` | Hides the page's ad slots and counts them, one report per page |
 | `rules/ads.json` | Declarative ruleset that blocks ad and tracker requests |

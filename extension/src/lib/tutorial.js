@@ -15,7 +15,7 @@ export const TOUR_STEPS = [
   {
     id: "welcome",
     kicker: "Welcome",
-    title: "Savings that follow you around the shop",
+    title: "Your savings, on every shop you open",
     body:
       "Luma Pay reads the store page you are already on for codes, cashback and price history. " +
       "Nothing to set up: open it beside a shop and it fills in.",
