@@ -804,8 +804,10 @@ The terms gate has a suite in `test/terms.test.mjs`. What it confirms:
 - a stored `true`, a string, an object with no timestamp, a missing version and
   an older version all read back as *no consent*;
 - withdrawing clears the record, and the settings page can say what was agreed;
-- the packaged document carries the version the gate checks, the plain-language
-  summary is present, and the panel's tick box has no `checked` attribute.
+- the packaged document carries the version the gate checks, all thirty numbered
+  sections are present and listed in its contents, there is deliberately no
+  shortened version of the Terms, and the panel's tick box has no `checked`
+  attribute.
 
 The security rules have their own suite in `test/security.test.mjs`, driven the
 same way — real worker, real messages, no browser. What it confirms:

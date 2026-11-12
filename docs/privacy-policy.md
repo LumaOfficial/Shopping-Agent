@@ -1,6 +1,6 @@
 # Privacy policy — Luma Pay Shopping Agent
 
-**Version 1.2 · Last updated 12 November 2026 · Applies to extension version 0.6.0**
+**Version 1.4 · Last updated 12 November 2026 · Applies to extension version 0.8.0**
 
 This policy is kept in two copies that must say the same thing: the packaged page a shopper and a
 reviewer open, [`extension/privacy.html`](../extension/privacy.html), and this working draft, which
@@ -11,10 +11,11 @@ it does anything: the consent facts in the panel, and sections 5, 8, 11, 12 and 
 the same handling, they say the same thing — if they ever stop matching, the Terms govern and this
 policy is wrong and will be corrected.
 
-In short: the Extension is local-first. Accounts, codes, prices, balances and your acceptance of
-the Terms live in your browser profile. Nothing is sent anywhere unless you have configured the
-address yourself, and the only things that travel are the requests named in
-[What leaves your device](#what-leaves-your-device).
+This policy is a complete statement of the handling the Extension performs and is written to be
+read in full. There is deliberately no shortened version of it: a summary that leaves out a detail
+is a second account of the policy that someone could later rely on, so the sections below are the
+only reading, and no paragraph here shortens an obligation a numbered Terms section imposes or
+removes one it states.
 
 ## Who this policy is from
 
@@ -24,7 +25,7 @@ a retailer or a browser vendor, and no browser vendor has approved the Extension
 (see Terms §2).
 
 Questions about this policy go to the support address on the Extension's own store listing — the
-same contact point named in Terms §23.
+same contact point named in Terms §30: **lumasupport@tidio.xyz**.
 
 ## What this policy covers, and what it does not
 
@@ -59,7 +60,7 @@ It covers data the Extension handles in your browser. It does **not** cover:
 Everything below is written to the Extension's own storage in the browser profile it is installed
 in. There is no Luma Pay server that holds an account, and no backup of it.
 
-**Your acceptance of the Terms.** A record with the version you agreed to (currently 1.2) and the
+**Your acceptance of the Terms.** A record with the version you agreed to (currently 1.4) and the
 time you agreed. A record without a real version and timestamp is not treated as agreement
 (Terms §1).
 
@@ -99,7 +100,7 @@ guesses are slowed down.
 
 ## What leaves your device
 
-Data leaves only in the four situations Terms §13 lists. Each requires an address you configured
+Data leaves only in the five situations Terms §13 lists. Each requires an address you configured
 yourself, and each carries only what that one feature needs:
 
 1. **A partner request** — for example a store name and a page address, sent to the offers feed you
@@ -223,7 +224,8 @@ anything we do not hold:
   configure a partner address; each removes the handling that feature performs.
 
 Depending on where you live you may also have the right to complain to your data-protection
-authority. Questions, or a request the controls do not cover, go to the address in Terms §23.
+authority. Questions, or a request the controls do not cover, go to **lumasupport@tidio.xyz**, the
+address in Terms §30.
 
 ## Security
 
@@ -253,6 +255,79 @@ We do not transfer your data, because we do not hold it. When you configure a pr
 programme, payout provider, price API or age-check relay — the request goes to the address you
 entered, and that provider processes it wherever it operates, under its own notice.
 
+## Legal bases, and the limits we set ourselves
+
+The Extension does its work in your browser, on your instruction, and almost everything it handles
+never reaches us. Where a law calls for a legal basis, the handling rests on one or more of these:
+
+- **Your agreement** — the Terms you accepted, the separate agreement to the optional face-based
+  check, and the consent your browser records when you add a shop or grant a site permission
+  (Terms §1, §11).
+- **Performance of what you asked for** — recognising a shop, reading codes, filling a promo field
+  you chose, recording a price, issuing a payout you requested (Terms §4, §6).
+- **Legitimate interests** — keeping the Extension working, preventing abuse of the wallet and the
+  rate limits, keeping a record of what a store's page said, and answering a message you sent,
+  balanced against your rights and the fact that the data stays with you (Terms §9, §13).
+- **A legal obligation** — where a payout provider, a tax rule, a sanctions rule or a
+  consumer-protection rule requires a record to be kept or a check to be made (Terms §3, §24, §27).
+
+Limits we set on ourselves that the law does not always require: no profile of your browsing across
+shops, no advertising identifiers, no sale of data, no analytics endpoint, and no feature whose
+function depends on sending page content to us.
+
+## Automated processing
+
+Three decisions are made by a program rather than a person: whether a page is a covered shop,
+whether a code the store's page accepted counts as verified, and whether an ad-value credit falls
+inside the per-page, per-tab and per-day caps. Each is mechanical, visible in the panel, and
+overridable through the settings switches.
+
+The optional age check produces an estimate of whether a person appears to be 18 or over, and that
+estimate can unlock a payout and a promotional boost. It is a statistical guess, not proof of age,
+not an identity check and not a decision about legal capacity; it does not block the codes,
+cashback or price features, is not used to build a profile, and can be cleared from the settings
+(Terms §11).
+
+No decision with a legal effect on you beyond unlocking a payout is made about you by automated
+means, and no advertising profile is built from the pages you visit.
+
+## Browser signals, Do Not Track and Global Privacy Control
+
+The Extension sends no tracking request that a Do Not Track or Global Privacy Control signal would
+need to suppress, so there is nothing for such a signal to opt out of. Where your browser offers
+other controls — third-party cookie blocking, a site permission for a shop, the Extension's own
+switches — those act directly on the Extension and are respected as set (Terms §5).
+
+## United States state privacy rights
+
+State laws give residents rights over personal information: to know what is collected, to access
+it, to correct it, to delete it, to obtain a copy, to opt out of its sale or sharing, and not to be
+discriminated against for exercising those rights. Most of that resolves on your own device:
+
+- **Sale and sharing** — we do not sell personal information and do not share it for cross-context
+  behavioural advertising; there is no store of it here to sell.
+- **Access, correction, deletion, portability** — the settings controls perform them: **Export a
+  copy** for access and portability, **Clear saved codes and history** and removing the Extension
+  for deletion, and re-registering for correction of an account detail.
+- **Sensitive information** — the date of birth and the outcome of an optional age check serve only
+  the gate they exist for, and a face measurement is never stored.
+- **Non-discrimination** — exercising a right cannot cost a feature, a rate or a credit, because the
+  controls act on your own data rather than on an account we administer.
+
+A request the controls do not cover can be sent to **lumasupport@tidio.xyz**; where we hold nothing
+to act on, the answer says so and names the control that does apply.
+
+## If something goes wrong
+
+Because there is no account server and no copy of a profile at our end, a security problem here
+cannot expose data we never received. The exposure that matters is on your device: a shared browser
+profile, a copied session, another extension with wider permissions, or a sealed backup whose
+recovery key was stored beside the file.
+
+If you think a defect has exposed something, write to **lumasupport@tidio.xyz** before making it
+public. If a device is in someone else's hands, sign out, change anything the browser stored, remove
+the Extension, and delete any sealed copy you kept.
+
 ## Changes to this policy
 
 This policy is versioned alongside the Terms. When the Terms change to a new version, this policy is
@@ -260,16 +335,16 @@ updated with it, the version and date at the top change, and the panel asks you 
 the new Terms before it continues (Terms §19). If you do not agree, the panel stays on its notice
 screen and you can remove the Extension.
 
-## Summary
+## How to contact us
 
-- Everything the Extension knows about you sits in your browser profile; there is no Luma Pay
-  account server.
-- Data leaves only to addresses you configured yourself, and only the request that feature needs.
-- With no age-check relay, the optional face scan is measured entirely on your device; nothing is
-  uploaded, and no image or face template is ever stored.
-- Card numbers are never read, stored or transmitted.
-- No analytics, no telemetry, no advertising identifiers, and your data is not sold.
-- Deleting the data in the settings — or removing the Extension — is the deletion.
+Write to **lumasupport@tidio.xyz**. That address is the official contact point for this policy, for
+a data request the settings controls do not cover, for a complaint and for a security report. It is
+the address named in Terms §30, and `extension/support.html` repeats it.
+
+Include the browser and the Extension version you are using, and what you expected the panel to do.
+Never send a password, a full card number, a security code, an export file or a recovery key. We
+cannot open a sealed backup, cannot restore an account lost with a browser profile and cannot read
+data that never left your device.
 
 ---
 
@@ -287,14 +362,14 @@ gate by hand, and these are the places to re-read when either changes:
 | What leaves the device | §13 | `extension/src/lib/settings.js`, `guard.js` (endpoint rules); `extension/src/partners/*` |
 | Payout details | §6, §12 | `extension/src/partners/cashback-payout.js` |
 | Ad blocking and ad value | §4, §6 | `extension/src/content/ad-guard.js`, `extension/src/lib/ad-value.js`, `rules/ads.json` |
-| Contact | §23 | store listing support address |
+| Contact | §30 | `lumasupport@tidio.xyz`, repeated in `extension/support.html` |
 
 Still open before publication (see `docs/opera-submission.md`):
 
 - [ ] Publish this policy at a public URL and enter it in the store listing.
 - [x] Reconcile the export wording with the gate: Terms §13 now describes what **Export a copy**
       contains instead of claiming “everything it holds”, which the service worker never did. Terms
-      and this policy are at version 1.2, so the panel asks again.
+      and this policy are at version 1.4, so the panel asks again.
 - [x] Ship a copy of this policy inside the package (`extension/privacy.html`) so it is reachable
       from the notice card, the terms and the settings page, and so a reviewer can read it offline.
 - [ ] Publish `extension/support.html` at a URL entered in the submission form.

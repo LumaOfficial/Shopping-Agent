@@ -101,7 +101,15 @@ test("the packaged terms match the version the gate checks, and the box starts e
   assert.match(html, new RegExp("Version " + TERMS_VERSION.replace(/\./g, "\\.")));
   assert.ok(html.includes("Last updated 12 November 2026"), "the date the module records");
   assert.equal(TERMS_UPDATED, "2026-11-12");
-  assert.match(html, /id="summary"/, "the plain-language summary is there to read");
+  // There is deliberately no shortened version: a summary that leaves a detail out is a
+  // second account of the agreement someone could later rely on, so the numbered sections
+  // are the only reading of the Terms and the contents list has to reach all of them.
+  assert.equal(html.includes('id="summary"'), false, "no shortened version of the Terms ships");
+  for (let n = 1; n <= 30; n += 1) {
+    assert.ok(html.includes('<section id="s' + n + '"'), "section " + n + " is present");
+    assert.ok(html.includes('href="#s' + n + '"'), "section " + n + " is in the contents list");
+  }
+  assert.equal((html.match(/<section id="s\d+"/g) || []).length, 30, "no extra numbered section");
   assert.match(panel, /<input id="terms-agree" type="checkbox" \/>/, "no checked attribute");
   assert.match(panel, /id="terms-accept" type="button" disabled/, "agreement needs the tick first");
   assert.match(panel, /href="terms.html"/, "the full document is one link away");

@@ -12,7 +12,7 @@
       <div class="terms-wrap">
         <p class="terms-kicker">Luma Pay Shopping Agent</p>
         <h1>Privacy Policy</h1>
-        <p class="terms-meta">Version 1.3 · Last updated 12 November 2026</p>
+        <p class="terms-meta">Version 1.4 · Last updated 12 November 2026</p>
         <p class="terms-lede">
           This policy describes what the Extension does with data. It matches the Terms of Use and
           Disclosures you are asked to accept before the panel does anything — in particular
@@ -20,10 +20,12 @@
           matching, the Terms govern and this policy is wrong and will be corrected.
         </p>
         <p class="terms-lede">
-          In short: the Extension is local-first. Accounts, codes, prices, balances and your
-          acceptance of the Terms live in this browser profile. Nothing is sent anywhere unless you
-          have configured the address yourself, and the only things that travel are the requests
-          named under <a href="#leaves">What leaves your device</a>.
+          This policy is a complete statement of the handling the Extension performs, and it is
+          written to be read in full. It is not a summary of the Terms and not a substitute for them:
+          where this policy and the <a href="terms.html">Terms</a> both speak to the same handling
+          they say the same thing, and where they differ the Terms govern, and this policy is wrong
+          and will be corrected under a new version. No paragraph here shortens an obligation that a
+          numbered section of the Terms imposes, and no omission here removes one.
         </p>
       </div>
     </header>
@@ -39,10 +41,17 @@
             vendor has approved the Extension.
           </p>
           <p>
-            Questions about this policy go to the support address on the Extension's own store
-            listing — the same contact point named in section 23 of the
-            <a href="terms.html#s23">Terms</a>. The Extension's <a href="support.html">support
-            page</a> says how to reach us.
+            Questions about this policy go to <strong>lumasupport@tidio.xyz</strong>, the official
+            contact point named in section 30 of the <a href="terms.html#s30">Terms</a>. The
+            Extension's <a href="support.html">support page</a> says what to include in a message
+            and how to reach us.
+          </p>
+          <p>
+            We are the operator that publishes the Extension. We have no separate data-protection
+            office, no representative in any country and no account server, because the Extension
+            holds no account record that leaves your device. Where this policy says “we do not hold”
+            something, that is a statement about the design of the Extension, not a claim that no
+            law applies to it.
           </p>
         </section>
 
@@ -70,7 +79,7 @@
           <ul>
             <li>
               <strong>Your acceptance of the Terms.</strong> The version you agreed to (currently
-              1.3) and the time you agreed. A record without a real version and timestamp is not
+              1.4) and the time you agreed. A record without a real version and timestamp is not
               treated as agreement.
             </li>
             <li>
@@ -119,6 +128,21 @@
               lock applies, so repeated guesses are slowed down.
             </li>
           </ul>
+          <p>
+            That list is the whole record. The Extension keeps no browsing history as a log, no
+            keystrokes, no screenshots, no clipboard contents, no contact list and no location. There
+            is no field for a card number, an expiry date or a security code, which is why those can
+            never be stored by accident. Nothing on this list is shared between browser profiles,
+            between devices or between people using the same device under different accounts, except
+            where an export or a sealed backup you created carries it.
+          </p>
+          <p>
+            Where the Extension stores a credential you entered, it stores it in this profile and
+            sends it only to the address you entered it for. A credential is never placed in an
+            export, never sealed into a backup and never included in a request to a different
+            address. Where a partner address is not HTTPS and is not a loopback listener, it is
+            dropped rather than sent a secret.
+          </p>
         </section>
 
         <section id="backup">
@@ -176,6 +200,19 @@
             restricts where data can go — scripts only from its own files, and connections only over
             HTTPS or to a loopback listener on this machine — so an address you have not configured
             is not a destination at all.
+          </p>
+          <p>
+            A request is built for the feature that sends it and carries nothing else: no account
+            identifier, no wallet balance, no list of codes and no record of other pages. Where a
+            provider's answer is stored, it is stored on this device as the offer, rate or price it
+            describes. What a provider does with a request once it receives it is governed by that
+            provider's own notice, which we do not control and cannot amend; if that matters to you,
+            configure only providers whose notice you have read.
+          </p>
+          <p>
+            You can stop every outbound request by leaving the partner addresses empty and not
+            creating a sync address. With no address configured, the Extension works from the catalog
+            and the pages it can read, and sends nothing at all.
           </p>
         </section>
 
@@ -288,6 +325,18 @@
             the browser profile's data, deletes the account, the wallet and everything else with it
             — and we cannot restore any of it.
           </p>
+          <p>
+            A sealed backup is a copy of the profile that you placed somewhere. It is ciphertext, and
+            it is deleted by deleting the file or the record at the address you chose — the Extension
+            keeps no second copy and we hold no copy at all. A record at a sync address is deleted
+            when you delete it there; a host that keeps its own logs or backups of what it received is
+            outside our control, and its notice governs that.
+          </p>
+          <p>
+            Where a store or a provider retains something it received from a request, that retention
+            is its own and is described in its own notice. Nothing in this policy shortens or extends
+            it, and a message to us cannot delete it.
+          </p>
         </section>
 
         <section id="rights">
@@ -318,8 +367,16 @@
           </ul>
           <p>
             Depending on where you live you may also have the right to complain to your
-            data-protection authority. Questions, or a request the controls do not cover, go to the
-            address in section 23 of the <a href="terms.html#s23">Terms</a>.
+            data-protection authority. Questions, or a request the controls do not cover, go to
+            <strong>lumasupport@tidio.xyz</strong>, the address given in section 30 of the
+            <a href="terms.html#s30">Terms</a>.
+          </p>
+          <p>
+            A request is answered by describing the controls that apply to it, because the data is on
+            your device and we cannot reach it. Say what you are asking for and which browser profile
+            it concerns; never send a password or the contents of an export. We do not charge a fee
+            to answer a request, and we do not require identity documents to explain how the controls
+            work.
           </p>
         </section>
 
@@ -338,7 +395,20 @@
           <p>
             No system is perfect. Anyone with access to this browser profile and an open session can
             see the account's balances and act in it — if you share a machine, sign out when you are
-            done, or clear the Extension's data in its settings.
+            done, or clear the Extension's data in its settings. A sealed backup is only as private as
+            its recovery key: keep the key somewhere other than beside the file, because a copy of
+            both together is a copy of the profile.
+          </p>
+          <p>
+            Storage on the device is not encrypted at rest by the Extension beyond what your operating
+            system does for the browser profile, so a device that is unlocked and unattended is a
+            device whose profile can be read. Disk encryption, a screen lock and a separate browser
+            profile for shopping are the controls that address that, and they are yours to set.
+          </p>
+          <p>
+            We do not claim that the Extension has been audited by a third party, that it is free of
+            defects, or that a defect will be corrected within a particular time. What we do is fix
+            what is reported and say in the release notes when a security-relevant change is made.
           </p>
         </section>
 
@@ -362,6 +432,118 @@
           </p>
         </section>
 
+        <section id="basis">
+          <h2>Legal bases, and the limits we set ourselves</h2>
+          <p>
+            The Extension does its work in your browser, on your instruction, and almost everything it
+            handles never reaches us. Where a law calls for a legal basis, the handling rests on one
+            or more of these, as the case requires:
+          </p>
+          <ul>
+            <li><strong>Your agreement</strong> — the Terms you accepted, the separate agreement to
+              the optional face-based check, and the consent your browser records when you add a shop
+              or grant a site permission;</li>
+            <li><strong>Performance of what you asked for</strong> — recognising a shop, reading
+              codes, filling a promo field you chose, recording a price, issuing a payout you
+              requested;</li>
+            <li><strong>Legitimate interests</strong> — keeping the Extension working, preventing
+              abuse of the wallet and of the rate limits, keeping a record of what a store's page said
+              so you can see it, and answering a message you sent us, balanced against your rights and
+              the fact that the data stays with you;</li>
+            <li><strong>A legal obligation</strong> — where a payout provider, a tax rule, a sanctions
+              rule or a consumer-protection rule requires a record to be kept or a check to be made.
+            </li>
+          </ul>
+          <p>
+            We set limits on ourselves that the law does not always require: no profile of your
+            browsing across shops, no advertising identifiers, no sale of data, no analytics endpoint,
+            and no feature whose function depends on sending your page content to us. Those limits are
+            part of how the Extension is built, and this policy describes them rather than promising
+            them as a favour.
+          </p>
+        </section>
+
+        <section id="automated">
+          <h2>Automated processing</h2>
+          <p>
+            Three decisions in the Extension are made by a program rather than by a person: whether a
+            page is a covered shop, whether a code a store's page accepted counts as verified, and
+            whether an ad-value credit falls inside the per-page, per-tab and per-day caps. Each is
+            mechanical, each is visible in the panel, and each can be overridden by the switches in the
+            settings.
+          </p>
+          <p>
+            The optional age check produces an estimate of whether a person appears to be 18 or over,
+            and that estimate can unlock a payout and a promotional boost. It is a statistical guess,
+            not proof of age, not an identity check, and not a decision about your legal capacity. A
+            failure of the check does not block the codes, cashback or price features, and it is not
+            used to build a profile of you. You can ask for the check to be cleared, which returns the
+            account to an unverified state.
+          </p>
+          <p>
+            No decision that has a legal effect on you beyond unlocking a payout is made about you by
+            automated means, and no advertising profile is built from the pages you visit.
+          </p>
+        </section>
+
+        <section id="signals">
+          <h2>Browser signals, Do Not Track and Global Privacy Control</h2>
+          <p>
+            The Extension sends no tracking request that a Do Not Track or Global Privacy Control
+            signal would need to suppress, so it does not need to read those signals to honour them:
+            there is nothing to opt out of. Where your browser offers other controls — third-party
+            cookie blocking, a site permission for a shop, the Extension's own switches — those
+            controls act directly on the Extension and are respected as they are set.
+          </p>
+        </section>
+
+        <section id="state">
+          <h2>United States state privacy rights</h2>
+          <p>
+            Several state laws give residents rights over personal information: to know what is
+            collected, to access it, to correct it, to delete it, to obtain a copy, to opt out of its
+            sale or sharing, and not to be discriminated against for exercising those rights. The
+            Extension is built so that most of that resolves on your own device:
+          </p>
+          <ul>
+            <li><strong>Sale and sharing</strong> — we do not sell personal information and do not
+              share it for cross-context behavioural advertising. There is no store of it here to
+              sell;</li>
+            <li><strong>Access, correction, deletion and portability</strong> — the settings controls
+              perform them: <strong>Export a copy</strong> for access and portability,
+              <strong>Clear saved codes and history</strong> and removing the Extension for deletion,
+              and re-registering for correction of an account detail;</li>
+            <li><strong>Sensitive information</strong> — the date of birth on the account and the
+              outcome of an optional age check are not used for any purpose other than the gate they
+              serve, and a face measurement is never stored;</li>
+            <li><strong>Non-discrimination</strong> — exercising a right here cannot cost you a
+              feature, a rate or a credit, because the controls act on your own data rather than on an
+              account we administer.</li>
+          </ul>
+          <p>
+            A request that the controls do not cover can be sent to
+            <strong>lumasupport@tidio.xyz</strong>; where we hold nothing to act on, the answer will
+            say so and name the control that does apply. You may also contact your state attorney
+            general, and nothing here limits a right your state's law gives you.
+          </p>
+        </section>
+
+        <section id="incidents">
+          <h2>If something goes wrong</h2>
+          <p>
+            Because we hold no account server and no copy of your profile, a security problem at our
+            end cannot expose data we never received. The exposure that matters is on your own device:
+            a shared browser profile, a copied session, a browser extension with wider permissions than
+            this one, or a sealed backup whose recovery key was stored next to the file.
+          </p>
+          <p>
+            If you think a defect in the Extension has exposed something, write to
+            <strong>lumasupport@tidio.xyz</strong> before making it public. If the device is in someone
+            else's hands, sign out, change the password of anything the browser stored, remove the
+            Extension, and delete any sealed copy you kept.
+          </p>
+        </section>
+
         <section id="changes">
           <h2>Changes to this policy</h2>
           <p>
@@ -372,19 +554,22 @@
           </p>
         </section>
 
-        <section id="summary" class="terms-summary">
-          <h2>Summary</h2>
-          <ul>
-            <li>Everything the Extension knows about you sits in your browser profile; there is no
-              Luma Pay account server.</li>
-            <li>Data leaves only to addresses you configured yourself, and only the request that
-              feature needs.</li>
-            <li>With no age-check relay, the optional face scan is measured entirely on your device;
-              nothing is uploaded, and no image or face template is ever stored.</li>
-            <li>Card numbers are never read, stored or transmitted.</li>
-            <li>No analytics, no telemetry, no advertising identifiers, and your data is not sold.</li>
-            <li>Deleting the data in the settings — or removing the Extension — is the deletion.</li>
-          </ul>
+        <section id="contact">
+          <h2>How to contact us</h2>
+          <p>
+            Write to <strong>lumasupport@tidio.xyz</strong>. That address is the official contact
+            point for this policy, for a data request the settings controls do not cover, for a
+            complaint, and for a security report. It is the same address named in section 30 of the
+            <a href="terms.html#s30">Terms</a>, and the <a href="support.html">support page</a> that
+            ships with the package repeats it.
+          </p>
+          <p>
+            Include the browser and the Extension version you are using, and what you expected the
+            panel to do. Never send a password, a full card number, a security code, an export file or
+            a recovery key. We cannot open a sealed backup, cannot restore an account lost with a
+            browser profile, and cannot read data that never left your device — those limits are the
+            same ones this policy describes, and a message does not change them.
+          </p>
         </section>
       </article>
     </div>
@@ -392,7 +577,7 @@
     <footer class="terms-foot">
       <div class="terms-wrap">
         <p>
-          Luma Pay Shopping Agent · Privacy Policy · version 1.3 · 12 November 2026 ·
+          Luma Pay Shopping Agent · Privacy Policy · version 1.4 · 12 November 2026 ·
           <a href="terms.html">Terms of Use</a> · <a href="support.html">Support</a>
         </p>
       </div>

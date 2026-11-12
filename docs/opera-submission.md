@@ -83,6 +83,36 @@ reviewer would ask about it:
 - **The suite is now 84 tests**, including the savings list, the hourly pass, the tour and the
   platform matrix.
 
+**Revision 5 — 12 November 2026.** The disclosure set was expanded and shortened copies removed:
+
+- **The Terms are longer and numbered to thirty sections.** New material covers wallet credits,
+  expiry and forfeiture (§23), taxes (§24), notices and electronic communication (§25), force
+  majeure (§26), export control and sanctions (§27), consumer complaints and dispute resolution
+  (§28), and store orders, refunds and chargebacks (§29); §30 is the contact section. Existing
+  sections gained the paragraphs a reviewer tends to ask for — when permission is asked for and how
+  it ends (§5), what a saving figure is and is not (§7), the absence of a password reset (§8),
+  rate limits and misuse reports (§9), withdrawal of the age check (§11), and the limits of the
+  liability cap (§17).
+- **No shortened version of either document ships.** The plain-language summary was removed from
+  the Terms and the summary from the privacy policy, because a condensed account that leaves out a
+  detail is a second version of the agreement someone could rely on. `test/terms.test.mjs` now
+  asserts that no `id="summary"` exists and that all thirty numbered sections are present and
+  listed in the contents, instead of asserting that a summary is there.
+- **The privacy policy gained the sections the state and EU frameworks ask about:** legal bases and
+  the limits set on ourselves, automated processing (including the age estimate and the ad-value
+  caps), Do Not Track and Global Privacy Control, United States state privacy rights, what happens
+  if something goes wrong, and a contact section.
+- **One official contact address: `lumasupport@tidio.xyz`.** It is named in Terms §30, in the
+  privacy policy's "Who this policy is from", "Your rights" and contact sections, and in
+  `extension/support.html` — in the lede, the contact section and the footer — which also now says
+  what to put in a message and what we can and cannot do about a problem.
+- **The support page was rewritten longer.** It adds what the Extension is, how the list refreshes,
+  backups and moving device, the optional age check and cash-out, a before-you-write checklist, the
+  limits of what support can do, and security reporting — all of it inside the package, with no
+  external link.
+- **The Terms version is 1.4**, in `src/lib/terms.js`, `src/content/consent.js` and the three
+  packaged pages, so the panel asks again before anything runs. The suite is 94 tests.
+
 ## What the operator is confirming
 
 The review below maps each criterion to what the package actually does, and names the file that

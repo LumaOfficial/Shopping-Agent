@@ -12,16 +12,44 @@
       <div class="terms-wrap">
         <p class="terms-kicker">Luma Pay Shopping Agent</p>
         <h1>Support</h1>
-        <p class="terms-meta">Version 1.2 · Last updated 12 November 2026</p>
+        <p class="terms-meta">Version 1.4 · Last updated 12 November 2026</p>
         <p class="terms-lede">
-          How to use the Extension, what to check when a feature does nothing, and where to ask for
-          help. This page ships inside the package, so it works with no connection.
+          How to use the Extension, what to check when a feature does nothing, what to send us when
+          you write, and what we can and cannot do about a problem. This page ships inside the
+          package, so it works with no connection.
+        </p>
+        <p class="terms-lede">
+          If you need a person, write to <strong>lumasupport@tidio.xyz</strong>. That address is the
+          official contact point, it is the same one named in section 30 of the
+          <a href="terms.html">Terms</a>, and it reaches the people who maintain the Extension.
         </p>
       </div>
     </header>
 
     <div class="terms-wrap terms-body single">
       <article class="terms-doc">
+        <section id="what">
+          <h2>What this Extension is</h2>
+          <p>
+            Luma Pay Shopping Agent is a browser extension that adds a panel beside the page you are
+            shopping on. The panel reads the codes, offers and prices that the store itself publishes,
+            and keeps a local record of what it found. It does not place an order, does not complete a
+            checkout and does not hold a card number. Its account and its balances live in this
+            browser profile, not on a server.
+          </p>
+          <p>
+            The panel works only on the shops in the catalog it ships with, and on shops you add
+            yourself with <strong>Check &amp; add this site</strong>. On any other page it does
+            nothing at all, and it reads nothing from that page. The Terms of Use that you agree to on
+            the first screen are the agreement; this page is the practical guide to it.
+          </p>
+          <p>
+            Nothing in the Extension runs before you tick the box on the notice screen and choose
+            <strong>Agree and continue</strong>. That includes the ad blocking, which stays off for a
+            profile that has not agreed even though the switch reads on.
+          </p>
+        </section>
+
         <section id="open">
           <h2>Opening the panel</h2>
           <p>
@@ -29,6 +57,18 @@
             In Opera the panel opens in the sidebar; in other Chromium browsers it opens in the side
             panel. The panel belongs to the tab you are in, so opening a shop gives the panel
             something to work on.
+          </p>
+          <p>
+            If the panel opens on its notice screen, the Terms have not been accepted in this browser
+            profile, or a newer version of them has been published since you last agreed. Read the
+            notice, tick the empty box and choose <strong>Agree and continue</strong>. If the panel
+            opens on the sign-in card, the profile has agreed to the Terms but has no account on this
+            device yet.
+          </p>
+          <p>
+            If the button is not on the toolbar, open your browser's extensions page, find Luma Pay
+            Shopping Agent, and pin it. If the shortcut collides with another extension's shortcut,
+            change one of them on the browser's own shortcuts page; the panel opens either way.
           </p>
         </section>
 
@@ -46,6 +86,24 @@
             optional face scan, ads, and the shortcut for your computer. Use <strong>Next</strong>
             and <strong>Back</strong>, or <strong>Skip tour</strong>; it picks up where it stopped if
             you close the panel, and <strong>Replay the tour</strong> in Settings opens it again.
+          </p>
+          <p>
+            Your password is kept only as a salted hash, so it cannot be read back — not by you, not
+            by anyone who opens the profile. There is also no reset by email, because there is no
+            server to send a reset from. If you lose the password, the only way back to the account is
+            a sealed backup whose recovery key you kept, made from the Backup and recovery section of
+            Settings before you lost access.
+          </p>
+          <p>
+            The date of birth you enter is the record of your age for the payout gate. Entering it
+            does not verify it against a document; the optional face-based check described further
+            down is the only other way the panel forms a view about age, and it is not required to use
+            the codes, the cashback cards or the price history.
+          </p>
+          <p>
+            If you agreed to the Terms and then closed the panel, nothing is lost: the record of your
+            agreement and your account are in the profile, and the panel opens on the shopping view
+            the next time you open a covered shop.
           </p>
         </section>
 
@@ -92,6 +150,39 @@
               check.
             </li>
           </ul>
+          <p>
+            The panel works one shop at a time. Open a product page in a covered shop and the panel
+            picks the shop up from the address; open a page it does not cover and it says so instead
+            of guessing. Codes belong to the store they were read from, so a code from one shop is
+            never offered in another.
+          </p>
+          <p>
+            Nothing the panel does is a purchase step. Filling a code into a store's promo field
+            changes the store's own basket, and the total in the store's cart is the amount that
+            binds you — check it before you pay, because a code that the page accepted may still be
+            limited, bundled or withdrawn later in the checkout.
+          </p>
+        </section>
+
+        <section id="fresh">
+          <h2>Keeping the lists fresh</h2>
+          <p>
+            Two lists can refresh themselves. The catalog of covered shops and the published savings
+            list are re-read hourly by the Extension's background worker while the browser is open,
+            and a code with an end date drops out by itself when that date passes. The panel shows a
+            freshness line so you can see when a list was last read.
+          </p>
+          <p>
+            <strong>Update now</strong> in Settings forces a refresh. <strong>Keeping up to date</strong>
+            in Settings has the automatic-refresh switch; turning it off leaves the list as it is
+            until you ask for an update or reopen the browser. A refresh is a request to the address
+            the list was published at — or nothing at all if the list came with the package.
+          </p>
+          <p>
+            If the freshness line says the list is old, or a store you use is missing, force an
+            update first, then reload the shop's page. A shop added with <strong>Check &amp; add this
+            site</strong> applies to the tab after a reload, not to the page you were on.
+          </p>
         </section>
 
         <section id="fix">
@@ -119,7 +210,32 @@
               <strong>Nothing at all runs.</strong> The panel does nothing until the terms are
               agreed. Read them from the notice screen and tick the box.
             </li>
+            <li>
+              <strong>A feature that used to work stopped.</strong> A store can change its pages at
+              any time, and a code, a price or a card can move out of reach until the Extension is
+              updated for that page. Reload the page, force an update, and if it still fails, write
+              to us with the store and what the panel shows.
+            </li>
+            <li>
+              <strong>The panel shows an error from a provider.</strong> An offer feed, a price
+              history API or a payout provider answered with a refusal or did not answer at all. Check
+              the address and credential in Settings; the panel reports what the provider said and
+              does not retry against an address that failed.
+            </li>
+            <li>
+              <strong>A payout will not complete.</strong> It needs a configured payout provider
+              address, a balance above that option's minimum, and — for cash-out — a completed 18+
+              check. A provider may also decline for its own reasons, in its own words, which the
+              panel repeats.
+            </li>
           </ul>
+          <p>
+            Try the same steps in order before writing: reload the shop's page, open the panel again
+            on that tab, force an update in Settings, and check that the feature's switch is on.
+            Restarting the browser applies an update that is waiting. If none of that changes what
+            you see, the message is worth sending — and what you include decides whether it can be
+            answered.
+          </p>
         </section>
 
         <section id="data">
@@ -133,14 +249,88 @@
           </p>
         </section>
 
-        <section id="contact">
-          <h2>Contact</h2>
+        <section id="backup">
+          <h2>Backups, and moving to another device</h2>
           <p>
-            A bug, a store that stopped working, or a question about a payout: write to the support
-            address on the Extension's own store listing. That listing is the contact point we keep
-            current, and a message there reaches the people who maintain the Extension. Please say
-            which store, which browser and version you are on, and what the panel showed — never
-            send a password, a card number or a code you have not used.
+            A browser profile can be wiped and a device can be lost, and everything the Extension
+            knows goes with it. <strong>Backup and recovery</strong> in Settings seals the profile —
+            account, wallet, saved and accepted codes, price points and settings — into one encrypted
+            code, and locks it with a recovery key you are shown once.
+          </p>
+          <p>
+            <em>Save an encrypted copy</em> writes that code to a file you choose. If you also enter
+            a sync address, the Extension posts the sealed code there after an earning and once an
+            hour; the host receives ciphertext it cannot read. Provider credentials are left out of
+            every copy, so a restored device asks for those again.
+          </p>
+          <p>
+            Keep the recovery key away from the copy itself, because the two together are the profile.
+            Nobody can open a sealed copy without that key, including us: there is no escrow, no
+            server copy and no reset. Restoring replaces what the profile holds and signs the device
+            out.
+          </p>
+        </section>
+
+        <section id="age">
+          <h2>The age check and cash-out</h2>
+          <p>
+            The 18+ check is optional and asks you separately before it starts. With no relay
+            configured, everything happens on this device: you turn your head to a few angles, the
+            panel measures small copies of the camera picture, and drops them. Only the verdict and
+            the time are saved. If you connect a relay, one straight-on frame is posted to it and
+            passed to the face provider, which estimates an age and returns a verdict; the relay
+            discards the frame.
+          </p>
+          <p>
+            A passing check unlocks cash-out and a promotional boost on rewards. Failing it, or
+            declining it, leaves codes, cashback cards and price history working — only cash-out waits.
+            Clear the verdict in Settings to return to an unverified state; that locks cash-out again
+            and does not delete anything a relay you configured holds.
+          </p>
+        </section>
+
+        <section id="contact">
+          <h2>Contact, and what to put in a message</h2>
+          <p>
+            Write to <strong>lumasupport@tidio.xyz</strong>. That address is the official contact
+            point for a bug, a store that stopped working, a question about a payout, a data request,
+            a complaint and a security report. It is the same address named in section 30 of the
+            <a href="terms.html">Terms</a>, and it reaches the people who maintain the Extension.
+          </p>
+          <p>A message that can be acted on usually says:</p>
+          <ul>
+            <li>which store or page address you were on, and what you were trying to do;</li>
+            <li>which browser and version, and which version of the Extension (it is on this page,
+              and in the browser's extensions page);</li>
+            <li>what the panel showed — the wording of the message, or a screenshot of the panel
+              itself, with anything personal covered;</li>
+            <li>whether the same steps still reproduce it after a reload and a forced update.</li>
+          </ul>
+          <p>
+            Never send a password, a full card number, a security code, a recovery key, an export file
+            or a coupon code you have not used. We do not need them, and a message containing them is
+            a risk to you rather than help to us.
+          </p>
+        </section>
+
+        <section id="limits">
+          <h2>What we can and cannot do</h2>
+          <p>
+            We can read a defect report, reproduce it where a page is public, fix it in a release and
+            tell you which version carries the fix. We can explain what the panel did and why, and
+            point you at the switch or setting involved.
+          </p>
+          <p>
+            We cannot recover an account lost with a browser profile, open a sealed backup without its
+            recovery key, read data that never left your device, reverse a store's decision about a
+            code, an order, a refund or a chargeback, or make a payout provider approve a payout it
+            declined. Those limits are the same ones the <a href="terms.html">Terms</a> describe; a
+            message does not change them, and we would rather say so here than disappoint you later.
+          </p>
+          <p>
+            A security report is welcome and should be sent before anything is made public. We will
+            not pursue a good-faith report made in that way, and we will say what we found and what
+            changed.
           </p>
         </section>
 
@@ -153,6 +343,10 @@
               it, and how to delete it.</li>
             <li>The Extension's store listing — version notes, screenshots and the support address.</li>
           </ul>
+          <p class="terms-aside">
+            Support address: <strong>lumasupport@tidio.xyz</strong> · documented for Terms version 1.4
+            of 12 November 2026, the version this page ships with.
+          </p>
         </section>
       </article>
     </div>
@@ -160,7 +354,8 @@
     <footer class="terms-foot">
       <div class="terms-wrap">
         <p>
-          Luma Pay Shopping Agent · Support · version 1.2 · 12 November 2026 ·
+          Luma Pay Shopping Agent · Support · version 1.4 · 12 November 2026 ·
+          lumasupport@tidio.xyz ·
           <a href="terms.html">Terms of Use</a> · <a href="privacy.html">Privacy Policy</a>
         </p>
       </div>
