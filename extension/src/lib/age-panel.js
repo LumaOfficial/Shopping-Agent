@@ -111,8 +111,9 @@ export function startAgeCheck(options) {
     byId("age-facts-wrap").hidden = verified;
     byId("age-start").hidden = verified;
     byId("age-photo-btn").hidden = verified;
-    // Once the check has passed there is nothing left to start: the scan
-    // guidance and the ways into a check go with it, leaving the verdict.
+    // Once the check has passed there is nothing left to do on the card, so the
+    // whole card leaves the panel and the wallet underneath carries the verdict.
+    root.hidden = verified;
     byId("age-distance").hidden = verified;
     byId("age-actions").hidden = verified;
     // Only offered as an upgrade, never as a requirement.
@@ -443,9 +444,9 @@ export function startAgeCheck(options) {
 
     status = normalizeStatus(reply);
     render();
-    if (status.state === "verified") {
-      setStatus("Verified — cash outs are unlocked and new earnings carry the boost.", "ok");
-    } else if (status.state === "under") {
+    // A passed check takes the card away, so the only verdicts worth explaining
+    // here are the ones that leave it on screen.
+    if (status.state === "under") {
       setStatus("The check put you under " + MIN_AGE + ", so cash outs stay locked.", "bad");
     } else {
       setStatus("Couldn't confirm it — try again in even light, facing the camera.", "wait");
@@ -574,7 +575,9 @@ export function startAgeCheck(options) {
     // and drops any camera that was still open.
     show(active) {
       stop();
-      root.hidden = !active;
+      // A card that has already passed stays away, so it never flashes on for the
+      // signed-in shopper whose check just cleared.
+      root.hidden = !active || isVerified(status);
       if (active) {
         load();
       } else {

@@ -1712,8 +1712,16 @@ const toolkit = startToolkit();
 // The face age check card owns its own consent and capture; the panel only tells
 // it who is signed in, and refreshes the wallet once a verdict lands.
 const ageCheck = startAgeCheck({
-  onChange: () => {
+  onChange: (next) => {
     loadWallet();
+    // A passed check takes its card away, so the verdict is said on the wallet
+    // it just unlocked instead.
+    if (next && next.state === "verified") {
+      const line = byId("wallet-status");
+      line.hidden = false;
+      line.className = "status ok";
+      line.textContent = "Face check cleared — cash outs are unlocked and new earnings carry the boost.";
+    }
   },
 });
 
