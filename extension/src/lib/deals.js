@@ -13,8 +13,10 @@
 //      (see offerLines), because the product beside it already clears it. The
 //      price in the card is the price that qualifies.
 import { money } from "./format.js";
+import { hostsOf, storeById } from "./stores.js";
+import { EXTRA_DEALS, EXTRA_PRODUCTS } from "./deals-partners.js";
 
-export const DEALS_VERSION = 2;
+export const DEALS_VERSION = 3;
 export const DEALS_UPDATED = "2026-11-12";
 
 const deal = (id, store, label, category, note, extra) =>
@@ -32,8 +34,9 @@ const product = (id, store, name, category, price, popularity, q) => ({
 
 // Popular products, per store, with the list price in minor units and a search
 // term the store's own search understands. `popularity` is only a ranking
-// weight: it decides which qualifying product is offered first.
-export const POPULAR_PRODUCTS = [
+// weight: it decides which qualifying product is offered first. The shops in
+// deals-partners.js add their own products the same way.
+const BUNDLED_PRODUCTS = [
   // Laptops
   product("p-macbook-air-walmart", "walmart", "Apple MacBook Air 13-inch (M4)", "laptop", 99900, 97, "MacBook Air M4"),
   product("p-macbook-pro-walmart", "walmart", "Apple MacBook Pro 14-inch (M4 Pro)", "laptop", 199900, 90, "MacBook Pro 14 M4 Pro"),
@@ -117,7 +120,7 @@ export const POPULAR_PRODUCTS = [
 // with no category applies to anything that clears its bar. `note` is the whole
 // of what the shopper reads about the offer, so it never states a threshold and
 // never promises a figure the store has not published.
-export const PARTNER_DEALS = [
+const BUNDLED_DEALS = [
   deal(
     "walmart-laptops",
     "walmart",
@@ -202,6 +205,10 @@ export const PARTNER_DEALS = [
   deal("vitamix-refurbished", "vitamix", "Certified refurbished", "kitchen", "Vitamix's refurbished machines carry the same warranty at a lower price."),
 ];
 
+// The whole feed: the offers bundled above plus the shops in deals-partners.js.
+export const PARTNER_DEALS = BUNDLED_DEALS.concat(EXTRA_DEALS);
+export const POPULAR_PRODUCTS = BUNDLED_PRODUCTS.concat(EXTRA_PRODUCTS);
+
 // The store's own search for that product. Nothing else is fetched from the
 // panel: a tap hands the shopper to the store it names.
 const SEARCH = {
@@ -245,10 +252,13 @@ const SEARCH = {
   vitamix: "https://www.vitamix.com/us/en_us/search?q={q}",
 };
 
+// A store whose search we do not know still opens on that store's own site,
+// which is where the shopper would have started anyway.
 export function productUrl(item) {
   const template = SEARCH[item.store];
-  if (!template) return "";
-  return template.replace("{q}", encodeURIComponent(item.q || item.name));
+  if (template) return template.replace("{q}", encodeURIComponent(item.q || item.name));
+  const store = storeById(item.store);
+  return store ? "https://" + hostsOf(store)[0] : "";
 }
 
 // Whether a product clears everything a deal asks for. The store has to be the
