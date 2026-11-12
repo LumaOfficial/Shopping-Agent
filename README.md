@@ -9,8 +9,8 @@ fill the store's own promo field.
 
 | Browser | Package | Where the panel lives |
 | --- | --- | --- |
-| Chrome, Edge, Brave, Opera, Vivaldi, Arc, Chromium | `dist/chromium` | the browser's side panel |
-| Firefox 140+ desktop, 142+ Android | `dist/firefox` | Firefox's sidebar |
+| Chrome, Edge, Brave, Vivaldi, Arc, Chromium | `dist/chromium` | the browser's side panel |
+| Opera 30 and later | `dist/opera` | Opera's sidebar rail |
 | any other Chromium build, including older ones | `dist/chromium` | the panel in a small window |
 
 Safari needs Apple's Xcode conversion of a WebExtension package and is not
@@ -19,49 +19,37 @@ packaged here.
 ### Build
 
 ```bash
-cd extension && node tools/build.mjs                     # both packages
-cd extension && node tools/build.mjs --target firefox    # just one
+cd extension && node tools/build.mjs                   # both packages
+cd extension && node tools/build.mjs --target opera    # just one
 ```
 
-`dist/` is not committed. Upload `dist/chromium` to the Chrome Web Store, and the
-same package to the Edge Add-ons and Opera stores; upload `dist/firefox` to
-addons.mozilla.org.
+`dist/` is not committed. Upload `dist/chromium` to the Chrome Web Store and the
+Edge Add-ons store, and `dist/opera` to addons.opera.com.
 
-Only the Firefox manifest differs, because Manifest V3 in Firefox has no
-background service worker (the same file is loaded as an event page) and no Side
-Panel API (the panel is declared as a `sidebar_action` instead). Three things the
-Firefox package needs that the Chromium one must not carry:
+Only the Opera manifest differs. Opera is Chromium underneath, so it keeps the
+Manifest V3 service worker and the declarative net request rules, but it has no
+Side Panel API — its sidebar is declared with Opera's own key, which is also what
+puts the extension on the sidebar rail:
 
-- `browser_specific_settings.gecko.id` — AMO requires an id. `build.mjs` writes a
-  placeholder, `savings@shopping-agent.example`; replace it with your own before
-  uploading, and keep it the same across releases or Firefox treats each version
-  as a new add-on.
-- `strict_min_version` 140 on desktop and 142 on Android. That is the first
-  release of each that reads `data_collection_permissions`, which AMO has
-  required of every new submission since 3 November 2025. An older floor would
-  install the extension where that consent is never shown, so AMO's linter flags
-  it (`KEY_FIREFOX_UNSUPPORTED_BY_MIN_VERSION`).
-- `data_collection_permissions`, declared as `browsingActivity` (the offer request
-  carries the store you are on to the feed you configured) and
-  `personallyIdentifyingInfo` (the age check posts one straight-on frame to the
-  relay you configured). Set the list to `["none"]` if you remove those features.
+- `sidebar_action` (`default_panel`, `default_title`, `default_icon`) replaces
+  Chrome's `side_panel`, and the `sidePanel` permission is dropped with it.
+- `minimum_chrome_version` is dropped: the Opera store validates the manifest
+  itself and its releases do not follow Chrome's version numbers.
 
-`web-ext lint` reports no errors on the package — its three warnings are the
-guarded Side Panel calls, which never run outside Chromium.
+`build.mjs` also drops `minimum_chrome_version` from `dist/chromium`, since the
+Edge and Opera stores flag keys they know nothing about.
 
-Firefox has no Side Panel API, so the toolbar button toggles the sidebar (open,
-then closed again), and `Alt+Shift+S` does the same. Firefox does not reopen the
-sidebar by itself when you switch back to a tab it was open on; if another
-extension owns that shortcut, reassign it in `about:addons` → gear → **Manage
-Extension Shortcuts**. Firefox for Android has no sidebar either, so there the
-button opens the panel in a window, or in a tab where windows cannot be opened.
+Opera's sidebar API (`opr.sidebarAction`) can set a panel's title, icon and page
+but cannot open or close the sidebar, so the toolbar button and `Alt+Shift+S`
+open the panel in a small window. The panel also lives on Opera's sidebar rail —
+click its icon there to dock it beside the page. Either way the panel reads the
+active tab, so it fills in for the store you are on.
 
 ### Load it unpacked
 
-1. Open `chrome://extensions`, `edge://extensions`, `brave://extensions` or
-   `opera://extensions` and enable **Developer mode**; in Firefox open
-   `about:debugging#/runtime/this-firefox` → **Load Temporary Add-on** →
-   `dist/firefox/manifest.json`.
+1. Open `chrome://extensions`, `edge://extensions` or `brave://extensions` and
+   enable **Developer mode**; in Opera open `opera://extensions` → **Developer
+   mode** → **Load unpacked** → `dist/opera`.
 2. Elsewhere: **Load unpacked** → select the `extension/` folder (or the built
    `dist/chromium`).
 3. Open a store (Target, Amazon, Amazfit, …). The panel fills in for that store.
@@ -69,7 +57,7 @@ button opens the panel in a window, or in a tab where windows cannot be opened.
    browser only injects content scripts into pages loaded after install.
 
 The panel names whichever browser you are in where the browser's own autofill is
-involved ("Show Edge autofill", "Show Firefox autofill", …); nothing else differs.
+involved ("Show Edge autofill", "Show Opera autofill", …); nothing else differs.
 
 ### Where codes come from
 
@@ -462,7 +450,7 @@ user from themselves.
 | `src/partners/sponsor-offers.js` | Sponsored offers → normalized ads, and the sponsor's booked reward |
 | `src/partners/price-history.js` | Optional product API 90-day low |
 | `tools/check-catalog.mjs` | Keeps `manifest.json` hosts in sync with the catalog |
-| `tools/build.mjs` | Builds `dist/chromium/` and `dist/firefox/` from this source |
+| `tools/build.mjs` | Builds `dist/chromium/` and `dist/opera/` from this source |
 
 ### Connector configuration
 

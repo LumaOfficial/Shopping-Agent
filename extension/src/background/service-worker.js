@@ -977,7 +977,7 @@ chrome.storage.onChanged.addListener(function (changes, area) {
 // Toolbar click opens the panel — the whole UI lives there. Where that panel is
 // belongs to the browser, so the surface is the one module the build varies:
 // src/lib/panel-surface.js is the Chromium Side Panel in a Chromium package and
-// Firefox's sidebar in a Firefox one.
+// Opera's sidebar in an Opera one.
 installPanelSurface();
 // Rulesets follow the saved setting from the first moment the worker runs.
 syncAdBlock();

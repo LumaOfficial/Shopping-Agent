@@ -1036,7 +1036,7 @@ async function removeSite(button) {
 // ---- render -------------------------------------------------------------
 async function render() {
   if (state.locked) return;
-  // currentWindow, not lastFocusedWindow: in Firefox's sidebar the panel belongs
+  // currentWindow, not lastFocusedWindow: in Opera's sidebar the panel belongs
   // to the window it is docked in, which is not necessarily the focused one.
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   const previousUrl = state.url;

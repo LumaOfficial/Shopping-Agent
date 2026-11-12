@@ -1,11 +1,12 @@
-// Where the panel lives in a Chromium browser. Chrome, Edge, Brave, Opera,
-// Vivaldi and Arc all ship the Side Panel API, so the toolbar button opens the
-// panel there and the browser keeps it open across tab switches. A Chromium
-// build without it falls back to a small window, then to a tab.
+// Where the panel lives in a Chromium browser. Chrome, Edge, Brave, Vivaldi and
+// Arc all ship the Side Panel API, so the toolbar button opens the panel there and
+// the browser keeps it open across tab switches. A Chromium build without it
+// falls back to a small window, then to a tab.
 //
-// The Firefox package carries panel-surface.firefox.js under this same name
-// instead (tools/build.mjs swaps it in), because Firefox has no Side Panel API
-// and a reference to one is a store-review flag in a package that never runs it.
+// This is the module the source tree itself uses. The Opera package carries
+// panel-surface.opera.js under this same name instead (tools/build.mjs swaps it
+// in), because Opera has no Side Panel API and a reference to one is a
+// store-review flag in a package that never runs it.
 
 export function installPanelSurface() {
   const sidePanel = chrome.sidePanel;
