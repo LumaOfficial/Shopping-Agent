@@ -248,6 +248,11 @@ stay true for months, so nothing depends on someone editing coupons each morning
 - **Verified codes** — codes the store accepted are remembered per store and
   offered first next time, marked `works`.
 - **Search / filter**, **Copy**, **Try all** (stops at the first code that lands).
+- **Entered at checkout** — when the cart or payment step already shows the
+  store's own promo box, the panel types the first three live codes in itself
+  and stops at the first one the page accepts. One pass per page: moving to the
+  next step starts a fresh pass, and a failed pass leaves every code in the list
+  to try by hand.
 - **Expiry** — codes past their `expires` date are dropped instead of offered.
 - **Provenance strip** — which source answered ("Live page scan" by default), how
   fresh the read is, and the feed's own error text when one is connected and

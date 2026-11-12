@@ -34,6 +34,9 @@ const state = {
   site: null,
   // The outcome of the last add-or-remove check, shown on the coverage card.
   verdict: null,
+  // Whether the page the panel is on asks for payment, so the cart and the
+  // payment step are known without asking the page twice.
+  atPayment: false,
   // Nobody signed in means no money is shown and no page is resolved.
   account: null,
   locked: true,
@@ -974,6 +977,61 @@ async function runApply(code, button, status) {
   return result;
 }
 
+// ---- automatic application at checkout ---------------------------------
+// At the cart and the payment step the store's own promo box is already open,
+// so the codes are typed in for the shopper instead of waiting for a tap. One
+// pass per page, three codes at most, and it stops the moment one is taken.
+const AUTO_APPLY_LIMIT = 3;
+let autoAppliedFor = null;
+
+// The cart and checkout steps live at a path segment of their own, so a query
+// string or a product slug that happens to say "order" is not mistaken for one.
+function looksLikeCheckout(url) {
+  try {
+    const path = new URL(url).pathname.toLowerCase();
+    return /(^|\/)(cart|basket|checkout|order|payment)(\/|$)/.test(path);
+  } catch (_error) {
+    return false;
+  }
+}
+
+async function autoApplyAtCheckout(hasField, atPayment) {
+  if (!state.data || !hasField) return;
+  if (state.data.features && state.data.features.coupons === false) return;
+  if (!(atPayment || looksLikeCheckout(state.url))) return;
+  if (autoAppliedFor === state.url) return;
+  autoAppliedFor = state.url;
+
+  const status = byId("codes-status");
+  const queue = liveCodes().slice(0, AUTO_APPLY_LIMIT);
+  if (!queue.length) return;
+
+  status.hidden = false;
+  status.className = "status wait";
+  status.textContent = "Entering your codes at checkout…";
+
+  try {
+    for (const coupon of queue) {
+      const result = await runApply(coupon.code, null, status);
+      if (result.status === "applied") {
+        status.className = "status ok";
+        status.textContent =
+          coupon.code + " entered at checkout — " + (result.message || "the store took it.");
+        return;
+      }
+    }
+  } catch (_error) {
+    status.className = "status wait";
+    status.textContent = "Could not enter the codes on this page — copy one and try it yourself.";
+    return;
+  }
+
+  status.className = "status wait";
+  status.textContent =
+    "Tried " + queue.length + " code" + (queue.length === 1 ? "" : "s") +
+    " at checkout — none were accepted. You can still try another below.";
+}
+
 async function refreshCodes() {
   if (!state.url) return null;
   const data = await sendWorker({ type: "offers:refresh", url: state.url });
@@ -1041,6 +1099,12 @@ function startAutoScan() {
     scanTimer = setTimeout(async () => {
       if (!state.data || !state.url) return;
       const added = ingestScan(await toTab({ type: "page:scan" }, { frameId: 0 }));
+      // A cart drawer or checkout step can render its promo box after the first
+      // read, so the field is looked for again on every round until a pass runs.
+      if (autoAppliedFor !== state.url) {
+        const probe = await toTab({ type: "coupon:probe" });
+        await autoApplyAtCheckout(Boolean(probe && probe.hasField), state.atPayment);
+      }
       scanRound += 1;
       if ((added || scanRound < 2) && scanRound < SCAN_DELAYS.length) step();
     }, SCAN_DELAYS[scanRound]);
@@ -1234,7 +1298,11 @@ async function render() {
   byId("field-note").hidden = Boolean(probe && probe.hasField);
 
   const checkout = await toTab({ type: "checkout:probe" });
-  byId("checkout-block").hidden = !(checkout && checkout.hasPaymentFields);
+  state.atPayment = Boolean(checkout && checkout.hasPaymentFields);
+  byId("checkout-block").hidden = !state.atPayment;
+
+  // The promo box at the cart or the payment step is filled in on its own.
+  autoApplyAtCheckout(Boolean(probe && probe.hasField), state.atPayment);
 
   loadSavings();
   loadWallet();
