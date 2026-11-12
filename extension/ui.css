@@ -581,16 +581,25 @@ body.sidepanel .gear:active {
 
 /* ---------- Shortcuts ---------- */
 
-/* One row of quick actions directly under the brand. It never wraps: on a
-   narrow panel the row scrolls sideways, so every shortcut keeps its label. */
+/* One row of quick actions directly under the earnings line. It never wraps: on
+   a narrow panel the row scrolls sideways, so every shortcut keeps its label.
+   Width fits its buttons so a row that fits sits centred in the panel. */
 body.sidepanel .shortcuts {
+  position: relative;
   display: flex;
   gap: 8px;
-  margin-top: 16px;
+  width: fit-content;
+  max-width: 100%;
+  margin: 18px auto 0;
   padding-bottom: 2px;
   overflow-x: auto;
   scrollbar-width: none;
   animation: rise 0.85s 0.05s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+/* The shortcut help opens inside the hero now, so its rows read from the left. */
+body.sidepanel .hero .shortcut-hint {
+  text-align: left;
 }
 
 body.sidepanel .shortcuts::-webkit-scrollbar {

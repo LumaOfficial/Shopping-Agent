@@ -700,10 +700,16 @@ function markVerified(code) {
 
 async function loadSavings() {
   const stats = await sendWorker({ type: "stats:get" });
-  if (!stats || !stats.savings || !stats.savings.count) return;
+  if (!stats) return;
+  const codes = stats.savings || { total: 0, count: 0 };
+  // The headline is everything earned, not only the codes a page confirmed: the
+  // codes' saving plus every cashback entry the wallet holds (pending, available
+  // and paid out), so the figure is the account's whole record.
+  const cashback = (stats.wallet && stats.wallet.lifetime) || 0;
+  byId("saved-total").textContent = money((codes.total || 0) + cashback, "USD");
+  byId("saved-count").textContent = String(codes.count || 0);
+  if (!codes.count && !cashback) return;
   byId("savings-block").hidden = false;
-  byId("saved-total").textContent = money(stats.savings.total || 0, "USD");
-  byId("saved-count").textContent = String(stats.savings.count);
   byId("saved-note").textContent =
     stats.verified +
     " verified code" +
