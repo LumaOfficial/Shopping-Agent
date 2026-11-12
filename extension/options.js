@@ -5,6 +5,16 @@ import { endpoint } from "./src/lib/guard.js";
 import { consentLine, readConsent, termsUrl } from "./src/lib/terms.js";
 import { TOUR_KEY, TOUR_VERSION } from "./src/lib/tutorial.js";
 import { detectPlatform, platformLine } from "./src/lib/platform.js";
+import {
+  applyProfile,
+  createVault,
+  openProfile,
+  pushVault,
+  readVault,
+  sealProfile,
+  writeVault,
+} from "./src/lib/backup.js";
+import { groupRecoveryKey, normalizeRecoveryKey } from "./src/lib/vault.js";
 
 const byId = (id) => document.getElementById(id);
 
@@ -64,6 +74,8 @@ function fill(settings) {
   byId("price-key").value = settings.priceHistoryKey;
   byId("age-url").value = settings.ageCheckUrl;
   byId("age-token").value = settings.ageCheckToken;
+  byId("vault-url").value = settings.backupUrl;
+  byId("vault-token").value = settings.backupToken;
   byId("members").value = settings.partnerMembers;
   byId("toggle-coupons").checked = settings.enabled.coupons;
   byId("toggle-cashback").checked = settings.enabled.cashback;
@@ -105,6 +117,8 @@ function collect() {
     priceHistoryKey: byId("price-key").value.trim(),
     ageCheckUrl: byId("age-url").value.trim(),
     ageCheckToken: byId("age-token").value.trim(),
+    backupUrl: byId("vault-url").value.trim(),
+    backupToken: byId("vault-token").value.trim(),
     partnerMembers: byId("members").value.trim(),
     enabled: {
       coupons: byId("toggle-coupons").checked,
@@ -164,6 +178,7 @@ const ENDPOINT_FIELDS = [
   { key: "payoutUrl", label: "the payout proxy" },
   { key: "sponsorUrl", label: "the sponsor service" },
   { key: "ageCheckUrl", label: "the age check relay" },
+  { key: "backupUrl", label: "the sync endpoint" },
 ];
 
 async function save() {
@@ -197,6 +212,7 @@ async function save() {
   const payoutGranted = await ensureHost(settings.payoutUrl);
   const sponsorGranted = await ensureHost(settings.sponsorUrl);
   await ensureHost(settings.ageCheckUrl);
+  await ensureHost(settings.backupUrl);
   await chrome.storage.local.set({ settings });
   if (!(granted && catalogGranted && payoutGranted && sponsorGranted)) {
     return { ok: false, message: "Saved, but access to that source host was denied." };
@@ -256,6 +272,7 @@ async function load() {
   showLevel(rememberedLevel());
   loadData();
   renderFreshness();
+  renderVault();
   // #payouts deep-links here, so land on the one level that holds the payout
   // fields.
   if (location.hash === "#payouts") {
@@ -502,6 +519,249 @@ byId("clear-data").addEventListener("click", async () => {
 LEVELS.forEach((name) => {
   byId("tab-" + name).addEventListener("click", () => showLevel(name, true));
 });
+
+// ---- backup and recovery -------------------------------------------------
+// All of it runs on this page: the profile is sealed and opened with the
+// browser's own WebCrypto, so no key and no plaintext passes through the worker
+// and nothing is written until a code has actually opened.
+function whenText(value) {
+  const at = Date.parse(String(value || ""));
+  if (!isFinite(at)) return "";
+  return new Date(at).toLocaleString();
+}
+
+function vaultSay(text, kind) {
+  const line = byId("vault-result");
+  line.textContent = text;
+  line.className = "test-line" + (kind ? " " + kind : "");
+  line.hidden = false;
+}
+
+function showRecoveryKey(record) {
+  const block = byId("vault-key");
+  block.textContent = groupRecoveryKey(record.recoveryKey);
+  block.hidden = false;
+}
+
+async function renderVault() {
+  const [record, stored] = await Promise.all([readVault(), chrome.storage.local.get("settings")]);
+  const settings = withDefaults(stored.settings);
+  byId("vault-show").hidden = !record;
+  const status = byId("vault-status");
+  if (!record) {
+    status.textContent =
+      "No recovery key yet, so this device holds the only copy of everything above.";
+    return;
+  }
+  const parts = ["Recovery key created " + (whenText(record.createdAt) || "on this device")];
+  if (record.lastPushAt) parts.push("sealed copy sent " + whenText(record.lastPushAt));
+  else if (record.lastSealedAt) parts.push("sealed " + whenText(record.lastSealedAt));
+  else parts.push("no sealed copy made yet");
+  if (record.lastError) parts.push("last send failed: " + record.lastError);
+  if (!settings.backupUrl) parts.push("no sync endpoint, so a saved copy is the only one off this device");
+  status.textContent = parts.join(" \u00b7 ") + ".";
+}
+
+function dayStamp() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function saveFile(text, name) {
+  const blob = new Blob([text], { type: "text/plain" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = name;
+  link.click();
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
+}
+
+// The file is the code plus the few lines a person needs years later, when the
+// extension is long uninstalled and only this text is left.
+function vaultFile(code) {
+  return [
+    "Luma Pay Shopping Agent \u2014 encrypted backup",
+    "Sealed " + new Date().toISOString() + " on this device.",
+    "This needs the recovery key from the same profile. Without it nothing in this file can be read or restored.",
+    "",
+    code,
+    "",
+  ].join("\n");
+}
+
+async function sealAndSave(record) {
+  const sealed = await sealProfile(record.recoveryKey);
+  saveFile(vaultFile(sealed.code), "luma-backup-" + dayStamp() + ".luma");
+  await writeVault(Object.assign({}, record, { lastSealedAt: sealed.sealedAt }));
+  return sealed;
+}
+
+byId("vault-create").addEventListener("click", async () => {
+  const existing = await readVault();
+  if (
+    existing &&
+    !window.confirm(
+      "This replaces the recovery key on this device, and copies sealed with the old key stop opening. Continue?"
+    )
+  ) {
+    return;
+  }
+  const record = await createVault();
+  showRecoveryKey(record);
+  const sealed = await sealAndSave(record);
+  vaultSay(
+    "Recovery key created and a sealed copy of " +
+      sealed.keys +
+      " parts of your profile saved. Write the key down somewhere that survives this device.",
+    "ok"
+  );
+  await renderVault();
+});
+
+byId("vault-show").addEventListener("click", async () => {
+  const record = await readVault();
+  if (!record) return vaultSay("There is no recovery key on this device yet.", "bad");
+  showRecoveryKey(record);
+});
+
+byId("vault-save").addEventListener("click", async () => {
+  const record = await readVault();
+  if (!record) return vaultSay("Create a recovery key first \u2014 a copy is sealed with it.", "bad");
+  const sealed = await sealAndSave(record);
+  vaultSay(
+    "Sealed copy saved, holding " +
+      sealed.keys +
+      " parts of your profile. It opens only with your recovery key.",
+    "ok"
+  );
+  await renderVault();
+});
+
+byId("vault-copy").addEventListener("click", async () => {
+  const record = await readVault();
+  if (!record) return vaultSay("Create a recovery key first \u2014 a code is sealed with it.", "bad");
+  const sealed = await sealProfile(record.recoveryKey);
+  let copied = false;
+  try {
+    await navigator.clipboard.writeText(sealed.code);
+    copied = true;
+  } catch (_error) {
+    copied = false;
+  }
+  await writeVault(Object.assign({}, record, { lastSealedAt: sealed.sealedAt }));
+  vaultSay(
+    copied
+      ? "Code copied. It is still locked \u2014 without the recovery key it is noise."
+      : "This browser would not let the page reach the clipboard. Use Save an encrypted copy instead.",
+    copied ? "ok" : "bad"
+  );
+  await renderVault();
+});
+
+byId("vault-sync").addEventListener("click", async () => {
+  const record = await readVault();
+  if (!record) return vaultSay("Create a recovery key first \u2014 there is nothing to seal yet.", "bad");
+  const outcome = await save();
+  if (!outcome.ok) return vaultSay(outcome.message, "bad");
+  const stored = await chrome.storage.local.get("settings");
+  const settings = withDefaults(stored.settings);
+  if (!settings.backupUrl) {
+    return vaultSay("Add a sync endpoint above, or use Save an encrypted copy.", "bad");
+  }
+  vaultSay("Sealing your profile and sending it\u2026", "wait");
+  const sent = await pushVault(record, settings);
+  vaultSay(
+    sent.ok
+      ? "Sealed copy sent. The host now holds something only your recovery key opens."
+      : "Could not send the sealed copy: " + sent.error,
+    sent.ok ? "ok" : "bad"
+  );
+  await renderVault();
+});
+
+// Opening a code is one tap and replacing the profile is a second one, rather
+// than a browser dialog: what a code holds is worth reading before it lands, and
+// nothing is written until it has actually opened.
+let pendingRestore = null;
+let pendingRestoreKey = "";
+
+function hideRestoreConfirm() {
+  pendingRestore = null;
+  pendingRestoreKey = "";
+  byId("vault-restore-confirm").hidden = true;
+}
+
+byId("vault-restore").addEventListener("click", async () => {
+  const code = byId("vault-code").value.trim();
+  const key = byId("vault-restore-key").value.trim();
+  hideRestoreConfirm();
+  if (!code) return vaultSay("Paste the sealed code first.", "bad");
+  if (!key) return vaultSay("Type the recovery key that goes with it.", "bad");
+
+  let payload;
+  try {
+    payload = await openProfile(code, key);
+  } catch (error) {
+    return vaultSay(String((error && error.message) || error), "bad");
+  }
+
+  pendingRestore = payload;
+  pendingRestoreKey = normalizeRecoveryKey(key);
+  const accounts = payload.data.accounts && typeof payload.data.accounts === "object"
+    ? Object.keys(payload.data.accounts).length
+    : 0;
+  byId("vault-restore-summary").textContent =
+    "This code opens: " +
+    Object.keys(payload.data).length +
+    " parts of a profile" +
+    (accounts ? ", including " + accounts + " account" + (accounts === 1 ? "" : "s") : "") +
+    (whenText(payload.sealedAt) ? ", sealed " + whenText(payload.sealedAt) : "") +
+    ". Replacing puts all of it here and signs this device out.";
+  byId("vault-restore-confirm").hidden = false;
+  vaultSay("Code opened. Nothing has been written yet.", "ok");
+});
+
+byId("vault-restore-cancel").addEventListener("click", () => {
+  hideRestoreConfirm();
+  vaultSay("Nothing was restored.", "");
+});
+
+byId("vault-restore-go").addEventListener("click", async () => {
+  if (!pendingRestore) return hideRestoreConfirm();
+  const payload = pendingRestore;
+  const key = pendingRestoreKey;
+  const applied = await applyProfile(payload);
+  await signOut();
+  // The device keeps sealing with the key it was restored with, so the copy that
+  // survived the wipe is the one that keeps being updated: the same piece of
+  // paper, the same endpoint from the restored settings, no second key to lose.
+  if (key) {
+    await writeVault({
+      v: 1,
+      recoveryKey: key,
+      createdAt: applied.at || new Date().toISOString(),
+      lastSealedAt: payload.sealedAt || null,
+      lastPushAt: null,
+      lastError: "",
+    });
+  }
+  hideRestoreConfirm();
+  byId("vault-code").value = "";
+  byId("vault-restore-key").value = "";
+  byId("vault-key").hidden = true;
+  vaultSay(
+    "Restored " +
+      applied.keys +
+      " parts of your profile" +
+      (applied.accounts
+        ? " and " + applied.accounts + " account" + (applied.accounts === 1 ? "" : "s")
+        : "") +
+      ". Sign in with the password you used before \u2014 the same account, balance and codes are back.",
+    "ok"
+  );
+  await load();
+});
+
 
 // One tap, no provider details: the worker issues a plain virtual Visa, and any
 // setup stays in Developer rather than sending the shopper there.

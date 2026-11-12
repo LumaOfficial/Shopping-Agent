@@ -299,6 +299,7 @@ body.options {
 .field input[type="password"],
 .field input[type="url"],
 .field input[type="number"],
+.field textarea,
 .field select {
   width: 100%;
   padding: 9px 11px;
@@ -315,7 +316,14 @@ body.options {
   font-size: 12.5px;
 }
 
+.field textarea {
+  resize: vertical;
+  min-height: 62px;
+  line-height: 1.45;
+}
+
 .field input:focus,
+.field textarea:focus,
 .field select:focus {
   outline: none;
   border-color: rgba(246, 201, 107, 0.55);
@@ -409,6 +417,31 @@ body.options {
   font-size: 12px;
   line-height: 1.5;
   color: var(--muted);
+}
+
+/* A recovery key, shown once, read back by hand: spaced out in a monospace face
+   so a group of four characters is easy to copy without losing a character. */
+/* The one tap that replaces a profile: the summary of what a code holds, and the
+   two buttons that answer it, instead of a browser dialog over the panel. */
+.vault-confirm {
+  margin-top: 10px;
+  padding: 12px 14px;
+  border: 1px solid var(--line-strong);
+  border-radius: 12px;
+  background: var(--surface-2);
+}
+
+.vault-code {
+  margin: 12px 0 0;
+  padding: 12px 14px;
+  border: 1px solid var(--line-strong);
+  border-radius: 12px;
+  background: var(--surface-2);
+  color: var(--gold);
+  font: 600 12.5px/1.7 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  letter-spacing: 0.1em;
+  word-break: break-all;
+  user-select: all;
 }
 
 .test-line.ok {

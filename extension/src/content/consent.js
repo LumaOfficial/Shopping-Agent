@@ -10,7 +10,7 @@
 
   // Kept equal to TERMS_VERSION in src/lib/terms.js; test/policies.test.mjs
   // fails if the two drift.
-  var TERMS_VERSION = "1.2";
+  var TERMS_VERSION = "1.3";
 
   global.SavingsConsent = function (done) {
     function answer(record) {

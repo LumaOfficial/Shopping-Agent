@@ -374,11 +374,45 @@ created on a browser takes over any `guest:` figures, so a balance earned before
 accounts existed is not lost. **Clear data** in Settings removes only the
 signed-in account's keys.
 
-Because there is no server, an account does not sync between browsers or
-devices, and there is no password reset — a forgotten password cannot be
-recovered from a hash, so the account's balance has to be recovered by signing
-up again. Cross-device accounts would need a backend with an email
-verification flow; nothing in the extension currently talks to one.
+Because there is no server, an account does not sync between browsers or devices
+on its own, and there is no password reset — a forgotten password cannot be
+recovered from a hash. What moves a profile to a new device is the encrypted
+backup below, and the copy carries the hash rather than the password, so the
+password that worked before still works after a restore.
+
+### Recovery on a new device
+
+A wiped, reset or lost machine would otherwise take the account with it, so
+Settings → Advanced → **Backup and recovery** seals the whole profile into one
+code:
+
+| Piece | Where it lives |
+| --- | --- |
+| Recovery key | 20 random bytes (160 bits) in Crockford base32 — no I, L, O or U, so a key read off paper is not misread. Shown once, and again from **Show my recovery key**; it should be kept somewhere other than this device |
+| Key stretching | PBKDF2-HMAC-SHA-256, 600 000 rounds over a fresh 16-byte salt per seal |
+| Cipher | AES-256-GCM, fresh 12-byte IV per seal, 128-bit tag, the format string as additional authenticated data |
+| The code | `LUMA1.<base64url envelope>`, holding the salt, the IV, the round count and the ciphertext |
+| The profile inside | `accounts`, `settings`, `terms`, the tour and every `acct:<id>:…` and `guest:…` key |
+| Deliberately left out | `session`, `signInGuard`, the recovery record itself, and every provider credential (`feedKey`, `payoutKey`, …) |
+
+`src/lib/vault.js` is the sealing, `src/lib/backup.js` is what goes in and how it
+is put back. **Save an encrypted copy** writes `luma-backup-<date>.luma`; **Copy
+the code** puts the same text on the clipboard. Restoring reads the code, opens
+it with the key, replaces what this profile holds, signs the device out and takes
+its settings from the restored profile. Nothing is written until a code actually
+opens, and a damaged code, a wrong key and a different device all fail the same
+way — the tag does not verify.
+
+To keep a copy off the device without doing it by hand, enter a sync address (and
+an optional token) under the same heading: after an earning, after a settings
+change and once an hour the worker re-seals the profile and `POST`s
+`{"code", "sealedAt", "keys"}` to it. `server/vault-sync.mjs` is that relay — it
+authenticates with `VAULT_SYNC_TOKEN`, keeps one slot per token in
+`VAULT_STORE_DIR` (mode 0600), answers `GET /` with the stored record and
+`GET /health` without it, and cannot read what it holds. No address means no
+`fetch` at all: with nothing configured the sealed copy only ever goes where the
+person saved it.
+
 
 ### Face age check: 18+ and the 3% boost
 
@@ -573,6 +607,9 @@ user from themselves.
 | `src/lib/codes.js` | One code shape, de-duplication order, expiry rule |
 | `src/lib/guard.js` | The trust boundary: who sent a message, which addresses and figures are allowed, constant-time hash compare, per-action rate caps |
 | `src/lib/settings.js` | Stored settings defaults, and the allowlist that sanitizes them on the way in |
+| `src/lib/vault.js` | Seals a profile into one code: Crockford-base32 recovery key, PBKDF2-SHA-256 stretching, AES-256-GCM envelope |
+| `src/lib/backup.js` | What a sealed code carries, what it deliberately leaves behind, and how a code is put back on a device |
+| `server/vault-sync.mjs` | The optional relay that keeps a sealed code for a wiped device; holds ciphertext it cannot read |
 | `src/lib/terms.js` | The consent record — terms version, the date it was given — and the check the panel gates on |
 | `src/lib/format.js` | Money (minor units), relative times |
 | `src/lib/copy.js` | All "Partner Platforms" wording |

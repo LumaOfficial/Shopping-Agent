@@ -5,7 +5,7 @@
 // counts as agreement. A tampered or partial record (a bare `true`, an old
 // version, a missing time) is no consent at all, so a page that pokes storage
 // cannot hand itself the features the gate holds back.
-export const TERMS_VERSION = "1.2";
+export const TERMS_VERSION = "1.3";
 export const TERMS_UPDATED = "2026-11-12";
 
 const KEY = "terms";

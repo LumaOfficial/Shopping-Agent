@@ -33,6 +33,11 @@ export const DEFAULTS = {
   // here the bundled list is used, and either way the worker re-checks it
   // hourly so expired rows disappear without anyone asking.
   catalogUrl: "",
+  // Where a sealed copy of the profile is kept so a wiped device can be put
+  // back. The address only ever receives the encrypted code (src/lib/backup.js),
+  // and with nothing here the profile is sealed to a file the person keeps.
+  backupUrl: "",
+  backupToken: "",
   // Keep the savings list and any connected feed current on a schedule.
   autoRefresh: true,
   partnerMembers: "",
@@ -62,12 +67,21 @@ const TEXT_LIMITS = {
   sponsorKey: 600,
   priceHistoryKey: 600,
   ageCheckToken: 600,
+  backupToken: 600,
   partnerMembers: 200,
 };
 
 // Addresses this extension contacts. Each is validated in guard.js, so a plain
 // HTTP address on the open internet is dropped rather than sent a credential.
-const ENDPOINTS = ["feedUrl", "cashbackTemplate", "payoutUrl", "sponsorUrl", "ageCheckUrl", "catalogUrl"];
+const ENDPOINTS = [
+  "feedUrl",
+  "cashbackTemplate",
+  "payoutUrl",
+  "sponsorUrl",
+  "ageCheckUrl",
+  "catalogUrl",
+  "backupUrl",
+];
 
 const MAX_SITES = 500;
 
@@ -138,6 +152,7 @@ export const CREDENTIAL_KEYS = [
   "sponsorKey",
   "priceHistoryKey",
   "ageCheckToken",
+  "backupToken",
 ];
 
 export function publicSettings(raw) {

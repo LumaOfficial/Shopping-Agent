@@ -25,6 +25,7 @@ import {
 import { getSponsoredOffers, claimOffer, sponsorConfigured } from "../partners/sponsor-offers.js";
 import { payoutConfigured, payoutHost, detectPayoutService, requestVirtualCard, requestSimpleVisa, requestPreviewCard } from "../partners/cashback-payout.js";
 import { readSettings, writeSettings, publicSettings } from "../lib/settings.js";
+import { VAULT_KEY, pushVault } from "../lib/backup.js";
 import { siteHost } from "../lib/site-request.js";
 import {
   allowance,
@@ -185,9 +186,13 @@ function scheduleRefresh(settings) {
     if (!chrome.alarms) return;
     if (!settings || settings.autoRefresh === false) {
       if (chrome.alarms.clear) chrome.alarms.clear(CATALOG_ALARM);
-      return;
+    } else {
+      chrome.alarms.create(CATALOG_ALARM, { delayInMinutes: 3, periodInMinutes: 60 });
     }
-    chrome.alarms.create(CATALOG_ALARM, { delayInMinutes: 3, periodInMinutes: 60 });
+    // The sealed copy keeps its own timer, so a profile that stores one stays
+    // fresh even with the savings list on manual refresh.
+    if (settings && settings.backupUrl) scheduleVaultAlarm();
+    else if (chrome.alarms.clear) chrome.alarms.clear(VAULT_ALARM);
   } catch (_error) {
     // A browser that refuses alarms simply refreshes when the panel opens.
   }
@@ -201,6 +206,52 @@ async function refreshCatalog(settings, refresh) {
   const report = await catalogReport(settings);
   await pruneExpiredCodes();
   return report;
+}
+
+// ---- the sealed copy ----------------------------------------------------
+// A wiped device only comes back if the copy that outlives it is fresh. The
+// extension already knows when the figures that matter moved, so it re-seals the
+// profile after an earning and on the hourly pass, and posts the result to the
+// address the operator named. The payload is encrypted with the recovery key
+// before it leaves (src/lib/backup.js), so nothing here decides what is readable:
+// the endpoint receives ciphertext, and with no address configured nothing is
+// sent at all.
+const VAULT_ALARM = "luma-vault";
+const VAULT_SETTLE_MS = 4000;
+let vaultTimer = null;
+
+async function syncVault() {
+  const settings = await readSettings();
+  if (!settings.backupUrl) return null;
+  const stored = await chrome.storage.local.get(VAULT_KEY);
+  const record = stored[VAULT_KEY];
+  if (!record || !record.recoveryKey) return null;
+  try {
+    return await pushVault(record, settings);
+  } catch (_error) {
+    return null;
+  }
+}
+
+// A burst of writes — a settled wallet, three verified codes — is one seal, not
+// three. The timer is short because a service worker can be stopped between
+// events; whatever it misses the hourly pass picks up.
+function scheduleVaultSync() {
+  if (vaultTimer) return;
+  vaultTimer = setTimeout(function () {
+    vaultTimer = null;
+    syncVault().catch(function () {});
+  }, VAULT_SETTLE_MS);
+}
+
+function scheduleVaultAlarm() {
+  try {
+    if (chrome.alarms && chrome.alarms.create) {
+      chrome.alarms.create(VAULT_ALARM, { delayInMinutes: 15, periodInMinutes: 60 });
+    }
+  } catch (_error) {
+    // Without alarms the copy follows earnings only, which is still enough.
+  }
 }
 
 function cachedOffers(store, settings, refresh) {
@@ -1125,8 +1176,14 @@ chrome.storage.onChanged.addListener(function (changes, area) {
     feedCache.clear();
     catalogCache = null;
     // The hourly pass follows the switch and the address, without waiting for a
-    // restart.
+    // restart. A newly named sync endpoint is used straight away.
     readSettings().then(scheduleRefresh).catch(function () {});
+    scheduleVaultSync();
+  }
+  // An earning, a settled order or a verified code is what makes a backup worth
+  // re-sealing; the keys carry the signed-in account's prefix.
+  if (Object.keys(changes).some(function (key) { return /:(cashback|savings|verified)$/.test(key); })) {
+    scheduleVaultSync();
   }
   // Agreeing to the terms, or a new version of them, moves the blocking ruleset
   // with the gate.
@@ -1173,10 +1230,16 @@ chrome.runtime.onStartup.addListener(function () {
 });
 
 // The hourly pass. It only runs while automatic refresh is on, and it is the
-// only thing that has to happen for stale coupons to disappear.
+// only thing that has to happen for stale coupons to disappear. The sealed copy
+// has its own timer and runs whether or not the savings list is automatic.
 if (chrome.alarms && chrome.alarms.onAlarm) {
   chrome.alarms.onAlarm.addListener(function (alarm) {
-    if (!alarm || alarm.name !== CATALOG_ALARM) return;
+    if (!alarm) return;
+    if (alarm.name === VAULT_ALARM) {
+      syncVault().catch(function () {});
+      return;
+    }
+    if (alarm.name !== CATALOG_ALARM) return;
     readSettings()
       .then(function (settings) {
         if (settings.autoRefresh === false) return null;

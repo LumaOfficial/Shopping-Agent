@@ -11,7 +11,7 @@
       <div class="terms-wrap">
         <p class="terms-kicker">Luma Pay Shopping Agent</p>
         <h1>Privacy Policy</h1>
-        <p class="terms-meta">Version 1.2 · Last updated 12 November 2026</p>
+        <p class="terms-meta">Version 1.3 · Last updated 12 November 2026</p>
         <p class="terms-lede">
           This policy describes what the Extension does with data. It matches the Terms of Use and
           Disclosures you are asked to accept before the panel does anything — in particular
@@ -62,12 +62,14 @@
           <h2>What stays on your device</h2>
           <p>
             Everything below is written to the Extension's own storage in the browser profile it is
-            installed in. There is no Luma Pay server that holds an account, and no backup of it.
+            installed in. There is no Luma Pay server that holds an account, and no backup of one
+            unless you seal a copy yourself and choose where it goes (see
+            <em>Encrypted backups you control</em> below).
           </p>
           <ul>
             <li>
               <strong>Your acceptance of the Terms.</strong> The version you agreed to (currently
-              1.2) and the time you agreed. A record without a real version and timestamp is not
+              1.3) and the time you agreed. A record without a real version and timestamp is not
               treated as agreement.
             </li>
             <li>
@@ -118,10 +120,38 @@
           </ul>
         </section>
 
+        <section id="backup">
+          <h2>Encrypted backups you control</h2>
+          <p>
+            A browser profile can be wiped, and with it everything listed above. <strong>Backup and
+            recovery</strong> in the settings seals the whole profile — account, wallet, saved and
+            verified codes, price points, settings and progress — into one code and locks it before it
+            goes anywhere:
+          </p>
+          <ul>
+            <li><strong>Locked on this device.</strong> AES-256-GCM, with the key derived from a
+              160-bit recovery key by 600,000 rounds of PBKDF2-SHA-256 over a fresh salt. No key is
+              sent, stored on a server, or included in the code.</li>
+            <li><strong>A destination you choose, or none.</strong> <em>Save an encrypted copy</em>
+              writes a file you decide where to keep. If you also enter a sync address, the Extension
+              posts the sealed code to that address after an earning and once an hour — and the host
+              cannot read what it receives.</li>
+            <li><strong>Not a copy of your credentials.</strong> Provider tokens and payout
+              credentials are left out, so a restored device asks for those again.</li>
+            <li><strong>Not ours.</strong> We hold no key, no escrow and no way to recover a code. If
+              the recovery key is lost, the copy cannot be opened by anyone.</li>
+          </ul>
+          <p>
+            Restoring replaces what the profile holds and signs the device out; nothing is written
+            until a code opens. You can remove a sealed copy at any time by deleting the file or the
+            record at the address you chose, and the Extension keeps no other copy.
+          </p>
+        </section>
+
         <section id="leaves">
           <h2>What leaves your device</h2>
           <p>
-            Data leaves only in the four situations section 13 of the <a href="terms.html#s13"
+            Data leaves only in the five situations section 13 of the <a href="terms.html#s13"
             >Terms</a> lists. Each requires an address you configured yourself, and each carries
             only what that one feature needs:
           </p>
@@ -135,7 +165,9 @@
             <li><strong>An age-check request</strong> — if, and only if, you connected an age-check
               relay (below);</li>
             <li><strong>An offer or product lookup</strong> — a product identifier or page address
-              sent to a price-history or sponsored-offer address you configured.</li>
+              sent to a price-history or sponsored-offer address you configured;</li>
+            <li><strong>A sealed backup</strong> — ciphertext only, to the sync address you entered,
+              and only if you created a recovery key and filled that address in.</li>
           </ul>
           <p>
             There is no Luma Pay analytics endpoint, no crash reporting, no advertising SDK and no
@@ -359,7 +391,7 @@
     <footer class="terms-foot">
       <div class="terms-wrap">
         <p>
-          Luma Pay Shopping Agent · Privacy Policy · version 1.2 · 12 November 2026 ·
+          Luma Pay Shopping Agent · Privacy Policy · version 1.3 · 12 November 2026 ·
           <a href="terms.html">Terms of Use</a> · <a href="support.html">Support</a>
         </p>
       </div>

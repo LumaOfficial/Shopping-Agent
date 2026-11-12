@@ -218,7 +218,81 @@
         </div>
         <p class="hint">
           Everything above lives in this browser profile. Nothing is uploaded, sold or shared, and
-          card details are never read.
+          card details are never read — unless you seal a backup and keep it somewhere yourself,
+          which is the one thing that leaves this device and is covered next.
+        </p>
+
+        <h2>Backup and recovery</h2>
+        <p class="muted">
+          A wiped, reset, lost or replacement device gets everything back from one sealed code — your
+          account and balance, saved and verified codes, price history, settings and tour. The code is
+          locked on this device with AES-256-GCM under a recovery key of 160 random bits stretched by
+          600,000 rounds of PBKDF2-SHA-256. Neither we nor the host that stores it can open it: with
+          the key it opens, without it the file is noise.
+        </p>
+        <p class="muted small" id="vault-status">Checking…</p>
+        <div class="actions" style="margin-top: 10px; padding-top: 0; border-top: 0">
+          <button class="btn ghost" id="vault-create" type="button">Create a recovery key</button>
+          <button class="btn ghost" id="vault-show" type="button" hidden>Show my recovery key</button>
+          <button class="btn ghost" id="vault-save" type="button">Save an encrypted copy</button>
+          <button class="btn ghost" id="vault-copy" type="button">Copy the code</button>
+          <button class="btn ghost" id="vault-sync" type="button">Send it now</button>
+        </div>
+        <p class="vault-code" id="vault-key" hidden></p>
+        <p class="test-line" id="vault-result" role="status" aria-live="polite" hidden></p>
+        <p class="hint">
+          Keep the recovery key somewhere that survives this device — written down, in a password
+          manager, or on paper with your passport. Losing the device and the key together cannot be
+          undone, by us or by anyone else. Provider credentials under Developer are never included, so
+          a restored device asks for those again.
+        </p>
+
+        <h2>Keeping the sealed code off this device</h2>
+        <div class="field">
+          <label for="vault-url">Sync endpoint (optional)</label>
+          <input id="vault-url" type="url" placeholder="https://sync.example.com/v1/vault" />
+          <p class="hint">
+            An address you control that keeps the sealed code. After an earning and once an hour the
+            extension re-seals the profile and <code>POST</code>s
+            <code>{"code", "sealedAt", "keys"}</code> to it. What arrives there is already encrypted,
+            so the host stores something it cannot read. <code>server/vault-sync.mjs</code> in this
+            repository is that relay.
+          </p>
+        </div>
+        <div class="field">
+          <label for="vault-token">Sync token</label>
+          <input id="vault-token" type="password" autocomplete="off" placeholder="Bearer ******" />
+          <p class="hint">
+            Optional, and sent only to the address above. It is kept on this device like every other
+            credential and left out of the sealed code.
+          </p>
+        </div>
+
+        <h2>Put it back on a new device</h2>
+        <div class="field">
+          <label for="vault-code">Sealed code</label>
+          <textarea id="vault-code" rows="3" placeholder="LUMA1.…"></textarea>
+          <p class="hint">
+            Paste the code you saved — the whole file is fine, the code inside it is found either way.
+          </p>
+        </div>
+        <div class="field">
+          <label for="vault-restore-key">Recovery key</label>
+          <input id="vault-restore-key" type="text" autocomplete="off" placeholder="XXXX-XXXX-XXXX-…" />
+        </div>
+        <div class="actions" style="margin-top: 4px; padding-top: 0; border-top: 0">
+          <button class="btn" id="vault-restore" type="button">Restore this device</button>
+        </div>
+        <div class="vault-confirm" id="vault-restore-confirm" hidden>
+          <p class="muted small" id="vault-restore-summary"></p>
+          <div class="actions" style="margin-top: 10px; padding-top: 0; border-top: 0">
+            <button class="btn mint" id="vault-restore-go" type="button">Replace this profile</button>
+            <button class="btn ghost" id="vault-restore-cancel" type="button">Cancel</button>
+          </div>
+        </div>
+        <p class="hint">
+          Restoring replaces what this profile holds with what the code holds, and signs this device
+          out so the next sign-in uses the restored account. Nothing is written until the code opens.
         </p>
 
         <h2>Security</h2>
