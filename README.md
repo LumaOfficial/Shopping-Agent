@@ -286,12 +286,13 @@ opens an address it has not checked.
   product and its price; a saving appears beside it only where the store
   publishes the rate. *Shuffle* turns the feed over, and *Shop it at …* opens the
   store's own search for that product.
-- **Animate** — a full-screen trailer of the 50 best-known storefronts. It
-  caches and decodes every mark first, then builds all three scenes before the
-  film rolls: a progress dial that fills with the logos as they arrive, an
-  orbit, a tilted logo wall and a mosaic, ending on the store count and a
-  *Browse all stores* button. `prefers-reduced-motion` skips straight to the
-  mosaic.
+- **Animate** — a cinematic trailer of the 50 best-known storefronts, cut like a
+  film: letterbox bars, grain and a light leak over a pre-roll slate that counts
+  the marks in as they cache and decode. Then the title cards: an orbit pushing
+  in behind the store count, a tilted logo wall behind *One tap*, a single line
+  held on black, and a closing wordmark card with the *Browse all stores*
+  button. Every mark and every shot is prepared up front, so nothing pops in
+  mid-scene. `prefers-reduced-motion` skips straight to the closing card.
 - **Coupon apply** — the side panel sends the code to the content script, which
   finds the promo field (searching open shadow roots too, and skipping search,
   zip, gift-card and card fields), types it with native setters and real
@@ -718,7 +719,7 @@ user from themselves.
 | `src/lib/deals.js` | Partner offers, the popular products they pair with, the pairing rules, and the card's copy |
 | `src/lib/deals-panel.js` | The *Deals for you* rail: four cards at a time from that feed, shuffled |
 | `tools/emulate-platforms.mjs` | Runs the shipped code under Windows, macOS, Linux and ChromeOS signals and prints a pass/fail table |
-| `src/lib/logo-show.js` | The *Animate* trailer: cache, decode, build, then orbit → wall → mosaic |
+| `src/lib/logo-show.js` | The *Animate* trailer: cache, decode, build, then orbit → wall → tagline → wordmark |
 | `src/lib/brand-marks.js` | The popular storefronts the trailer leads with, and their brand inks |
 | `src/lib/codes.js` | One code shape, de-duplication order, expiry rule |
 | `src/lib/guard.js` | The trust boundary: who sent a message, which addresses and figures are allowed, constant-time hash compare, per-action rate caps |

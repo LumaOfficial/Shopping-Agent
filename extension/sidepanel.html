@@ -706,31 +706,33 @@
       </svg>
     </button>
 
-    <div class="logo-show" id="logo-show" hidden>
+    <div class="logo-show" id="logo-show" hidden data-beat="prep">
       <div class="show-stage" role="dialog" aria-modal="true" aria-label="Every store Luma Pay works on">
         <div class="show-aura" aria-hidden="true"></div>
+        <div class="show-leak" aria-hidden="true"></div>
         <div class="show-scene" data-scene="boot" aria-hidden="true"></div>
         <div class="show-scene" data-scene="orbit" aria-hidden="true"></div>
         <div class="show-scene" data-scene="wall" aria-hidden="true"></div>
-        <div class="show-scene" data-scene="mosaic" aria-hidden="true"></div>
-        <button class="mini show-close" id="logo-show-close" type="button">Close</button>
+        <div class="show-scene" data-scene="poster" aria-hidden="true"></div>
         <div class="show-copy">
-          <span class="lbl" data-show-step>All stores</span>
-          <h3 data-show-title>Caching the logos</h3>
+          <span class="lbl" data-show-step hidden></span>
+          <h3 data-show-title>Luma Pay</h3>
           <p class="muted tiny" data-show-note aria-live="polite">
             Fetching every popular mark once, so the film never stutters.
           </p>
-          <ol class="show-steps" data-show-steps>
-            <li data-step="cache"><i></i>Caching</li>
-            <li data-step="decode"><i></i>Decoding</li>
-            <li data-step="build"><i></i>Building</li>
-            <li data-step="play"><i></i>Rolling</li>
-          </ol>
           <button class="btn show-browse" data-show-browse type="button" hidden>
             Browse all stores
           </button>
         </div>
+        <ol class="show-steps" data-show-steps>
+          <li data-step="cache"><i></i>Caching</li>
+          <li data-step="decode"><i></i>Decoding</li>
+          <li data-step="build"><i></i>Building</li>
+          <li data-step="play"><i></i>Rolling</li>
+        </ol>
         <div class="show-bar"><span data-show-bar></span></div>
+        <div class="show-bars" aria-hidden="true"></div>
+        <button class="mini show-close" id="logo-show-close" type="button">Close</button>
       </div>
     </div>
 
