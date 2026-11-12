@@ -49,6 +49,24 @@ export function isExpired(coupon, now) {
   return at < (now || Date.now()) - 24 * 60 * 60 * 1000;
 }
 
+// How many whole days are left before a code stops being usable. A code with no
+// expiry has no answer, which is not the same as zero.
+export function daysLeft(coupon, now) {
+  if (!coupon || !coupon.expires) return null;
+  const at = Date.parse(coupon.expires);
+  if (!isFinite(at)) return null;
+  return Math.ceil((at - (now || Date.now())) / (24 * 60 * 60 * 1000));
+}
+
+// Codes worth trying first because they run out soon.
+export function endingSoon(codes, days, now) {
+  const limit = typeof days === "number" ? days : 7;
+  return (Array.isArray(codes) ? codes : []).filter((coupon) => {
+    const left = daysLeft(coupon, now);
+    return left !== null && left >= 0 && left <= limit;
+  });
+}
+
 // Later lists lose to earlier sources of higher rank, but a title or expiry from
 // any source is kept so the row is as informative as the data allows.
 export function mergeCodes(...lists) {

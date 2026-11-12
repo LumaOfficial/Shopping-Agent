@@ -308,6 +308,27 @@ stay true for months, so nothing depends on someone editing coupons each morning
   never hides a slot.
 - **Savings record** — total of the order-total drops the page confirmed, number
   of codes that worked, products tracked. Stored locally.
+- **My savings toolkit** — one card in the panel, above the store cards:
+  - a **monthly goal** (set or cleared in dollars) with a progress meter, what is
+    left to go, today's and the month's confirmed cashback, and a day streak
+    (`src/lib/goals.js`; earnings fold in once each, by wallet entry id);
+  - a **price watch** — save the product you are looking at and the row says
+    whether its price has fallen since (`src/lib/watchlist.js`), with one-tap
+    removal and an undo;
+  - a **note per store**, kept on this device and shown only on that store;
+  - **insights** — best store, top category, cashback this month, watched count
+    (`src/lib/insights.js`), a **CSV export** of the wallet and a **copyable
+    summary**;
+  - **comfort switches** — high contrast, compact density, four text sizes and a
+    less-motion override, remembered per device (`src/lib/prefs.js`);
+  - **pinned stores** (up to six) as one-tap launchers and the **last six store
+    searches**, clickable to run again (`src/lib/bookmarks.js`);
+  - **keyboard shortcuts** — `/` opens the directory, `g` the goal, `w` watches
+    the product on the page, `p` pins the store, `?` lists them, `Esc` clears
+    (`src/lib/shortcuts.js`).
+- **Codes that end soon** — a code with an end date inside seven days is counted
+  above the list and sorted first, so the one that runs out Friday is tried
+  before one that does not (`daysLeft()` / `endingSoon()` in `src/lib/codes.js`).
 - **Any shop, added on the spot** — for a site outside the catalog the panel
   asks for permission for that origin, reads what the page itself declares
   (schema.org store or product markup, a known shop platform such as Shopify or

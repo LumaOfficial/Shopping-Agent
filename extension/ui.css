@@ -3024,6 +3024,252 @@ body.sidepanel .age-distance {
   color: #5f5880;
 }
 
+/* ---------- The savings toolkit ---------- */
+
+body.sidepanel .toolkit {
+  display: grid;
+  gap: 18px;
+  animation-delay: 0.15s;
+}
+
+body.sidepanel .tk-block {
+  display: grid;
+  gap: 8px;
+  padding-top: 14px;
+  border-top: 1px solid #ece7fb;
+}
+
+body.sidepanel .tk-block:first-of-type {
+  padding-top: 0;
+  border-top: 0;
+}
+
+body.sidepanel .tk-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+body.sidepanel .tk-row strong {
+  font-weight: 400;
+  font-size: 15px;
+}
+
+body.sidepanel .tk-stats {
+  display: flex;
+  gap: 28px;
+  margin-top: 4px;
+}
+
+body.sidepanel .tk-stats div {
+  display: flex;
+  flex-direction: column;
+}
+
+body.sidepanel .tk-stats strong {
+  font-weight: 300;
+  font-size: 24px;
+  letter-spacing: -0.03em;
+  line-height: 1.2;
+}
+
+body.sidepanel .tk-form {
+  display: flex;
+  gap: 8px;
+}
+
+body.sidepanel .tk-form input {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 10px 16px;
+  border-radius: 999px;
+  border: 1px solid #e1dbf6;
+  background: #faf8ff;
+  color: #2A2440;
+  font: inherit;
+}
+
+body.sidepanel .tk-form input:focus {
+  outline: none;
+  border-color: #7C6BF5;
+  box-shadow: 0 0 0 4px rgba(124, 107, 245, 0.14);
+}
+
+body.sidepanel .watch-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+body.sidepanel .watch-list li {
+  display: grid;
+  gap: 2px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  border: 1px solid #ece7fb;
+  background: #fbfaff;
+}
+
+body.sidepanel .watch-list li .mini {
+  justify-self: start;
+  margin-top: 6px;
+}
+
+body.sidepanel .watch-title {
+  font-weight: 500;
+  font-size: 13.5px;
+}
+
+body.sidepanel .watch-meta {
+  color: #7d74a3;
+  font-size: 12px;
+}
+
+body.sidepanel .watch-drop {
+  color: #25715a;
+  font-style: normal;
+  font-weight: 600;
+}
+
+body.sidepanel .watch-up {
+  color: #a4573a;
+  font-style: normal;
+}
+
+body.sidepanel .insight-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+  font-size: 12.5px;
+  color: #4a4368;
+}
+
+body.sidepanel textarea#store-note {
+  width: 100%;
+  resize: vertical;
+  padding: 12px 16px;
+  border-radius: 16px;
+  border: 1px solid #e1dbf6;
+  background: #faf8ff;
+  color: #2A2440;
+  font: inherit;
+}
+
+body.sidepanel textarea#store-note:focus {
+  outline: none;
+  border-color: #7C6BF5;
+  box-shadow: 0 0 0 4px rgba(124, 107, 245, 0.14);
+}
+
+body.sidepanel .shortcut-hint {
+  display: grid;
+  gap: 6px;
+  padding: 12px 16px;
+  border-radius: 16px;
+  background: #f4f0ff;
+  font-size: 12px;
+  color: #4a4368;
+}
+
+body.sidepanel .shortcut-hint kbd {
+  display: inline-block;
+  min-width: 24px;
+  text-align: center;
+  padding: 1px 6px;
+  border-radius: 6px;
+  background: #fff;
+  border: 1px solid #e1dbf6;
+  font: inherit;
+  font-weight: 600;
+}
+
+body.sidepanel .chips button.chip {
+  cursor: pointer;
+}
+
+body.sidepanel .chips button.chip[aria-pressed="true"] {
+  background: #7C6BF5;
+  color: #fff;
+}
+
+/* ---------- Comfort switches ---------- */
+
+/* A stronger reading of the same palette: darker ink on the same paper, with
+   borders that survive a washed-out display. */
+[data-contrast="high"] body.sidepanel {
+  color: #16112b;
+}
+
+[data-contrast="high"] body.sidepanel .card {
+  border-color: #bdb1e4;
+}
+
+[data-contrast="high"] body.sidepanel .muted,
+[data-contrast="high"] body.sidepanel .lbl,
+[data-contrast="high"] body.sidepanel .watch-meta,
+[data-contrast="high"] body.sidepanel .insight-list {
+  color: #33295a;
+}
+
+[data-contrast="high"] body.sidepanel .chip {
+  background: #ded3ff;
+  color: #2c2170;
+}
+
+/* Compact trims the paper, not the content: the same cards and controls. */
+[data-density="compact"] body.sidepanel .card {
+  padding: 18px 20px;
+  margin-top: 16px;
+  border-radius: 24px;
+}
+
+[data-density="compact"] body.sidepanel .card h3 {
+  font-size: 22px;
+  margin-bottom: 8px;
+}
+
+[data-density="compact"] body.sidepanel .toolkit {
+  gap: 12px;
+}
+
+[data-density="compact"] body.sidepanel .tk-block {
+  gap: 6px;
+  padding-top: 10px;
+}
+
+/* Motion is off when the panel or the system asks for less, whichever is
+   stricter. */
+[data-motion="reduce"] body.sidepanel *,
+[data-motion="reduce"] body.sidepanel *::before,
+[data-motion="reduce"] body.sidepanel *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+  scroll-behavior: auto !important;
+}
+
+/* Text size scales the reading sizes only, so the layout still holds. */
+body.sidepanel {
+  font-size: calc(14px * var(--text-scale, 1));
+}
+
+body.sidepanel .muted {
+  font-size: calc(12px * var(--text-scale, 1));
+}
+
+body.sidepanel .small {
+  font-size: calc(11.5px * var(--text-scale, 1));
+}
+
+body.sidepanel .tiny {
+  font-size: calc(11px * var(--text-scale, 1));
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

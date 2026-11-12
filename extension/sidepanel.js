@@ -1,6 +1,6 @@
 import { STORES, storeCount } from "./src/lib/stores.js";
 import { filterStores, storeCategories, storeHost, storeSite } from "./src/lib/store-directory.js";
-import { mergeCodes, SOURCE_LABEL } from "./src/lib/codes.js";
+import { mergeCodes, SOURCE_LABEL, daysLeft, endingSoon } from "./src/lib/codes.js";
 import { money, humanAge } from "./src/lib/format.js";
 import { rateLabel } from "./src/lib/ad-value.js";
 import { PAGE_SOURCE_NOTE } from "./src/lib/copy.js";
@@ -15,6 +15,7 @@ import { MIN_AGE } from "./src/lib/age-verify.js";
 import { acceptTerms, readConsent, termsUrl } from "./src/lib/terms.js";
 import { TOUR_KEY, readTour } from "./src/lib/tutorial.js";
 import { startTour } from "./src/lib/tour-panel.js";
+import { startToolkit } from "./src/lib/toolkit-panel.js";
 
 const byId = (id) => document.getElementById(id);
 
@@ -96,6 +97,8 @@ function reset() {
   byId("fetch-codes").textContent = "Scan this page again";
   byId("code-filters").hidden = true;
   byId("code-filters").textContent = "";
+  byId("codes-ending").hidden = true;
+  byId("codes-ending").textContent = "";
   byId("detect-site").disabled = false;
   byId("detect-site").textContent = "Check & add this site";
   byId("detect-site").hidden = false;
@@ -435,11 +438,21 @@ function liveCodes() {
 
 function visibleCodes() {
   const query = state.filter.trim().toUpperCase();
-  return liveCodes().filter((coupon) => {
-    if (state.filterSource !== "all" && coupon.source !== state.filterSource) return false;
-    if (!query) return true;
-    return coupon.code.includes(query) || (coupon.title || "").toUpperCase().includes(query);
-  });
+  return liveCodes()
+    .filter((coupon) => {
+      if (state.filterSource !== "all" && coupon.source !== state.filterSource) return false;
+      if (!query) return true;
+      return coupon.code.includes(query) || (coupon.title || "").toUpperCase().includes(query);
+    })
+    // A code that runs out this week is worth trying before one that does not;
+    // everything else keeps the order the sources gave it.
+    .sort((a, b) => {
+      const leftA = daysLeft(a);
+      const leftB = daysLeft(b);
+      const soonA = leftA !== null && leftA >= 0 && leftA <= 7 ? leftA : Infinity;
+      const soonB = leftB !== null && leftB >= 0 && leftB <= 7 ? leftB : Infinity;
+      return soonA - soonB;
+    });
 }
 
 // Provenance filters with live counts, so a shopper can see page codes apart
@@ -490,6 +503,21 @@ function renderCoupons() {
     byId("codes-status").textContent = "";
   }
   renderFilters(alive);
+
+  // Codes with an end date close by are named above the list, because "expires
+  // Friday" changes which one is worth typing first.
+  const soon = endingSoon(codes);
+  const ending = byId("codes-ending");
+  ending.hidden = !soon.length;
+  ending.textContent = soon.length
+    ? (soon.length === 1
+        ? "1 code ends within 7 days"
+        : soon.length + " codes end within 7 days") +
+      " — " +
+      (soon.length === 1 ? "it is" : "they are") +
+      " listed first."
+    : "";
+
   byId("try-all").hidden = codes.length < 2;
   byId("copy-all").hidden = !alive.length;
   byId("code-search").hidden = alive.length < 4;
@@ -659,6 +687,8 @@ let payoutMode = "unconfigured";
 function renderWallet(wallet) {
   if (!wallet || !wallet.balances) return;
   byId("wallet-block").hidden = false;
+  // Confirmed earnings feed the goal and the insights, once each.
+  toolkit.setWallet(wallet);
 
   const totals = wallet.balances;
   const currency = wallet.currency || totals.currency || "USD";
@@ -899,6 +929,8 @@ async function runApply(code, button, status) {
     message: "No coupon field on this screen — open your cart or checkout.",
   };
 
+  toolkit.recordAttempt(result.status === "applied");
+
   const tone =
     result.status === "applied" ? "ok" : result.status === "rejected" ? "bad" : "wait";
   if (status) {
@@ -1118,6 +1150,10 @@ async function render() {
 
   renderAds();
 
+  // The toolkit follows the tab the panel is looking at: a note, a pin and a
+  // product to watch all belong to the store that is open.
+  toolkit.setStore(null, null, state.url);
+
   if (!state.url || !/^https?:/i.test(state.url)) {
     byId("store-name").textContent = "No store open";
     showEmpty(
@@ -1153,6 +1189,7 @@ async function render() {
 
   state.codes = mergeCodes(data.codes, pageCodesFrom(state.scan));
   state.site = data.site || siteHost(state.url);
+  toolkit.setStore(data.store, state.scan && state.scan.product, state.url);
 
   renderSource(data, Boolean(state.scan));
   renderPage(state.scan, features);
@@ -1642,6 +1679,11 @@ byId("store-list").addEventListener("click", (event) => {
 });
 
 applyBrowserCopy();
+
+// The savings toolkit owns the goal, the watch list, the store note, the
+// insights and the comfort switches. The panel only tells it which store is
+// open and which money landed in the wallet.
+const toolkit = startToolkit();
 
 // The face age check card owns its own consent and capture; the panel only tells
 // it who is signed in, and refreshes the wallet once a verdict lands.
