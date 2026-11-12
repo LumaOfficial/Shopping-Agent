@@ -1,8 +1,12 @@
-// The Opera acceptance criteria that can be checked mechanically, asserted on
-// the source the package is built from. Each test names the criterion it stands
-// for, so a failure reads as the review finding it would become:
+// The store criteria that can be checked mechanically, asserted on the source
+// every package is built from. They are written as findings because most of them
+// are shared by Chrome, Edge and Opera — an unnecessary permission or an
+// undisclosed background action is the same review note in each — and each test
+// names the criterion it stands for:
 //
 //   https://help.opera.com/en/extensions/acceptance-criteria/
+//   https://developer.chrome.com/docs/webstore/program-policies/
+//   https://learn.microsoft.com/microsoft-edge/extensions/publish/policies
 //
 //   node --test extension/test/manifest-compliance.test.mjs
 import test from "node:test";

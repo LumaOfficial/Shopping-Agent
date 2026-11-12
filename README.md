@@ -16,6 +16,11 @@ fill the store's own promo field.
 Safari needs Apple's Xcode conversion of a WebExtension package and is not
 packaged here.
 
+Opera's package is a planned target: it builds on request (`--target opera`) and
+stays out of a plain build until the submission actually happens. Nothing in the
+source is written for one of these browsers — the packaging table decides what
+each store receives.
+
 ### Windows, macOS and Linux
 
 All three desktops run the same package and the same source. The only visible
@@ -38,12 +43,42 @@ the published criteria, not an Opera approval.
 ### Build
 
 ```bash
-cd extension && node tools/build.mjs                   # both packages
-cd extension && node tools/build.mjs --target opera    # just one
+cd extension && node tools/build.mjs                   # every ready target
+cd extension && node tools/build.mjs --target opera    # one target
+cd extension && node tools/build.mjs --all             # ready and planned
+cd extension && node tools/build.mjs --list            # targets, stores, rules
 ```
 
 `dist/` is not committed. Upload `dist/chromium` to the Chrome Web Store and the
-Edge Add-ons store, and `dist/opera` to addons.opera.com.
+Edge Add-ons store; `--target opera` writes `dist/opera` for addons.opera.com.
+
+The build has no browser of its own. `tools/targets.mjs` is one table, a row per
+target, and a row carries the store's rules, the manifest patch that store needs
+and the panel surface that browser can open:
+
+| Target | Status | Stores | What the row changes |
+| --- | --- | --- | --- |
+| `chromium` | ready | Chrome Web Store, Edge Add-ons, Brave, Vivaldi, Arc | drops `minimum_chrome_version`, which Partner Center flags |
+| `opera` | planned | Opera add-ons | `sidebar_action` replaces `side_panel`, the `sidePanel` permission goes with it, and `panel-surface.opera.js` replaces the Chromium module |
+
+That is also how another store is added, or how "make this one for Edge" is
+answered: a row, not the panel, the background or the manifest the source runs
+on. `--list` prints the same table with the reasons each row exists.
+
+Every package is checked against its row's rules before it is written — Manifest
+V3, `manifest.json` at the package root, name, version, icons and a description of
+132 characters or fewer, no standing access to every site — and a package that
+fails is deleted and the build exits non-zero rather than handing a store
+something it would bounce.
+
+Where those rules come from:
+
+- Chrome Web Store — <https://developer.chrome.com/docs/webstore/prepare>
+- Microsoft Edge Add-ons — Manifest V3 only since July 2022, submitted through
+  Partner Center, which validates the manifest itself and flags keys it does not
+  know: <https://learn.microsoft.com/microsoft-edge/extensions/developer-guide/manifest-v3>
+- Opera add-ons — mapped criterion by criterion in
+  [`docs/opera-submission.md`](docs/opera-submission.md).
 
 Only the Opera manifest differs. Opera is Chromium underneath, so it keeps the
 Manifest V3 service worker and the declarative net request rules, but it has no
@@ -54,9 +89,6 @@ puts the extension on the sidebar rail:
   Chrome's `side_panel`, and the `sidePanel` permission is dropped with it.
 - `minimum_chrome_version` is dropped: the Opera store validates the manifest
   itself and its releases do not follow Chrome's version numbers.
-
-`build.mjs` also drops `minimum_chrome_version` from `dist/chromium`, since the
-Edge and Opera stores flag keys they know nothing about.
 
 Both packages declare the Luma icons (`icons/`), so the toolbar, the extensions
 page and Opera's sidebar rail show the product mark instead of a generic puzzle
@@ -690,7 +722,8 @@ user from themselves.
 | `src/partners/sponsor-offers.js` | Sponsored offers → normalized ads, and the sponsor's booked reward |
 | `src/partners/price-history.js` | Optional product API 90-day low |
 | `tools/check-catalog.mjs` | Keeps `manifest.json` hosts in sync with the catalog, and fails on a content script outside it or a standing all-sites host permission |
-| `tools/build.mjs` | Builds `dist/chromium/` and `dist/opera/` from this source |
+| `tools/targets.mjs` | The packaging table: a row per browser, with its stores, manifest patch, panel surface and the rules those stores enforce |
+| `tools/build.mjs` | Writes a package per target and refuses one a store would bounce; holds no browser of its own |
 
 ### Connector configuration
 

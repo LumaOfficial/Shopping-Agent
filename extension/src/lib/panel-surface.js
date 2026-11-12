@@ -3,10 +3,11 @@
 // the browser keeps it open across tab switches. A Chromium build without it
 // falls back to a small window, then to a tab.
 //
-// This is the module the source tree itself uses. The Opera package carries
-// panel-surface.opera.js under this same name instead (tools/build.mjs swaps it
-// in), because Opera has no Side Panel API and a reference to one is a
-// store-review flag in a package that never runs it.
+// This is the module the source tree itself uses, and what every package without
+// a variant of its own carries. A browser that cannot open a side panel (Opera
+// today) gets panel-surface.opera.js written over this name by the build, because
+// a reference to an API that browser never implements is a store-review flag.
+// tools/targets.mjs names which package takes which surface.
 
 export function installPanelSurface() {
   const sidePanel = chrome.sidePanel;
