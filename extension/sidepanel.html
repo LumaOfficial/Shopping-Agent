@@ -68,7 +68,25 @@
           </svg>
           Find stores
         </button>
+        <button
+          class="sc"
+          id="shortcut-help"
+          type="button"
+          data-shortcut="help"
+          aria-expanded="false"
+          aria-controls="shortcut-hint"
+          title="Keyboard shortcuts"
+        >
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true">
+            <path d="M9.4 9.2a2.7 2.7 0 115 1.4c-.7 1-2.4 1.4-2.4 2.9" />
+            <circle cx="12" cy="17.2" r="0.9" fill="currentColor" stroke="none" />
+          </svg>
+          Keys
+        </button>
       </nav>
+
+      <div class="status" id="shortcut-status" role="status" aria-live="polite" hidden></div>
+      <div class="shortcut-hint" id="shortcut-hint" hidden></div>
 
       <!-- The newcomer's tour: one step per feature, resumable, replayable from
            Settings. Hidden once the shopper has walked it or skipped it. -->
@@ -215,123 +233,6 @@
         </div>
         <div class="rec">Your record on this browser</div>
         <p class="muted tiny" id="savings-block" hidden><span id="saved-note"></span></p>
-      </section>
-
-      <!-- The shopper's own toolkit: a goal, a watch list, a note about this
-           store and figures from the wallet. All of it is local to this browser
-           and works with no store open; how it reads is set in Settings. -->
-      <section class="card toolkit c0" id="toolkit-block" aria-labelledby="toolkit-title">
-        <h3 id="toolkit-title" style="justify-content: space-between">
-          My savings toolkit
-          <span class="head-actions">
-            <button
-              class="mini"
-              id="toolkit-help"
-              type="button"
-              aria-expanded="false"
-              aria-controls="shortcut-hint"
-            >
-              Shortcuts
-            </button>
-          </span>
-        </h3>
-
-        <div class="tk-block" id="goal-block">
-          <div class="tk-row">
-            <span class="lbl">Monthly goal</span>
-            <strong id="goal-figure">Not set</strong>
-          </div>
-          <div class="meter" aria-hidden="true"><i id="goal-meter"></i></div>
-          <p class="muted tiny" id="goal-note">Set a target and the panel tracks how close you are.</p>
-          <form class="tk-form" id="goal-form">
-            <input
-              id="goal-input"
-              type="number"
-              min="1"
-              max="100000"
-              step="1"
-              inputmode="decimal"
-              placeholder="25"
-              aria-label="Monthly savings goal in dollars"
-            />
-            <button class="mini" type="submit">Save goal</button>
-            <button class="mini" id="goal-clear" type="button" hidden>Clear</button>
-          </form>
-          <div class="tk-stats">
-            <div>
-              <strong id="tk-today">$0.00</strong>
-              <span class="lbl">today</span>
-            </div>
-            <div>
-              <strong id="tk-month">$0.00</strong>
-              <span class="lbl">this month</span>
-            </div>
-            <div>
-              <strong id="tk-streak">0</strong>
-              <span class="lbl">day streak</span>
-            </div>
-          </div>
-        </div>
-
-        <div class="tk-block" id="watch-block">
-          <div class="tk-row">
-            <span class="lbl">Price watch</span>
-            <button class="mini" id="watch-add" type="button" hidden>Watch this product</button>
-          </div>
-          <p class="muted tiny" id="watch-note">
-            Save a product you are looking at and the panel tells you when its price drops.
-          </p>
-          <ul class="watch-list" id="watch-list" hidden></ul>
-          <button class="mini" id="watch-undo" type="button" hidden>Undo remove</button>
-        </div>
-
-        <div class="tk-block" id="store-note-row" hidden>
-          <label class="lbl" for="store-note">Note for this store</label>
-          <textarea
-            id="store-note"
-            rows="2"
-            maxlength="160"
-            placeholder="e.g. free shipping over $35"
-          ></textarea>
-          <div class="tk-row">
-            <span class="muted tiny">Kept on this device, shown only for this store.</span>
-            <span class="head-actions">
-              <button class="mini" id="note-save" type="button" disabled>Save</button>
-              <button class="mini" id="note-clear" type="button" hidden>Clear</button>
-            </span>
-          </div>
-        </div>
-
-        <div class="tk-block">
-          <span class="lbl">Insights</span>
-          <ul class="insight-list" id="insight-list"></ul>
-        </div>
-
-        <div class="tk-block">
-          <div class="tk-row">
-            <span class="lbl">Export &amp; share</span>
-            <span class="head-actions">
-              <button class="mini" id="export-csv" type="button">Export CSV</button>
-              <button class="mini" id="copy-summary" type="button">Copy summary</button>
-            </span>
-          </div>
-        </div>
-
-        <div class="tk-block" id="pin-block">
-          <div class="tk-row">
-            <span class="lbl">Pinned stores</span>
-            <button class="mini" id="pin-current" type="button" hidden>Pin this store</button>
-          </div>
-          <div class="chips" id="pin-chips"></div>
-        </div>
-
-        <div class="tk-block">
-          <span class="lbl">Recent searches</span>
-          <div class="chips" id="recent-chips"></div>
-        </div>
-
-        <div class="status" id="toolkit-status" role="status" aria-live="polite" hidden></div>
-        <div class="shortcut-hint" id="shortcut-hint" hidden></div>
       </section>
 
       <section class="card empty c1" id="empty" hidden>

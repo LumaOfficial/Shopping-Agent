@@ -5,7 +5,7 @@ const TYPING = { INPUT: true, TEXTAREA: true, SELECT: true };
 
 export const SHORTCUTS = [
   { keys: "/", what: "Open the store directory and search it" },
-  { keys: "g", what: "Jump to the monthly goal" },
+  { keys: "g", what: "Open the monthly goal in Settings" },
   { keys: "w", what: "Watch the product on this page" },
   { keys: "p", what: "Pin the store you are on" },
   { keys: "?", what: "Show or hide this list" },

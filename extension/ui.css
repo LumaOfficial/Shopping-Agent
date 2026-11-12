@@ -3254,148 +3254,6 @@ body.sidepanel .age-distance {
   color: #5f5880;
 }
 
-/* ---------- The savings toolkit ---------- */
-
-body.sidepanel .toolkit {
-  display: grid;
-  gap: 18px;
-  animation-delay: 0.15s;
-}
-
-body.sidepanel .tk-block {
-  display: grid;
-  gap: 8px;
-  padding-top: 14px;
-  border-top: 1px solid #ece7fb;
-}
-
-body.sidepanel .tk-block:first-of-type {
-  padding-top: 0;
-  border-top: 0;
-}
-
-body.sidepanel .tk-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-body.sidepanel .tk-row strong {
-  font-weight: 400;
-  font-size: 15px;
-}
-
-body.sidepanel .tk-stats {
-  display: flex;
-  gap: 28px;
-  margin-top: 4px;
-}
-
-body.sidepanel .tk-stats div {
-  display: flex;
-  flex-direction: column;
-}
-
-body.sidepanel .tk-stats strong {
-  font-weight: 300;
-  font-size: 24px;
-  letter-spacing: -0.03em;
-  line-height: 1.2;
-}
-
-body.sidepanel .tk-form {
-  display: flex;
-  gap: 8px;
-}
-
-body.sidepanel .tk-form input {
-  flex: 1 1 auto;
-  min-width: 0;
-  padding: 10px 16px;
-  border-radius: 999px;
-  border: 1px solid #e1dbf6;
-  background: #faf8ff;
-  color: #2A2440;
-  font: inherit;
-}
-
-body.sidepanel .tk-form input:focus {
-  outline: none;
-  border-color: #7C6BF5;
-  box-shadow: 0 0 0 4px rgba(124, 107, 245, 0.14);
-}
-
-body.sidepanel .watch-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: grid;
-  gap: 8px;
-}
-
-body.sidepanel .watch-list li {
-  display: grid;
-  gap: 2px;
-  padding: 12px 14px;
-  border-radius: 16px;
-  border: 1px solid #ece7fb;
-  background: #fbfaff;
-}
-
-body.sidepanel .watch-list li .mini {
-  justify-self: start;
-  margin-top: 6px;
-}
-
-body.sidepanel .watch-title {
-  font-weight: 500;
-  font-size: 13.5px;
-}
-
-body.sidepanel .watch-meta {
-  color: #7d74a3;
-  font-size: 12px;
-}
-
-body.sidepanel .watch-drop {
-  color: #25715a;
-  font-style: normal;
-  font-weight: 600;
-}
-
-body.sidepanel .watch-up {
-  color: #a4573a;
-  font-style: normal;
-}
-
-body.sidepanel .insight-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: grid;
-  gap: 6px;
-  font-size: 12.5px;
-  color: #4a4368;
-}
-
-body.sidepanel textarea#store-note {
-  width: 100%;
-  resize: vertical;
-  padding: 12px 16px;
-  border-radius: 16px;
-  border: 1px solid #e1dbf6;
-  background: #faf8ff;
-  color: #2A2440;
-  font: inherit;
-}
-
-body.sidepanel textarea#store-note:focus {
-  outline: none;
-  border-color: #7C6BF5;
-  box-shadow: 0 0 0 4px rgba(124, 107, 245, 0.14);
-}
-
 body.sidepanel .shortcut-hint {
   display: grid;
   gap: 6px;
@@ -3440,9 +3298,7 @@ body.sidepanel .chips button.chip[aria-pressed="true"] {
 }
 
 [data-contrast="high"] body.sidepanel .muted,
-[data-contrast="high"] body.sidepanel .lbl,
-[data-contrast="high"] body.sidepanel .watch-meta,
-[data-contrast="high"] body.sidepanel .insight-list {
+[data-contrast="high"] body.sidepanel .lbl {
   color: #33295a;
 }
 
@@ -3461,15 +3317,6 @@ body.sidepanel .chips button.chip[aria-pressed="true"] {
 [data-density="compact"] body.sidepanel .card h3 {
   font-size: 22px;
   margin-bottom: 8px;
-}
-
-[data-density="compact"] body.sidepanel .toolkit {
-  gap: 12px;
-}
-
-[data-density="compact"] body.sidepanel .tk-block {
-  gap: 6px;
-  padding-top: 10px;
 }
 
 /* Motion is off when the panel or the system asks for less, whichever is
@@ -3509,4 +3356,182 @@ body.sidepanel .tiny {
     transition-duration: 0.001ms !important;
     scroll-behavior: auto !important;
   }
+}
+
+/* ---------- Settings: my savings toolkit ---------- */
+
+/* The toolkit used to be a card in the panel. It is a section of the settings
+   sheet now, so it borrows the sheet's own field and action rows and adds only
+   the figures and lists that have no equivalent here. */
+body.options .tk-sec {
+  margin-top: 4px;
+}
+
+body.options .tk-block {
+  display: grid;
+  gap: 8px;
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}
+
+body.options .tk-block:first-of-type {
+  border-top: 0;
+  padding-top: 0;
+}
+
+body.options .tk-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+body.options .tk-row strong {
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+body.options .tk-meter {
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+
+body.options .tk-meter i {
+  display: block;
+  width: 0;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #f6c96b, #e09a45);
+  transition: width 0.4s var(--ease);
+}
+
+body.options .tk-stats {
+  display: flex;
+  gap: 26px;
+  margin-top: 4px;
+}
+
+body.options .tk-stats div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+body.options .tk-stats strong {
+  font-size: 19px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+body.options .watch-list,
+body.options .note-list,
+body.options .insight-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+body.options .watch-list li {
+  display: grid;
+  gap: 3px;
+  padding: 11px 13px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+body.options .watch-list li .mini {
+  justify-self: start;
+  margin-top: 4px;
+}
+
+body.options .watch-title {
+  font-size: 12.5px;
+  font-weight: 650;
+}
+
+body.options .watch-meta {
+  color: var(--muted);
+  font-size: 11.5px;
+}
+
+body.options .watch-drop {
+  color: var(--good);
+  font-style: normal;
+  font-weight: 650;
+}
+
+body.options .watch-up {
+  color: var(--bad);
+  font-style: normal;
+  font-weight: 650;
+}
+
+body.options .note-list li {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 3px 10px;
+  padding: 11px 13px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+body.options .note-list li strong {
+  font-size: 12.5px;
+  font-weight: 650;
+}
+
+body.options .note-list li .small {
+  grid-column: 1;
+}
+
+body.options .note-actions {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  display: flex;
+  gap: 2px;
+  align-items: start;
+}
+
+body.options .insight-list {
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+body.options .chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+body.options .chip {
+  appearance: none;
+  padding: 6px 11px;
+  border-radius: 999px;
+  border: 1px solid var(--line-strong);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text);
+  font: 600 11.5px/1.2 system-ui, sans-serif;
+}
+
+body.options button.chip {
+  cursor: pointer;
+  transition: border-color 0.2s var(--ease), color 0.2s var(--ease);
+}
+
+body.options button.chip:hover {
+  border-color: var(--gold);
+  color: var(--gold);
+}
+
+body.options .chip.plain {
+  color: var(--muted);
 }

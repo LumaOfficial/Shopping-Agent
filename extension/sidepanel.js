@@ -16,7 +16,8 @@ import { MIN_AGE } from "./src/lib/age-verify.js";
 import { acceptTerms, readConsent, termsUrl } from "./src/lib/terms.js";
 import { TOUR_KEY, readTour } from "./src/lib/tutorial.js";
 import { startTour } from "./src/lib/tour-panel.js";
-import { startToolkit } from "./src/lib/toolkit-panel.js";
+import { startPanelShortcuts } from "./src/lib/panel-shortcuts.js";
+import { absorbWallet, noteAttempt } from "./src/lib/savings.js";
 
 const byId = (id) => document.getElementById(id);
 
@@ -707,8 +708,8 @@ let payoutMode = "unconfigured";
 function renderWallet(wallet) {
   if (!wallet || !wallet.balances) return;
   byId("wallet-block").hidden = false;
-  // Confirmed earnings feed the goal and the insights, once each.
-  toolkit.setWallet(wallet);
+  // Confirmed earnings feed the goal and the insights on Settings, once each.
+  absorbWallet(wallet);
 
   const totals = wallet.balances;
   const currency = wallet.currency || totals.currency || "USD";
@@ -951,7 +952,7 @@ async function runApply(code, button, status) {
     message: "No coupon field on this screen — open your cart or checkout.",
   };
 
-  toolkit.recordAttempt(result.status === "applied");
+  noteAttempt(result.status === "applied");
 
   const tone =
     result.status === "applied" ? "ok" : result.status === "rejected" ? "bad" : "wait";
@@ -1233,9 +1234,9 @@ async function render() {
 
   renderAds();
 
-  // The toolkit follows the tab the panel is looking at: a note, a pin and a
-  // product to watch all belong to the store that is open.
-  toolkit.setStore(null, null, state.url);
+  // The shortcut row follows the tab the panel is looking at: a pin and a
+  // product to watch both belong to the store that is open.
+  shortcuts.setStore(null, null, state.url);
 
   if (!state.url || !/^https?:/i.test(state.url)) {
     byId("store-name").textContent = "No store open";
@@ -1272,7 +1273,7 @@ async function render() {
 
   state.codes = mergeCodes(data.codes, pageCodesFrom(state.scan));
   state.site = data.site || siteHost(state.url);
-  toolkit.setStore(data.store, state.scan && state.scan.product, state.url);
+  shortcuts.setStore(data.store, state.scan && state.scan.product, state.url);
 
   renderSource(data, Boolean(state.scan));
   renderPage(state.scan, features);
@@ -1761,6 +1762,7 @@ document.addEventListener("keydown", (event) => {
 byId("store-search").addEventListener("input", (event) => {
   state.storeQuery = event.target.value;
   renderStoreList();
+  shortcuts.noteSearch(event.target.value);
 });
 
 byId("store-categories").addEventListener("click", (event) => {
@@ -1785,10 +1787,10 @@ byId("store-list").addEventListener("click", (event) => {
 
 applyBrowserCopy();
 
-// The savings toolkit owns the goal, the watch list, the store note, the
-// insights and the comfort settings chosen in Settings. The panel only tells it
-// which store is open and which money landed in the wallet.
-const toolkit = startToolkit();
+// The shortcut row under the brand acts on the page that is open — watch this
+// product, pin this store, open the directory — and applies the comfort settings
+// chosen in Settings. The goal, the watch list and the notes are edited there.
+const shortcuts = startPanelShortcuts({ openSearch: () => openStoreDirectory("All") });
 
 // The face age check card owns its own consent and capture; the panel only tells
 // it who is signed in, and refreshes the wallet once a verdict lands.

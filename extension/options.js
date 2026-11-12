@@ -20,6 +20,7 @@ import { STORES } from "./src/lib/stores.js";
 import { goalProgress, readActivity, streak, todayTotals } from "./src/lib/goals.js";
 import { readWatch } from "./src/lib/watchlist.js";
 import { bestStore, monthEarned, summaryText, toCsv, topCategory } from "./src/lib/insights.js";
+import { startToolkitSettings } from "./src/lib/toolkit-settings.js";
 
 const byId = (id) => document.getElementById(id);
 
@@ -331,6 +332,11 @@ async function load() {
     showLevel("developer");
     byId("payouts").scrollIntoView({ block: "start" });
   }
+  // The panel's goal shortcut opens #toolkit, which sits in the Simple level.
+  if (location.hash === "#toolkit") {
+    showLevel("simple");
+    byId("toolkit").scrollIntoView({ block: "start" });
+  }
   detectPayout(true);
 }
 
@@ -430,6 +436,7 @@ async function loadData() {
 
   renderSimpleWallet(stats);
   renderSecurity(settings);
+  toolkit.refresh();
 }
 
 // The security section states what is true on this device right now. Every line
@@ -905,6 +912,10 @@ byId("terms-link").addEventListener("click", (event) => {
   event.preventDefault();
   chrome.tabs.create({ url: termsUrl() });
 });
+
+// The savings toolkit moved out of the panel and onto this page: the goal, the
+// watch list, the store notes and the figures behind them.
+const toolkit = startToolkitSettings();
 
 renderTerms();
 load();
