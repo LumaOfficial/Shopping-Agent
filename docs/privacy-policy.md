@@ -51,7 +51,8 @@ It covers data the Extension handles in your browser. It does **not** cover:
 | Wallet: cashback, savings and ad value credited to your account | `chrome.storage.local` | Only in a payout request you started |
 | Age-check verdict: outcome, provider name, reference, time | `chrome.storage.local` | No |
 | Camera frames for the optional age check | Memory only, for the length of a measurement | Only when you have connected an age-check relay |
-| Card numbers, expiry dates, security codes | Never read, never stored | Never |
+| Card numbers and expiry dates, only if you save a card in Luma Pay | `chrome.storage.local`, sealed with AES-256-GCM under a PIN you choose | No |
+| Security codes | Never read, never stored | Never |
 | Browsing history as a log | Not kept | No |
 | Analytics, telemetry, advertising identifiers | None | No |
 
@@ -98,6 +99,20 @@ time. Never a frame and never a face template (Terms §11, and see
 **Sign-in guards.** A counter of failed sign-in attempts and the time a lock applies, so repeated
 guesses are slowed down.
 
+**Your cards — only if you create a card vault.** A card number, expiry date, name on the card and an
+optional label are stored only after you set a PIN and tap Save this card. Nothing is read from your
+browser's autofill, from another password manager or from a page, and no card exists in the Extension
+until you type one in yourself. The record is sealed with AES-256-GCM under a key derived from that
+PIN with PBKDF2-SHA-256 at 210,000 rounds. The PIN itself is never stored — only the key it derives —
+and that key is held for ten minutes in memory and in `chrome.storage.session`, which the browser
+keeps off disk. Ten minutes after you last used the cards, or when you tap Lock now, they lock again.
+The security code is never stored, because PCI DSS does not allow keeping one after an authorization
+and Luma Pay cannot fill it — you type it at each checkout. Cards are never part of an export or of a
+sealed backup, they are not carried to a new device, and forgetting them needs no PIN.
+
+Apart from that vault, which only exists if you create it, the Extension has no field for a card
+number, an expiry date or a security code, so one can never be stored by accident.
+
 ## What leaves your device
 
 Data leaves only in the five situations Terms §13 lists. Each requires an address you configured
@@ -129,13 +144,16 @@ On a covered shop it reads only:
 - whether the page is a shop it covers;
 - coupon codes, coupon controls and product prices that the page publishes;
 - the store's own promo field, so it can type a code you chose and read back what the store said;
-- the attributes of card fields on a checkout page, so it can tell you your browser's autofill is
-  available;
+- the attributes of card fields on a checkout page, so it can tell you a card can be filled there;
+- the card fields themselves, and only while it is typing a card you saved, after you tapped Fill
+  card details for that card in the panel;
 - the empty ad slots left behind on pages where the ad-blocking switch is on, so it can hide them
   and count them.
 
-It never reads or sends your password fields, card numbers, expiry dates or security codes, your
-messages, or the content of pages that are not covered shops (Terms §5, §12).
+It never reads or sends your password fields or security codes, your messages, or the content of
+pages that are not covered shops (Terms §5, §12). A card number reaches a page only when you ask for
+it to be typed there, only into the card fields of that page, and it is never sent anywhere else:
+there is no destination for it in the Extension's package.
 
 ## The optional face-based age check
 

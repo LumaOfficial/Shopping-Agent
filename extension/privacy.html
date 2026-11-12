@@ -128,14 +128,31 @@
               <strong>Sign-in guards.</strong> A counter of failed sign-in attempts and the time a
               lock applies, so repeated guesses are slowed down.
             </li>
+            <li>
+              <strong>Your cards — only if you create a card vault.</strong> A card number, expiry
+              date, name on the card and an optional label, stored only after you set a PIN and tap
+              Save this card. Nothing is read from your browser's autofill, from another password
+              manager or from a page, and no card exists here until you type one in yourself. The
+              record is sealed with AES-256-GCM under a key derived from that PIN with
+              PBKDF2-SHA-256 at 210,000 rounds. The PIN itself is never stored — only the key it
+              derives — and that key is held for ten minutes in memory and in
+              <code>chrome.storage.session</code>, which the browser keeps off disk. Ten minutes
+              after you last used the cards, or when you tap Lock now, they lock again. The security
+              code is never stored: PCI DSS does not allow keeping one after an authorization, and
+              Luma Pay cannot fill it, so you type it at each checkout. Cards are never part of an
+              export or of a sealed backup, they are not carried to a new device, and forgetting
+              them needs no PIN.
+            </li>
           </ul>
           <p>
             That list is the whole record. The Extension keeps no browsing history as a log, no
-            keystrokes, no screenshots, no clipboard contents, no contact list and no location. There
-            is no field for a card number, an expiry date or a security code, which is why those can
-            never be stored by accident. Nothing on this list is shared between browser profiles,
-            between devices or between people using the same device under different accounts, except
-            where an export or a sealed backup you created carries it.
+            keystrokes, no screenshots, no clipboard contents, no contact list and no location. Apart
+            from the card vault you create yourself, there is no field for a card number, an expiry
+            date or a security code, which is why one can never be stored by accident. Nothing on
+            this list is shared between browser profiles, between devices or between people using the
+            same device under different accounts, except where an export or a sealed backup you
+            created carries it — and never the card vault, which stays on the device it was created
+            on.
           </p>
           <p>
             Where the Extension stores a credential you entered, it stores it in this profile and
@@ -231,14 +248,18 @@
             <li>coupon codes, coupon controls and product prices that the page publishes;</li>
             <li>the store's own promo field, so it can type a code you chose and read back what the
               store said;</li>
-            <li>the attributes of card fields on a checkout page, so it can tell you your browser's
-              autofill is available;</li>
+            <li>the attributes of card fields on a checkout page, so it can tell you a card can be
+              filled there;</li>
+            <li>the card fields themselves, and only while it is typing a card you saved, after you
+              tapped Fill card details for that card in the panel;</li>
             <li>the empty ad slots left behind on pages where the ad-blocking switch is on, so it
               can hide them and count them.</li>
           </ul>
           <p>
-            It never reads or sends your password fields, card numbers, expiry dates or security
-            codes, your messages, or the content of pages that are not covered shops.
+            It never reads or sends your password fields or security codes, your messages, or the
+            content of pages that are not covered shops. A card number reaches a page only when you
+            ask Luma Pay to type it there, only into that page's card fields, and it is never sent
+            anywhere else — there is no destination for it in the package.
           </p>
         </section>
 

@@ -327,7 +327,8 @@ Entered in the submission form, so the form and the package describe the same pr
 
 - **Name:** Luma Pay Shopping Agent
 - **Summary:** Luma Pay Shopping Agent finds coupon codes, cashback offers and price history while
-  you shop, and hides ad slots in the shops it covers. It never reads your card details.
+  you shop, hides ad slots in the shops it covers, and can type a card you saved on this device into
+  a checkout when you ask it to. It never reads your card details from the browser.
 - **Description:** Luma Pay Shopping Agent adds a compact panel beside the page — a short stack of
   soft, rounded cards in the sidebar (or the side panel in other Chromium browsers). Open a shop
   and the panel shows the codes that shop publishes, cashback rates from cashback programmes, and
@@ -339,7 +340,8 @@ Entered in the submission form, so the form and the package describe the same pr
   and one site at a time when you add a shop yourself — and asks you to agree to its terms before it
   does anything; the terms, the privacy policy and a support page are all one link away from that
   notice and ship inside the package. Accounts, codes, prices and balances are stored in this
-  browser profile; card numbers are never read.
+  browser profile. A card number is stored only if you save one in Settings, is sealed with a PIN
+  and never leaves the device, and the security code is never stored or filled at all.
 - **Category:** Shopping
 
 ## Submission checklist

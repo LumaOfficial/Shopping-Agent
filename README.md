@@ -422,10 +422,18 @@ opens an address it has not checked.
   `www.example.com` and `example.com` share their saved and verified codes.
 - **Export / clear** — a JSON copy of local data (never the credentials), and a
   one-click wipe.
-- **Checkout guidance** — when a page shows card fields, the panel offers a
-  "Show Chrome autofill" / "Show Edge autofill" button that focuses the card
-  field so **the browser's own** autofill appears. The extension never reads, stores, autofills or submits card
-  numbers, expiry dates or security codes, and it never calls a checkout "safe".
+- **Card details, filled on request** — a card the shopper saved on this device
+  can be typed into a checkout from the panel, and a "Show Chrome autofill" /
+  "Show Edge autofill" button still focuses the card field for the browser's own
+  autofill. Cards are opt-in per device: nothing is read from the browser's
+  autofill or from a password manager, and no card exists until one is typed in
+  Settings. A card vault is sealed with AES-256-GCM under a PIN stretched with
+  PBKDF2 (210,000 rounds); the PIN is never stored, the key it derives is held
+  for ten minutes and locks itself, the security code is never stored (PCI DSS
+  forbids keeping one) and is therefore never filled, the vault is never part of
+  an export or a sealed backup, and nothing fills or submits a checkout without
+  the shopper tapping Fill card details. The extension never calls a checkout
+  "safe".
 
 ### How a site gets added
 
@@ -685,7 +693,9 @@ user from themselves.
 | `src/content/consent.js` | The panel's gate, read where the page script runs, so nothing is hidden or counted before agreement |
 | `art/empty-fold.svg` | The empty-state artwork, packaged rather than fetched from a CDN |
 | `src/background/service-worker.js` | Only code that calls partner endpoints; caches the feed per store; validates the source; stores saved/verified codes, price points and savings |
-| `src/content/content.js` | Frame-aware bridge: `page:scan`, `page:clip`, `coupon:probe`, `coupon:apply`, `checkout:probe`, `checkout:focus` (attributes only) |
+| `src/content/content.js` | Frame-aware bridge: `page:scan`, `page:clip`, `coupon:probe`, `coupon:apply`, `checkout:probe`, `checkout:focus`, `card:fill` |
+| `src/content/card-fill.js` | Finds the card number, expiry and name fields on a checkout and types a saved card into them, firing the events a keystroke would; the security code field is recognised and left alone |
+| `src/lib/cards.js` | The card vault: PBKDF2-stretched PIN, AES-256-GCM per card, ten-minute unlock, wrong-PIN pause, Luhn and expiry checks, and a reveal that returns a number only when the shopper asked for it |
 | `src/content/coupon-engine.js` | Promo-field autofill + outcome detection |
 | `src/content/page-scan.js` | Published codes, clip coupons, product/price reading — reads only rendered text, rejects identifier prose ("zip code", "error code"), and prefers the buy-box price over crossed-out or "was" prices |
 | `src/content/site-detect.js` | What the page declares about itself as a shop: structured data, platform, cart/checkout |

@@ -345,6 +345,85 @@
           </p>
         </div>
 
+        <h2 id="card-vault-title">Card details on this device</h2>
+        <p class="muted" id="card-vault-status">Checking…</p>
+        <div class="field" id="card-pin-field">
+          <label for="card-vault-pin">PIN (6 or more digits)</label>
+          <input
+            id="card-vault-pin"
+            type="password"
+            inputmode="numeric"
+            autocomplete="off"
+            maxlength="12"
+            placeholder="••••••"
+          />
+          <p class="hint">
+            The PIN itself is never stored — it only derives the key that opens your cards.
+            That key is held in memory for ten minutes, then the cards lock themselves.
+          </p>
+        </div>
+        <div class="actions" style="margin-top: 12px; padding-top: 0; border-top: 0">
+          <button class="btn ghost" id="card-vault-create" type="button">Set a PIN</button>
+          <button class="btn ghost" id="card-vault-unlock" type="button" hidden>Unlock</button>
+          <button class="btn ghost" id="card-vault-lock" type="button" hidden>Lock now</button>
+          <button class="btn ghost" id="card-vault-forget" type="button" hidden>
+            Forget all cards
+          </button>
+        </div>
+        <div id="card-saved" hidden>
+          <ul class="note-list" id="card-list" hidden></ul>
+          <div class="field">
+            <label for="card-number">Card number</label>
+            <input
+              id="card-number"
+              type="text"
+              inputmode="numeric"
+              autocomplete="off"
+              maxlength="23"
+              placeholder="4242 4242 4242 4242"
+            />
+          </div>
+          <div class="field">
+            <label for="card-holder">Name on card</label>
+            <input
+              id="card-holder"
+              type="text"
+              autocomplete="off"
+              maxlength="60"
+              placeholder="As printed on the card"
+            />
+          </div>
+          <div class="field">
+            <label for="card-expiry">Expiry</label>
+            <input
+              id="card-expiry"
+              type="text"
+              inputmode="numeric"
+              autocomplete="off"
+              maxlength="7"
+              placeholder="MM/YY"
+            />
+          </div>
+          <div class="field">
+            <label for="card-label">Label (optional)</label>
+            <input
+              id="card-label"
+              type="text"
+              autocomplete="off"
+              maxlength="24"
+              placeholder="Everyday card"
+            />
+            <p class="hint">
+              The security code is never stored, so Luma Pay cannot fill it — you type it at
+              each checkout. Cards stay in this browser profile and are never sent anywhere.
+            </p>
+          </div>
+          <div class="actions" style="margin-top: 12px; padding-top: 0; border-top: 0">
+            <button class="btn ghost" id="card-save" type="button">Save this card</button>
+          </div>
+        </div>
+        <p class="test-line" id="card-vault-result" role="status" aria-live="polite" hidden></p>
+
         <h2>Data on this device</h2>
         <p class="muted" id="data-stats">Reading local data…</p>
         <p class="muted small" id="site-list" hidden></p>

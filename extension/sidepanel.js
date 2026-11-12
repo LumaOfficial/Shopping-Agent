@@ -101,6 +101,12 @@ function reset() {
   byId("autofill-status").className = "muted tiny";
   byId("autofill-status").textContent =
     "We can't verify this store's security — check the address bar before you pay.";
+  byId("card-fill").hidden = true;
+  byId("card-unlock").hidden = true;
+  byId("card-pick").textContent = "";
+  byId("card-pin").value = "";
+  byId("card-note").className = "muted tiny";
+  byId("card-note").textContent = "No card is saved on this device yet.";
   byId("codes-status").hidden = true;
   byId("codes-status").textContent = "";
   byId("fetch-codes").hidden = true;
@@ -1325,6 +1331,7 @@ async function render() {
   const checkout = await toTab({ type: "checkout:probe" });
   state.atPayment = Boolean(checkout && checkout.hasPaymentFields);
   byId("checkout-block").hidden = !state.atPayment;
+  if (state.atPayment) await renderCardFill();
 
   // The promo box at the cart or the payment step is filled in on its own.
   autoApplyAtCheckout(Boolean(probe && probe.hasField), state.atPayment);
@@ -1627,6 +1634,126 @@ byId("cash-out").addEventListener("click", async () => {
   }
   status.className = "status bad";
   status.textContent = (reply && reply.error) || "The payout did not go through.";
+});
+
+// ---- card details on this device -----------------------------------------
+// The panel only ever receives a card's label: the number itself stays in the
+// worker until the shopper taps Fill, and then goes straight into the page.
+let cardState = { configured: false, unlocked: false, count: 0 };
+
+function cardNote(text, tone) {
+  const note = byId("card-note");
+  note.className = tone ? "muted tiny " + tone : "muted tiny";
+  note.textContent = text || "";
+}
+
+function renderCardPicks(cards) {
+  const pick = byId("card-pick");
+  pick.textContent = "";
+  cards.forEach((card) => {
+    const option = document.createElement("option");
+    option.value = card.id;
+    const label = card.brandName + " •••• " + card.last4;
+    option.textContent = card.nickname ? label + " · " + card.nickname : label;
+    pick.appendChild(option);
+  });
+  pick.disabled = !cards.length;
+  byId("fill-card").disabled = !cards.length;
+}
+
+async function renderCardFill() {
+  const status = await sendWorker({ type: "cards:status" });
+  cardState = status && typeof status === "object" ? status : cardState;
+
+  byId("card-fill").hidden = !(cardState.configured && cardState.unlocked && cardState.count > 0);
+  byId("card-unlock").hidden = !(cardState.configured && !cardState.unlocked);
+
+  if (!cardState.configured) {
+    renderCardPicks([]);
+    cardNote("No card is saved on this device yet. Add one in Settings and it is here at your next checkout.");
+    return;
+  }
+  if (!cardState.unlocked) {
+    renderCardPicks([]);
+    cardNote(
+      String(cardState.count) +
+        (cardState.count === 1 ? " card is" : " cards are") +
+        " saved on this device. Enter your PIN to use " +
+        (cardState.count === 1 ? "it" : "them") +
+        "."
+    );
+    return;
+  }
+  const listed = await sendWorker({ type: "cards:list" });
+  const saved = listed && Array.isArray(listed.cards) ? listed.cards : [];
+  renderCardPicks(saved);
+  cardNote(
+    saved.length
+      ? "The security code is never stored, so type it in yourself before you pay."
+      : "No cards yet — add one in Settings."
+  );
+}
+
+byId("fill-card").addEventListener("click", async () => {
+  const button = byId("fill-card");
+  const id = byId("card-pick").value;
+  if (!id) return;
+  button.disabled = true;
+  const reply = await sendWorker({ type: "cards:fill", id, tabId: state.tabId });
+  button.disabled = false;
+
+  if (reply && reply.ok && Array.isArray(reply.filled)) {
+    const missing = Array.isArray(reply.missing) ? reply.missing : [];
+    const complete = missing.indexOf("number") === -1 && missing.indexOf("expiry") === -1;
+    cardNote(
+      complete
+        ? "Card details filled in. Type the security code yourself, then check the total before you pay."
+        : "Some fields could not be filled — check the card number and expiry on the page.",
+      complete ? "ok" : ""
+    );
+    return;
+  }
+  if (reply && reply.reason === "locked") {
+    await renderCardFill();
+    cardNote("The cards locked again — enter your PIN to use them.", "");
+    byId("card-pin").focus();
+    return;
+  }
+  cardNote((reply && reply.error) || "That card could not be filled.", "bad");
+});
+
+async function unlockCardsFromPanel() {
+  const input = byId("card-pin");
+  const pin = input.value;
+  if (!pin) {
+    cardNote("Enter your card PIN.", "bad");
+    input.focus();
+    return;
+  }
+  byId("card-unlock-go").disabled = true;
+  const reply = await sendWorker({ type: "cards:unlock", pin });
+  byId("card-unlock-go").disabled = false;
+  if (reply && reply.ok) {
+    input.value = "";
+    await renderCardFill();
+    cardNote("Cards unlocked for ten minutes. Pick one and tap Fill.", "ok");
+    return;
+  }
+  cardNote((reply && reply.error) || "That PIN did not work.", "bad");
+  input.select();
+}
+
+byId("card-unlock-go").addEventListener("click", unlockCardsFromPanel);
+byId("card-pin").addEventListener("keydown", (event) => {
+  if (event.key === "Enter") {
+    event.preventDefault();
+    unlockCardsFromPanel();
+  }
+});
+
+byId("card-manage").addEventListener("click", () => {
+  if (chrome.runtime.openOptionsPage) chrome.runtime.openOptionsPage();
+  else chrome.tabs.create({ url: chrome.runtime.getURL("options.html#card-vault") });
 });
 
 byId("show-autofill").addEventListener("click", async () => {

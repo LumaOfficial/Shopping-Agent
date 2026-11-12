@@ -463,13 +463,41 @@
             </svg>
           </span>
           <div>
-            <strong>Paying here?</strong>
+            <strong>Pay with Luma Pay</strong>
             <p class="muted" id="checkout-copy">
-              This page asks for card details. <span id="checkout-browser">Your browser</span> fills them — we never read, store or send them.
+              This page asks for card details. Luma Pay can type a card you saved on this
+              device — or <span id="checkout-browser">your browser</span> can fill it.
             </p>
           </div>
         </div>
-        <button class="btn w" id="show-autofill" type="button">Show browser autofill</button>
+
+        <div class="payfill" id="card-fill" hidden>
+          <label class="lbl" for="card-pick">Card on this device</label>
+          <select id="card-pick"></select>
+          <button class="btn w" id="fill-card" type="button">Fill card details</button>
+        </div>
+
+        <div class="payfill" id="card-unlock" hidden>
+          <label class="lbl" for="card-pin">Card PIN</label>
+          <input
+            id="card-pin"
+            type="password"
+            inputmode="numeric"
+            autocomplete="off"
+            maxlength="12"
+            placeholder="Your card PIN"
+          />
+          <button class="btn w" id="card-unlock-go" type="button">Unlock cards</button>
+        </div>
+
+        <p class="muted tiny" id="card-note" role="status" aria-live="polite">
+          No card is saved on this device yet.
+        </p>
+
+        <div class="pay-actions">
+          <button class="btn ghost" id="show-autofill" type="button">Show browser autofill</button>
+          <button class="mini" id="card-manage" type="button">Manage cards</button>
+        </div>
         <p class="muted tiny" id="autofill-status" role="status" aria-live="polite">
           We can't verify this store's security — check the address bar before you pay.
         </p>

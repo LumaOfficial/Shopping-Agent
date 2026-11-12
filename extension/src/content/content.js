@@ -1,6 +1,7 @@
 // Content script bridge. The side panel asks it to scan the page, apply a code,
-// clip the store's own coupon controls, and find card fields for the browser's
-// autofill. All UI lives in the side panel — nothing is injected here.
+// clip the store's own coupon controls, find card fields, and (only when the
+// shopper picks a saved card) type that card into them. All UI lives in the side
+// panel — nothing is injected here.
 //
 // Frames: carts and checkouts are often rendered in an iframe, so this runs in
 // every frame. A frame without a coupon field stays silent, which lets the
@@ -120,6 +121,23 @@
       var result = focusPaymentField();
       if (!result.focused) return undefined;
       sendResponse(result);
+      return undefined;
+    }
+
+    // The card itself only ever arrives in this message, from the worker, after
+    // the shopper picked it in the panel. A frame that cannot fill anything stays
+    // silent so the frame holding the fields is the one that answers.
+    if (message.type === "card:fill") {
+      if (!window.CardFill) return undefined;
+      var filled;
+      try {
+        filled = window.CardFill.fill(message.card);
+      } catch (error) {
+        sendResponse({ error: String((error && error.message) || error) });
+        return undefined;
+      }
+      if (!filled.filled.length) return undefined;
+      sendResponse(filled);
       return undefined;
     }
 

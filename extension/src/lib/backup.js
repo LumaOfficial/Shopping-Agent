@@ -21,8 +21,10 @@ export const APP_ID = "luma-pay-savings";
 
 // Keys that describe this installation rather than the person: restoring them
 // would either carry a dead session to a new device or put the recovery key
-// inside the copy it protects.
-const DEVICE_ONLY = ["session", "signInGuard", "vault"];
+// inside the copy it protects. Cards belong here too — the vault is sealed with
+// a PIN that only exists on the device it was set on, and a card the shopper
+// chose to keep here does not travel in a profile backup.
+const DEVICE_ONLY = ["session", "signInGuard", "vault", "cardVault", "cardVaultKey", "cardGuard"];
 
 function stamp(now) {
   return new Date(typeof now === "number" ? now : Date.now()).toISOString();

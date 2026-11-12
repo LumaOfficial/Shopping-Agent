@@ -48,7 +48,11 @@ test("the privacy page names the same version and date as the gate", () => {
   assert.match(privacy, new RegExp("currently\\s+" + escape(TERMS_VERSION)), "the accepted version");
 
   // The facts that make the policy specific rather than boilerplate.
-  assert.match(privacy, /never reads or sends your password fields, card numbers/i);
+  assert.match(privacy, /never reads or sends your password fields or security codes/i);
+  // The card vault is a card-number feature, so the disclosure says what it does
+  // with the number and what it refuses to keep.
+  assert.match(privacy, /security\s+code is never stored/i);
+  assert.match(privacy, /never part of an\s+export or of a sealed backup/i);
   assert.match(privacy, /no analytics, telemetry, fingerprinting/i);
   assert.match(privacy, /salted PBKDF2-SHA-256 hash/);
   assert.match(privacy, /With no relay configured/);

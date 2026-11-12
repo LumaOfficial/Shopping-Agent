@@ -62,6 +62,17 @@ import {
   relayHost,
 } from "../lib/age-verify.js";
 import { LOCAL_PROVIDER, judgeLocal } from "../lib/age-local.js";
+import {
+  addCard,
+  createVault,
+  forgetAll,
+  listCards,
+  lock as lockCards,
+  removeCard,
+  revealCard,
+  unlock as unlockCards,
+  vaultStatus,
+} from "../lib/cards.js";
 
 const FEED_TTL_MS = 10 * 60 * 1000;
 // The savings catalog is re-read hourly. A published catalog is fetched; the
@@ -1021,6 +1032,42 @@ async function clearData() {
 // pages, where no page script can reach the listener.
 const CONTENT_MESSAGES = ["ads:report"];
 
+// Fills a saved card into the checkout the panel is looking at. The number is
+// opened here and handed straight to that tab's content script: it is never
+// returned to the panel, written anywhere in the clear, or logged. The message
+// carries no security code, because none is stored.
+async function fillSavedCard(message) {
+  const tabId = intValue(message.tabId, 1, 1e9);
+  if (tabId === null) return { error: "refused" };
+
+  let tab = null;
+  try {
+    tab = await chrome.tabs.get(tabId);
+  } catch (_error) {
+    tab = null;
+  }
+  // Only a real web page has card fields; the extension's own pages never do.
+  if (!tab || !webUrl(tab.url)) {
+    return { ok: false, error: "Open the store's checkout in this tab first." };
+  }
+
+  const revealed = await revealCard(message.id);
+  if (!revealed.ok) return revealed;
+
+  const reply = await chrome.tabs
+    .sendMessage(tabId, { type: "card:fill", card: revealed.card })
+    .catch(() => null);
+  if (!reply || !Array.isArray(reply.filled) || !reply.filled.length) {
+    return { ok: false, error: "No card field on this screen yet — open the payment step and try again." };
+  }
+  return {
+    ok: true,
+    filled: reply.filled,
+    missing: Array.isArray(reply.missing) ? reply.missing : [],
+    hasCvc: Boolean(reply.hasCvc),
+  };
+}
+
 const NEEDS_URL = ["site:resolve", "offers:refresh", "cashback:activate", "site:remove"];
 
 // The payload each handler is about to read, checked before it is read. A message
@@ -1061,6 +1108,21 @@ function payloadProblem(type, message) {
     case "settings:set":
       if (!isPlainObject(message.settings)) return "Those settings could not be read.";
       return allowance("settings", 30, 60000) ? "" : "Too many settings changes just now.";
+    case "cards:create":
+    case "cards:unlock":
+      // A 6-digit PIN is only 10,000 guesses wide, so the pause inside cards.js
+      // is backed by a ceiling per worker session here.
+      return allowance("cards-unlock", 8, 60000) ? "" : "Too many unlock attempts. Try again in a minute.";
+    case "cards:add":
+      if (!isPlainObject(message.card)) return "No card arrived, so nothing was saved.";
+      return allowance("cards-add", 10, 60000) ? "" : "Too many cards added just now.";
+    case "cards:remove":
+      return textValue(message.id, 80) ? "" : "That card has no usable id.";
+    case "cards:fill":
+      return allowance("cards-fill", 12, 60000) ? "" : "Too many fills just now.";
+    case "cards:forget":
+      // Losing every card is irreversible, so it is a deliberate request.
+      return message.confirm === true ? "" : "Forgetting every card has to be confirmed.";
     case "data:clear":
       // Only a deliberate, confirmed request empties the figures.
       return message.confirm === true ? "" : "Clearing data has to be confirmed.";
@@ -1175,6 +1237,24 @@ async function handle(message, sender) {
       return refreshCatalog(await readSettings(), true);
     case "stats:get":
       return stats();
+    case "cards:status":
+      return vaultStatus();
+    case "cards:list":
+      return listCards();
+    case "cards:create":
+      return createVault(message.pin);
+    case "cards:unlock":
+      return unlockCards(message.pin);
+    case "cards:lock":
+      return lockCards();
+    case "cards:forget":
+      return forgetAll();
+    case "cards:add":
+      return addCard(message.card);
+    case "cards:remove":
+      return removeCard(message.id);
+    case "cards:fill":
+      return fillSavedCard(message);
     case "data:export":
       return exportData();
     case "data:clear":

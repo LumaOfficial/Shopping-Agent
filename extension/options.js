@@ -326,6 +326,13 @@ async function load() {
   loadData();
   renderFreshness();
   renderVault();
+  renderCards();
+  // The panel's "Manage cards" opens #card-vault, which sits in the Advanced
+  // level beside the other things about this device.
+  if (location.hash === "#card-vault") {
+    showLevel("advanced");
+    byId("card-vault-title").scrollIntoView({ block: "start" });
+  }
   // #payouts deep-links here, so land on the one level that holds the payout
   // fields.
   if (location.hash === "#payouts") {
@@ -900,6 +907,160 @@ byId("simple-cashout").addEventListener("click", async () => {
       (reply && reply.error) || "The virtual Visa did not go through. Try again in a moment.";
   }
   loadData();
+});
+
+// ---- card details on this device -----------------------------------------
+// The vault lives in the worker, so this page and the panel share one lock
+// state. A card number exists here only between the form and the message that
+// stores it; this page never writes one to storage.
+function cardVaultSay(text, tone) {
+  const line = byId("card-vault-result");
+  line.hidden = !text;
+  line.className = "test-line " + (tone || "");
+  line.textContent = text || "";
+}
+
+function cardVaultAsk(type, extra) {
+  return chrome.runtime.sendMessage(Object.assign({ type }, extra || {})).catch(() => null);
+}
+
+function renderCardRows(cards) {
+  const list = byId("card-list");
+  list.textContent = "";
+  list.hidden = !cards.length;
+  cards.forEach((card) => {
+    const row = document.createElement("li");
+    const title = document.createElement("strong");
+    title.textContent =
+      card.brandName + " •••• " + card.last4 + (card.nickname ? " · " + card.nickname : "");
+    const meta = document.createElement("p");
+    meta.className = "muted small";
+    meta.textContent =
+      card.holder +
+      " · expires " +
+      String(card.expMonth).padStart(2, "0") +
+      "/" +
+      String(card.expYear).slice(-2);
+    const remove = document.createElement("button");
+    remove.type = "button";
+    remove.className = "mini";
+    remove.textContent = "Remove";
+    remove.setAttribute("aria-label", "Remove the card ending " + card.last4);
+    remove.addEventListener("click", async () => {
+      const reply = await cardVaultAsk("cards:remove", { id: card.id });
+      const removed = Boolean(reply && reply.ok && typeof reply.count === "number");
+      cardVaultSay(
+        removed ? "Card removed from this device." : (reply && reply.error) || "That card could not be removed.",
+        removed ? "ok" : "bad"
+      );
+      await renderCards();
+    });
+    row.append(title, meta, remove);
+    list.appendChild(row);
+  });
+}
+
+async function renderCards() {
+  const status = await cardVaultAsk("cards:status");
+  if (!status || status.error) {
+    byId("card-vault-status").textContent = "The card vault did not answer — reload this page.";
+    return;
+  }
+  const listed =
+    status.configured && status.unlocked ? await cardVaultAsk("cards:list") : null;
+  const cards = listed && Array.isArray(listed.cards) ? listed.cards : [];
+
+  byId("card-pin-field").hidden = Boolean(status.unlocked);
+  byId("card-vault-create").hidden = status.configured;
+  byId("card-vault-unlock").hidden = !status.configured || status.unlocked;
+  byId("card-vault-lock").hidden = !status.unlocked;
+  byId("card-vault-forget").hidden = !status.configured;
+  byId("card-saved").hidden = !status.unlocked;
+  renderCardRows(cards);
+
+  const line = byId("card-vault-status");
+  if (!status.configured) {
+    line.textContent =
+      "No card is saved on this device. Choose a PIN to keep one: it is sealed with that PIN and never leaves this browser profile.";
+    return;
+  }
+  if (!status.unlocked) {
+    line.textContent =
+      String(status.count) +
+      (status.count === 1 ? " card is" : " cards are") +
+      " saved on this device and locked. Enter the PIN to see or use " +
+      (status.count === 1 ? "it" : "them") +
+      ".";
+    return;
+  }
+  line.textContent =
+    (cards.length ? String(cards.length) + (cards.length === 1 ? " card" : " cards") : "No cards yet") +
+    " · unlocked for about " +
+    Math.max(1, Math.round((status.expiresIn || 0) / 60000)) +
+    " more minutes.";
+}
+
+byId("card-vault-create").addEventListener("click", async () => {
+  const reply = await cardVaultAsk("cards:create", { pin: byId("card-vault-pin").value });
+  if (!reply || reply.configured !== true) {
+    cardVaultSay((reply && reply.error) || "That PIN could not be used.", "bad");
+    return;
+  }
+  byId("card-vault-pin").value = "";
+  cardVaultSay("PIN set. Add a card below — it is sealed with this PIN.", "ok");
+  await renderCards();
+});
+
+byId("card-vault-unlock").addEventListener("click", async () => {
+  const reply = await cardVaultAsk("cards:unlock", { pin: byId("card-vault-pin").value });
+  if (!reply || reply.unlocked !== true) {
+    cardVaultSay((reply && reply.error) || "That PIN did not work.", "bad");
+    return;
+  }
+  byId("card-vault-pin").value = "";
+  cardVaultSay("Cards unlocked for ten minutes.", "ok");
+  await renderCards();
+});
+
+byId("card-vault-lock").addEventListener("click", async () => {
+  await cardVaultAsk("cards:lock");
+  cardVaultSay("Cards locked.", "ok");
+  await renderCards();
+});
+
+byId("card-vault-forget").addEventListener("click", async () => {
+  const sure = window.confirm(
+    "Forget every card saved on this device? The numbers cannot be recovered, so you would type them again."
+  );
+  if (!sure) return;
+  const reply = await cardVaultAsk("cards:forget", { confirm: true });
+  byId("card-vault-pin").value = "";
+  const cleared = Boolean(reply && reply.ok && reply.configured === false);
+  cardVaultSay(
+    cleared ? "Every card was removed from this device." : (reply && reply.error) || "The cards could not be cleared.",
+    cleared ? "ok" : "bad"
+  );
+  await renderCards();
+});
+
+byId("card-save").addEventListener("click", async () => {
+  const reply = await cardVaultAsk("cards:add", {
+    card: {
+      number: byId("card-number").value,
+      holder: byId("card-holder").value,
+      expiry: byId("card-expiry").value,
+      nickname: byId("card-label").value,
+    },
+  });
+  if (!reply || !reply.ok || !reply.card || !reply.card.id) {
+    cardVaultSay((reply && reply.error) || "That card could not be saved.", "bad");
+    return;
+  }
+  ["card-number", "card-holder", "card-expiry", "card-label"].forEach((id) => {
+    byId(id).value = "";
+  });
+  cardVaultSay("Card saved on this device.", "ok");
+  await renderCards();
 });
 
 // What the panel asked the shopper to agree to, and the way back to it. The
