@@ -124,6 +124,22 @@ export function startToolkit() {
     const undoButton = byId("watch-undo");
     undoButton.hidden = !undo;
     if (undo) undoButton.textContent = "Undo remove (" + (undo.item.title || "product").slice(0, 24) + ")";
+    const shortcut = byId("sc-watch");
+    if (shortcut) {
+      const watching = Boolean(store && product && product.price);
+      shortcut.disabled = !watching;
+      shortcut.title = watching
+        ? "Watch this product's price"
+        : "Open a product page to watch its price";
+    }
+  }
+
+  async function pinCurrent() {
+    if (!store) return;
+    const had = books.pins.indexOf(store.id) !== -1;
+    books = await saveBookmarks(togglePin(books, store.id));
+    renderPins();
+    status(had ? "Unpinned " + store.name + "." : "Pinned " + store.name + ".", "ok");
   }
 
   async function dropWatch(item) {
@@ -240,6 +256,19 @@ export function startToolkit() {
     if (here) {
       button.textContent = books.pins.indexOf(store.id) === -1 ? "Pin this store" : "Unpin this store";
     }
+    const shortcut = byId("sc-pin");
+    if (shortcut) {
+      const pinned = Boolean(here && books.pins.indexOf(store.id) !== -1);
+      shortcut.disabled = !here;
+      shortcut.setAttribute("aria-pressed", String(pinned));
+      shortcut.title = here
+        ? pinned
+          ? "Unpin " + store.name
+          : "Pin " + store.name
+        : "Open a store to pin it";
+      const label = byId("sc-pin-label");
+      if (label) label.textContent = pinned ? "Unpin store" : "Pin store";
+    }
   }
 
   function renderRecents() {
@@ -297,6 +326,37 @@ export function startToolkit() {
     });
   }
 
+  // One place for what a shortcut does, whether it came from a key or from the
+  // row at the top of the panel; that row also brings the section it acts on
+  // into view, so the result is never left off-screen.
+  function jump(id) {
+    const node = byId(id);
+    if (node && node.scrollIntoView) node.scrollIntoView({ behavior: "smooth", block: "center" });
+  }
+
+  function runAction(action, showTarget) {
+    if (action === "focus-search") {
+      runSearch("");
+      if (showTarget) jump("store-search");
+      return;
+    }
+    if (action === "focus-goal") {
+      if (showTarget) jump("goal-block");
+      byId("goal-input").focus();
+      byId("goal-input").select();
+      return;
+    }
+    if (action === "watch-product") {
+      if (showTarget) jump("watch-block");
+      addCurrentProduct();
+      return;
+    }
+    if (action === "pin-store") {
+      if (showTarget) jump("pin-block");
+      pinCurrent();
+    }
+  }
+
   // ---- keyboard ---------------------------------------------------------
   function onKey(event) {
     const action = actionFor(event);
@@ -316,18 +376,13 @@ export function startToolkit() {
       return;
     }
     event.preventDefault();
-    if (action === "focus-search") runSearch("");
-    if (action === "focus-goal") {
-      byId("goal-input").focus();
-      byId("goal-input").select();
-    }
-    if (action === "watch-product") byId("watch-add").click();
-    if (action === "pin-store") byId("pin-current").click();
     if (action === "help") {
       const hint = byId("shortcut-hint");
       hint.hidden = !hint.hidden;
       byId("toolkit-help").setAttribute("aria-expanded", String(!hint.hidden));
+      return;
     }
+    runAction(action, false);
   }
 
   // ---- wiring -----------------------------------------------------------
@@ -369,12 +424,9 @@ export function startToolkit() {
       await saveNoteText();
     });
 
-    byId("pin-current").addEventListener("click", async () => {
-      if (!store) return;
-      const had = books.pins.indexOf(store.id) !== -1;
-      books = await saveBookmarks(togglePin(books, store.id));
-      renderPins();
-      status(had ? "Unpinned " + store.name + "." : "Pinned " + store.name + ".", "ok");
+    byId("pin-current").addEventListener("click", pinCurrent);
+    document.querySelectorAll("[data-shortcut]").forEach((button) => {
+      button.addEventListener("click", () => runAction(button.getAttribute("data-shortcut"), true));
     });
 
     byId("export-csv").addEventListener("click", () => {

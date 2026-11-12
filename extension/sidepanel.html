@@ -35,6 +35,41 @@
         </a>
       </header>
 
+      <!-- Shortcuts, first thing under the brand: the actions a shopper reaches
+           for most, in reach before any scrolling. Each runs the same action as
+           its key, so the panel stays one set of behaviours, not two. -->
+      <nav class="shortcuts" id="shortcuts" aria-label="Shortcuts">
+        <button class="sc" type="button" data-shortcut="focus-goal">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="8" />
+            <circle cx="12" cy="12" r="3.4" />
+          </svg>
+          Monthly goal
+        </button>
+        <button class="sc" id="sc-watch" type="button" data-shortcut="watch-product">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M4 12.4V5.6A1.6 1.6 0 015.6 4h6.8l7.6 7.6-7.6 7.6z" />
+            <circle cx="8.6" cy="8.6" r="1.3" />
+          </svg>
+          Watch price
+        </button>
+        <button class="sc" id="sc-pin" type="button" data-shortcut="pin-store" aria-pressed="false">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M7 4h10a1 1 0 011 1v15l-6-3.6L6 20V5a1 1 0 011-1z" />
+          </svg>
+          <span id="sc-pin-label">Pin store</span>
+        </button>
+        <button class="sc" type="button" data-shortcut="focus-search">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true">
+            <rect x="4" y="4" width="7" height="7" rx="1.6" />
+            <rect x="13" y="4" width="7" height="7" rx="1.6" />
+            <rect x="4" y="13" width="7" height="7" rx="1.6" />
+            <rect x="13" y="13" width="7" height="7" rx="1.6" />
+          </svg>
+          Find stores
+        </button>
+      </nav>
+
       <!-- The newcomer's tour: one step per feature, resumable, replayable from
            Settings. Hidden once the shopper has walked it or skipped it. -->
       <section class="card tour c0" id="tour-block" role="region" aria-labelledby="tour-title" hidden>
@@ -201,7 +236,7 @@
           </span>
         </h3>
 
-        <div class="tk-block">
+        <div class="tk-block" id="goal-block">
           <div class="tk-row">
             <span class="lbl">Monthly goal</span>
             <strong id="goal-figure">Not set</strong>
@@ -238,7 +273,7 @@
           </div>
         </div>
 
-        <div class="tk-block">
+        <div class="tk-block" id="watch-block">
           <div class="tk-row">
             <span class="lbl">Price watch</span>
             <button class="mini" id="watch-add" type="button" hidden>Watch this product</button>
@@ -282,7 +317,7 @@
           </div>
         </div>
 
-        <div class="tk-block">
+        <div class="tk-block" id="pin-block">
           <div class="tk-row">
             <span class="lbl">Pinned stores</span>
             <button class="mini" id="pin-current" type="button" hidden>Pin this store</button>

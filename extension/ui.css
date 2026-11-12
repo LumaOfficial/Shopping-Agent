@@ -579,6 +579,86 @@ body.sidepanel .gear:active {
   opacity: 0.85;
 }
 
+/* ---------- Shortcuts ---------- */
+
+/* One row of quick actions directly under the brand. It never wraps: on a
+   narrow panel the row scrolls sideways, so every shortcut keeps its label. */
+body.sidepanel .shortcuts {
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
+  padding-bottom: 2px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  animation: rise 0.85s 0.05s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+body.sidepanel .shortcuts::-webkit-scrollbar {
+  display: none;
+}
+
+body.sidepanel .shortcuts .sc {
+  appearance: none;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 9px 14px;
+  border-radius: 999px;
+  border: 1px solid #e1dbf6;
+  background: #fff;
+  color: #4a4368;
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s, color 0.2s, transform 0.15s;
+}
+
+body.sidepanel .shortcuts .sc svg {
+  flex: none;
+  color: #7C6BF5;
+}
+
+body.sidepanel .shortcuts .sc:hover {
+  background: #f4f0ff;
+  border-color: #c9bdf3;
+  color: #5b4bd6;
+}
+
+body.sidepanel .shortcuts .sc:active {
+  transform: scale(0.97);
+}
+
+body.sidepanel .shortcuts .sc:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 4px rgba(124, 107, 245, 0.16);
+}
+
+/* A shortcut with nothing to act on here (no product, no store) stays legible
+   but clearly unavailable, rather than disappearing from the row. */
+body.sidepanel .shortcuts .sc:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+body.sidepanel .shortcuts .sc:disabled:hover {
+  background: #fff;
+  border-color: #e1dbf6;
+  color: #4a4368;
+}
+
+body.sidepanel .shortcuts .sc[aria-pressed="true"] {
+  background: #7C6BF5;
+  border-color: #7C6BF5;
+  color: #fff;
+}
+
+body.sidepanel .shortcuts .sc[aria-pressed="true"] svg {
+  color: #fff;
+}
+
 /* ---------- Account ---------- */
 
 /* Locked, the panel is the terms card or the account card and nothing else. */
