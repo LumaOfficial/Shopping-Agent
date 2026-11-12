@@ -111,6 +111,10 @@ export function startAgeCheck(options) {
     byId("age-facts-wrap").hidden = verified;
     byId("age-start").hidden = verified;
     byId("age-photo-btn").hidden = verified;
+    // Once the check has passed there is nothing left to start: the scan
+    // guidance and the ways into a check go with it, leaving the verdict.
+    byId("age-distance").hidden = verified;
+    byId("age-actions").hidden = verified;
     // Only offered as an upgrade, never as a requirement.
     byId("age-settings").hidden = connected;
     byId("age-settings").textContent = "Use a provider instead";
