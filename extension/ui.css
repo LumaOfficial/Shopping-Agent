@@ -1561,6 +1561,120 @@ body.sidepanel .store-list .lbl {
   font-size: 12px;
 }
 
+/* ---------- Deals for you ---------- */
+
+body.sidepanel .deals {
+  display: grid;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+body.sidepanel .deal {
+  display: grid;
+  gap: 8px;
+  padding: 16px 18px 14px;
+  border-radius: 24px;
+  border: 1px solid #ece7fb;
+  background: linear-gradient(180deg, #fdfbff 0%, #f7f3ff 100%);
+  animation: softIn 0.6s var(--ease-soft) both;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+body.sidepanel .deal:hover {
+  border-color: #ded4ff;
+  box-shadow: 0 12px 26px rgba(94, 74, 190, 0.1);
+}
+
+body.sidepanel .deal-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+body.sidepanel .deal-store {
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #5b4bd6;
+}
+
+body.sidepanel .deal-tag {
+  margin-left: auto;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: #ffd9a0;
+  color: #4a3a1c;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+body.sidepanel .deal-name {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.35;
+  letter-spacing: -0.01em;
+  color: #2a2440;
+}
+
+body.sidepanel .deal-row {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+body.sidepanel .deal-price {
+  font-size: 18px;
+  font-weight: 600;
+  color: #2a2440;
+}
+
+body.sidepanel .deal-save {
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: #e9f9f1;
+  color: #1e7a4d;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+body.sidepanel .deal-note {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: #6a6285;
+}
+
+body.sidepanel .deal-go {
+  justify-self: start;
+  appearance: none;
+  border: 0;
+  cursor: pointer;
+  padding: 10px 18px;
+  border-radius: 999px;
+  background: #5b4bd6;
+  color: #fff;
+  font: 500 13px/1 inherit;
+  font-family: inherit;
+  transition: background 0.2s, transform 0.15s;
+}
+
+body.sidepanel .deal-go:hover {
+  background: #4c3ec4;
+}
+
+body.sidepanel .deal-go:active {
+  transform: scale(0.98);
+}
+
+body.sidepanel .deal-terms {
+  margin: 0;
+  font-size: 10.5px;
+  color: #9a93b5;
+}
+
 /* ---------- Popular stores & categories ---------- */
 
 body.sidepanel .picks {

@@ -7,6 +7,7 @@ import { browserName } from "./src/lib/browser.js";
 import { HOLD_DAYS } from "./src/partners/cashback-ledger.js";
 import { startLogoShow } from "./src/lib/logo-show.js";
 import { startPanelExtras } from "./src/lib/panel-extras.js";
+import { startDealsFeed } from "./src/lib/deals-panel.js";
 import { siteHost } from "./src/lib/site-request.js";
 import { webUrl } from "./src/lib/guard.js";
 import { currentAccount, hasAccounts, signUp, signIn, signOut } from "./src/lib/accounts.js";
@@ -1732,6 +1733,17 @@ startPanelExtras({
   shuffleButton: byId("picks-shuffle"),
   onOpenStore: (store) => chrome.tabs.create({ url: storeSite(store) }),
   onOpenCategory: openStoreDirectory,
+});
+// The deals rail pairs each partner offer with the product that qualifies for
+// it, so nothing on it is hand-written for one store.
+startDealsFeed({
+  feed: byId("deals-feed"),
+  shuffleButton: byId("deals-shuffle"),
+  count: byId("deals-count"),
+  shop: (url) => {
+    const safe = webUrl(url);
+    if (safe) chrome.tabs.create({ url: safe });
+  },
 });
 byId("stores-animate").addEventListener("click", openLogoShow);
 byId("logo-show-close").addEventListener("click", closeLogoShow);

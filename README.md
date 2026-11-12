@@ -186,6 +186,33 @@ stay true for months, so nothing depends on someone editing coupons each morning
   now`, and Settings shows which list is in use, how many rows it holds and when
   it was last read.
 
+### The deals feed, and why it pairs itself
+
+`src/lib/deals.js` holds the partner offers (`PARTNER_DEALS`) and a short list of
+popular products per store with a list price in minor units
+(`POPULAR_PRODUCTS`). `matchDeals()` does the rest, for every offer:
+
+- **Same store.** A Walmart offer is only ever paired with a Walmart product.
+- **Same category,** when the offer names one (laptops, TVs, pet).
+- **Over the offer's own bar.** `minSpend` decides eligibility: a popular product
+  under the bar is ineligible even when it would otherwise rank first.
+- **The most popular eligible product wins,** and no product is offered twice, so
+  a store with several offers shows several different products.
+- **A figure comes only from a published rate.** `percent` is set only where the
+  store publishes a standing rate (its own card, its own subscription program);
+  with no rate the card describes the program and shows no saving rather than
+  guessing one. Nothing is "refreshed" by inventing a value.
+- **Ended offers drop out** on their own (`ends`), the same rule the savings list
+  follows.
+
+What the card says comes from `offerLines()` alone, which is also why the bar
+never reaches the page: the product on offer is the thing that already meets it,
+so printing the threshold would only invite the shopper to go around the
+extension to meet it alone. Every card still states **store terms apply at
+checkout**, and that is where the store applies them. *Shop it at …* opens the
+store's own search for that product through the URL guard, so the panel never
+opens an address it has not checked.
+
 ### What works
 
 - **Accounts keep money apart.** Once the terms are agreed, the panel opens on a
@@ -217,6 +244,13 @@ stay true for months, so nothing depends on someone editing coupons each morning
 - **Popular stores and categories** — a shuffleable rail of ten popular stores
   (each one tap from its site) and a category grid that opens the All stores
   list already filtered, so the panel is useful before a store is visited.
+- **Deals for you** — partner offers (a store's laptop deals, its open-box stock,
+  its RedCard rate) are paired automatically with the most popular product at
+  that store whose price clears the offer, so the shopper is shown the product
+  that qualifies rather than the fine print behind it. The card leads with the
+  product and its price; a saving appears beside it only where the store
+  publishes the rate. *Shuffle* turns the feed over, and *Shop it at …* opens the
+  store's own search for that product.
 - **Animate** — a full-screen trailer of the 50 best-known storefronts. It
   caches and decodes every mark first, then builds all three scenes before the
   film rolls: a progress dial that fills with the logos as they arrive, an
@@ -633,6 +667,8 @@ user from themselves.
 | `src/lib/tutorial.js` | The tour's copy, including the desktop-specific last step |
 | `src/lib/tour-panel.js` | The tour card: steps, resume, replay, progress in device storage |
 | `src/lib/panel-extras.js` | Popular-store rail and category tiles, both from the catalog |
+| `src/lib/deals.js` | Partner offers, the popular products they pair with, the pairing rules, and the card's copy |
+| `src/lib/deals-panel.js` | The *Deals for you* rail: four cards at a time from that feed, shuffled |
 | `tools/emulate-platforms.mjs` | Runs the shipped code under Windows, macOS, Linux and ChromeOS signals and prints a pass/fail table |
 | `src/lib/logo-show.js` | The *Animate* trailer: cache, decode, build, then orbit → wall → mosaic |
 | `src/lib/brand-marks.js` | The popular storefronts the trailer leads with, and their brand inks |
@@ -828,6 +864,11 @@ cd extension && node tools/emulate-platforms.mjs
   freshness and the store's home address; turning automatic refresh off is
   reflected in the report; and firing `luma-refresh` removes a saved code whose
   end date has passed while keeping the live one.
+- **Deals** (`test/deals.test.mjs`) — every offer pairs with a product at its own
+  store that clears its bar, the most popular eligible product wins, no product
+  is offered twice, a saving appears only from a published rate, an ended offer
+  drops out, the bar never appears in the card copy, and every offered product
+  opens on an https address at the store it belongs to.
 
 The terms gate has a suite in `test/terms.test.mjs`. What it confirms:
 
