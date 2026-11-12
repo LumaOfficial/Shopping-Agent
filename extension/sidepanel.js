@@ -1705,8 +1705,8 @@ byId("store-list").addEventListener("click", (event) => {
 applyBrowserCopy();
 
 // The savings toolkit owns the goal, the watch list, the store note, the
-// insights and the comfort switches. The panel only tells it which store is
-// open and which money landed in the wallet.
+// insights and the comfort settings chosen in Settings. The panel only tells it
+// which store is open and which money landed in the wallet.
 const toolkit = startToolkit();
 
 // The face age check card owns its own consent and capture; the panel only tells

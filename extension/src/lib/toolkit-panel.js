@@ -1,11 +1,11 @@
 // The panel's own toolkit: a monthly goal, the products being watched, a note
-// about the store that is open, a few figures from the wallet, and the comfort
-// switches. It lives in its own module so sidepanel.js stays about the store
-// page it is looking at.
+// about the store that is open and a few figures from the wallet. It lives in
+// its own module so sidepanel.js stays about the store page it is looking at,
+// and it applies the comfort settings chosen in Settings.
 import { money } from "./format.js";
 import { STORES } from "./stores.js";
 import { storeSite } from "./store-directory.js";
-import { applyPrefs, readPrefs, stepText, writePrefs } from "./prefs.js";
+import { PREFS_KEY, applyPrefs, readPrefs } from "./prefs.js";
 import {
   goalProgress,
   monthTotal,
@@ -42,7 +42,6 @@ function downloadFile(name, text, type) {
 }
 
 export function startToolkit() {
-  let prefs = null;
   let activity = null;
   let watch = cleanWatch(null);
   let books = sanitizeBookmarks(null);
@@ -283,19 +282,8 @@ export function startToolkit() {
   }
 
   // ---- comfort ----------------------------------------------------------
-  function renderComfort() {
-    if (!prefs) return;
-    byId("contrast-toggle").setAttribute("aria-pressed", String(prefs.contrast === "high"));
-    byId("density-toggle").setAttribute("aria-pressed", String(prefs.density === "compact"));
-    byId("motion-toggle").setAttribute("aria-pressed", String(prefs.motion === "reduce"));
-    byId("text-size").textContent = Math.round(prefs.textScale * 100) + "%";
-  }
-
-  async function setPref(patch) {
-    prefs = await writePrefs(patch);
-    renderComfort();
-  }
-
+  // The switches themselves live in Settings; the panel only applies what they
+  // stored, so the reading sizes arrive before anything renders.
   function renderShortcuts() {
     const box = byId("shortcut-hint");
     if (!box) return;
@@ -419,18 +407,6 @@ export function startToolkit() {
       }
     });
 
-    byId("contrast-toggle").addEventListener("click", () =>
-      setPref({ contrast: prefs.contrast === "high" ? "normal" : "high" })
-    );
-    byId("density-toggle").addEventListener("click", () =>
-      setPref({ density: prefs.density === "compact" ? "cozy" : "compact" })
-    );
-    byId("motion-toggle").addEventListener("click", () =>
-      setPref({ motion: prefs.motion === "reduce" ? "auto" : "reduce" })
-    );
-    byId("text-smaller").addEventListener("click", () => setPref({ textScale: stepText(prefs, -1) }));
-    byId("text-larger").addEventListener("click", () => setPref({ textScale: stepText(prefs, 1) }));
-
     byId("toolkit-help").addEventListener("click", () => {
       const hint = byId("shortcut-hint");
       hint.hidden = !hint.hidden;
@@ -447,16 +423,23 @@ export function startToolkit() {
     });
 
     document.addEventListener("keydown", onKey);
+
+    // Comfort is switched in Settings, so an open panel follows the stored
+    // value instead of waiting to be reopened.
+    if (chrome.storage.onChanged) {
+      chrome.storage.onChanged.addListener((changes, area) => {
+        if (area === "local" && changes[PREFS_KEY]) applyPrefs(changes[PREFS_KEY].newValue);
+      });
+    }
   }
 
   async function boot() {
-    prefs = applyPrefs(await readPrefs());
+    applyPrefs(await readPrefs());
     activity = await readActivity();
     watch = await readWatch();
     books = await readBookmarks();
     bind();
     renderShortcuts();
-    renderComfort();
     renderGoal();
     renderWatch();
     renderNote();

@@ -2,6 +2,7 @@ import { withDefaults } from "./src/lib/settings.js";
 import { money } from "./src/lib/format.js";
 import { currentAccount, hasAccounts, signOut } from "./src/lib/accounts.js";
 import { endpoint } from "./src/lib/guard.js";
+import { readPrefs, stepText, writePrefs } from "./src/lib/prefs.js";
 import { consentLine, readConsent, termsUrl } from "./src/lib/terms.js";
 import { TOUR_KEY, TOUR_VERSION } from "./src/lib/tutorial.js";
 import { detectPlatform, platformLine } from "./src/lib/platform.js";
@@ -259,6 +260,45 @@ byId("replay-tour").addEventListener("click", async () => {
   byId("refresh-status").textContent = "The tour opens the next time you open the panel.";
 });
 
+// How the panel reads — contrast, spacing, motion and text size — is a setting,
+// so it lives here and the panel only applies what is stored. Writes land at
+// once and the open panel picks them up through chrome.storage.onChanged.
+let panelPrefs = null;
+
+function renderPanelPrefs() {
+  if (!panelPrefs) return;
+  byId("pref-contrast").checked = panelPrefs.contrast === "high";
+  byId("pref-density").checked = panelPrefs.density === "compact";
+  byId("pref-motion").checked = panelPrefs.motion === "reduce";
+  byId("pref-text-size").textContent = Math.round(panelPrefs.textScale * 100) + "%";
+}
+
+async function savePanelPrefs(patch) {
+  panelPrefs = await writePrefs(patch);
+  renderPanelPrefs();
+}
+
+async function loadPanelPrefs() {
+  panelPrefs = await readPrefs();
+  renderPanelPrefs();
+}
+
+byId("pref-contrast").addEventListener("change", (event) =>
+  savePanelPrefs({ contrast: event.target.checked ? "high" : "normal" })
+);
+byId("pref-density").addEventListener("change", (event) =>
+  savePanelPrefs({ density: event.target.checked ? "compact" : "cozy" })
+);
+byId("pref-motion").addEventListener("change", (event) =>
+  savePanelPrefs({ motion: event.target.checked ? "reduce" : "auto" })
+);
+byId("pref-text-smaller").addEventListener("click", () =>
+  savePanelPrefs({ textScale: stepText(panelPrefs, -1) })
+);
+byId("pref-text-larger").addEventListener("click", () =>
+  savePanelPrefs({ textScale: stepText(panelPrefs, 1) })
+);
+
 // The switch takes effect as soon as it is flipped, rather than waiting for the
 // form's Save button.
 byId("toggle-refresh").addEventListener("change", async () => {
@@ -269,6 +309,7 @@ byId("toggle-refresh").addEventListener("change", async () => {
 async function load() {
   const stored = await chrome.storage.local.get("settings");
   fill(withDefaults(stored.settings));
+  loadPanelPrefs();
   showLevel(rememberedLevel());
   loadData();
   renderFreshness();

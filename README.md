@@ -319,8 +319,9 @@ stay true for months, so nothing depends on someone editing coupons each morning
   - **insights** — best store, top category, cashback this month, watched count
     (`src/lib/insights.js`), a **CSV export** of the wallet and a **copyable
     summary**;
-  - **comfort switches** — high contrast, compact density, four text sizes and a
-    less-motion override, remembered per device (`src/lib/prefs.js`);
+  - **comfort controls in Settings** — high contrast, compact density, four text
+    sizes and a less-motion override, remembered per device and applied by the
+    panel (`src/lib/prefs.js`);
   - **pinned stores** (up to six) as one-tap launchers and the **last six store
     searches**, clickable to run again (`src/lib/bookmarks.js`);
   - **keyboard shortcuts** — `/` opens the directory, `g` the goal, `w` watches

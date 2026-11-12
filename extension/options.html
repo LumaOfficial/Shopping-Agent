@@ -82,6 +82,24 @@
           blocking when switched off. Nothing is bought, filled in or paid for without you.
         </p>
 
+        <h2>How the panel looks</h2>
+        <div class="toggles">
+          <label class="toggle"><input id="pref-contrast" type="checkbox" /> Higher contrast in the panel</label>
+          <label class="toggle"
+            ><input id="pref-density" type="checkbox" /> Compact spacing, more on screen</label
+          >
+          <label class="toggle"><input id="pref-motion" type="checkbox" /> Calmer motion in the panel</label>
+        </div>
+        <div class="actions" style="margin-top: 10px; padding-top: 0; border-top: 0">
+          <button class="btn ghost" id="pref-text-smaller" type="button">Smaller text</button>
+          <span class="muted" id="pref-text-size">100%</span>
+          <button class="btn ghost" id="pref-text-larger" type="button">Larger text</button>
+        </div>
+        <p class="hint">
+          These change how the side panel reads on this device — text size steps between 90% and
+          120%. They never change what the panel does.
+        </p>
+
         <h2>Keeping up to date</h2>
         <p class="muted" id="refresh-status">Checking the savings list…</p>
         <label class="toggle"
