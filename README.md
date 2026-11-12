@@ -95,7 +95,13 @@ Agreement is a deliberate act:
   current — a stored `true`, a string or an older version is not consent;
 - nothing else in the panel runs while there is no consent: no page is read, no
   offer is looked up, no wallet is shown, and **Not now** leaves the panel on
-  that notice.
+  that notice;
+- the background work the notice describes waits as well: the ad-blocking
+  ruleset is declared `enabled: false` in the manifest and the service worker
+  turns it on only for a profile that has agreed and left the switch on, while
+  `src/content/consent.js` holds the ad-slot script back until the same record
+  exists. An unagreed profile is not blocked, hidden or credited — the only
+  thing that has happened is that the panel opened.
 
 Bump `TERMS_VERSION` in `src/lib/terms.js` when the document changes; that alone
 asks every shopper to read and agree again, and the panel shows the new version
@@ -106,6 +112,13 @@ The document is a starting point written to match what the code does, including
 a liability section limited to what the law in the shopper's country allows. It
 is not legal advice: have your own counsel review it, the listing copy and the
 privacy policy before you upload.
+
+The privacy policy exists twice on purpose and the two must say the same thing:
+`privacy.html` ships inside the package (the copy a reviewer and a shopper can
+open with no connection), and [`docs/privacy-policy.md`](docs/privacy-policy.md)
+is the working draft with the repository notes and the still-open publication
+steps. Change one and change the other; `test/policies.test.mjs` fails when the
+version they carry drifts from `TERMS_VERSION`.
 
 ### Where codes come from
 
@@ -470,6 +483,9 @@ user from themselves.
 | --- | --- |
 | `sidepanel.html` / `sidepanel.js` | The whole UI, opening on the terms notice until it is agreed |
 | `terms.html` / `terms.js` / `terms.css` | The Terms and Disclosures document, packaged with the extension and linked from the panel and the settings page |
+| `privacy.html` | The Privacy Policy, packaged and linked from the notice card, the terms and the settings page |
+| `support.html` | Usage, troubleshooting and contact, packaged so it opens with no connection |
+| `src/content/consent.js` | The panel's gate, read where the page script runs, so nothing is hidden or counted before agreement |
 | `art/empty-fold.svg` | The empty-state artwork, packaged rather than fetched from a CDN |
 | `src/background/service-worker.js` | Only code that calls partner endpoints; caches the feed per store; validates the source; stores saved/verified codes, price points and savings |
 | `src/content/content.js` | Frame-aware bridge: `page:scan`, `page:clip`, `coupon:probe`, `coupon:apply`, `checkout:probe`, `checkout:focus` (attributes only) |

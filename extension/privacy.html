@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Luma Pay Shopping Agent — Privacy Policy</title>
+    <link rel="stylesheet" href="terms.css" />
+  </head>
+  <body class="terms">
+    <header class="terms-head">
+      <div class="terms-wrap">
+        <p class="terms-kicker">Luma Pay Shopping Agent</p>
+        <h1>Privacy Policy</h1>
+        <p class="terms-meta">Version 1.2 · Last updated 12 November 2026</p>
+        <p class="terms-lede">
+          This policy describes what the Extension does with data. It matches the Terms of Use and
+          Disclosures you are asked to accept before the panel does anything — in particular
+          sections 5, 8, 11, 12 and 13 of the <a href="terms.html">Terms</a>. If the two ever stop
+          matching, the Terms govern and this policy is wrong and will be corrected.
+        </p>
+        <p class="terms-lede">
+          In short: the Extension is local-first. Accounts, codes, prices, balances and your
+          acceptance of the Terms live in this browser profile. Nothing is sent anywhere unless you
+          have configured the address yourself, and the only things that travel are the requests
+          named under <a href="#leaves">What leaves your device</a>.
+        </p>
+      </div>
+    </header>
+
+    <div class="terms-wrap terms-body single">
+      <article class="terms-doc">
+        <section id="who">
+          <h2>Who this policy is from</h2>
+          <p>
+            The Extension is published under the name <strong>Luma Pay</strong> (“we”, “us”, “our”).
+            “You” is the person who installed it and agreed to the Terms. We are not a bank, a
+            payment institution, a cashback network, a retailer or a browser vendor, and no browser
+            vendor has approved the Extension.
+          </p>
+          <p>
+            Questions about this policy go to the support address on the Extension's own store
+            listing — the same contact point named in section 23 of the
+            <a href="terms.html#s23">Terms</a>. The Extension's <a href="support.html">support
+            page</a> says how to reach us.
+          </p>
+        </section>
+
+        <section id="covers">
+          <h2>What this policy covers, and what it does not</h2>
+          <p>It covers data the Extension handles in your browser. It does not cover:</p>
+          <ul>
+            <li>the shops you visit, which have their own privacy notices for their own pages;</li>
+            <li>a cashback programme, payout provider, price-history API or age-check provider you
+              configure — each is a separate party with its own notice, and when a request reaches
+              it, it handles that request under its own terms;</li>
+            <li>your browser vendor, or anything your browser itself stores, such as card details in
+              the browser's own autofill.</li>
+          </ul>
+        </section>
+
+        <section id="stays">
+          <h2>What stays on your device</h2>
+          <p>
+            Everything below is written to the Extension's own storage in the browser profile it is
+            installed in. There is no Luma Pay server that holds an account, and no backup of it.
+          </p>
+          <ul>
+            <li>
+              <strong>Your acceptance of the Terms.</strong> The version you agreed to (currently
+              1.2) and the time you agreed. A record without a real version and timestamp is not
+              treated as agreement.
+            </li>
+            <li>
+              <strong>Your account.</strong> A profile on this device, not an online account. It
+              holds the email address you signed up with, a phone number if you chose to give one,
+              your date of birth for the 18+ gate, when the account was created, and — instead of
+              your password — a salted PBKDF2-SHA-256 hash with the iteration count used to make it.
+              Your password itself is never stored and never leaves the device.
+            </li>
+            <li>
+              <strong>Your session.</strong> Signing in records a session so the panel does not ask
+              every time. It expires after a week without use and a month after it was opened,
+              whichever comes first, so a shared machine does not stay signed in indefinitely.
+              Signing out removes it.
+            </li>
+            <li>
+              <strong>Your settings.</strong> Which features are switched on, the shops you added
+              yourself, and the partner addresses and credentials you entered for optional feeds —
+              offer feed, cashback link template, payout provider, sponsored offers, price history
+              and the age-check relay. Addresses are kept only if they are HTTPS or a loopback
+              listener; a plain HTTP address on the open internet is dropped rather than sent a
+              credential. Credentials are stored in this profile and sent only to the address you
+              entered them for. The settings page also remembers which level you were viewing —
+              simple, advanced or developer — as a page preference, and nothing else.
+            </li>
+            <li>
+              <strong>Codes.</strong> Codes read from a store's own page, and codes that store
+              accepted, so the same code can be offered again next time you shop there.
+            </li>
+            <li>
+              <strong>Price points.</strong> Prices read on product pages you visited in covered
+              shops, kept so the panel can show how a price has moved. Older entries are pruned as
+              new ones are recorded.
+            </li>
+            <li>
+              <strong>Your wallet.</strong> Cashback, savings and ad value credited to your account,
+              and the payout requests you started. These figures are a record of credits awarded,
+              not a deposit account.
+            </li>
+            <li>
+              <strong>Age-check verdict.</strong> Whether a check was completed, the provider's
+              name, its reference and the time. Never a frame and never a face template.
+            </li>
+            <li>
+              <strong>Sign-in guards.</strong> A counter of failed sign-in attempts and the time a
+              lock applies, so repeated guesses are slowed down.
+            </li>
+          </ul>
+        </section>
+
+        <section id="leaves">
+          <h2>What leaves your device</h2>
+          <p>
+            Data leaves only in the four situations section 13 of the <a href="terms.html#s13"
+            >Terms</a> lists. Each requires an address you configured yourself, and each carries
+            only what that one feature needs:
+          </p>
+          <ul>
+            <li><strong>A partner request</strong> — for example a store name and a page address,
+              sent to the offers feed you configured so it can look up offers for that page;</li>
+            <li><strong>A payout request you started</strong> — the details the payout provider
+              requires to issue a virtual card, sent to the payout address you configured;</li>
+            <li><strong>An age-check request</strong> — if, and only if, you connected an age-check
+              relay (below);</li>
+            <li><strong>An offer or product lookup</strong> — a product identifier or page address
+              sent to a price-history or sponsored-offer address you configured.</li>
+          </ul>
+          <p>
+            There is no Luma Pay analytics endpoint, no crash reporting, no advertising SDK and no
+            telemetry, so nothing is sent to us merely because you used the Extension. The package
+            restricts where data can go — scripts only from its own files, and connections only over
+            HTTPS or to a loopback listener on this machine — so an address you have not configured
+            is not a destination at all.
+          </p>
+        </section>
+
+        <section id="pages">
+          <h2>What is read on a web page, and what is never read</h2>
+          <p>
+            The Extension runs on the shops in the catalog it ships with, and on any shop you add
+            yourself, which asks your browser for that one site's permission at the moment you tap
+            the button. It holds no standing access to every website, and on a page that is not a
+            covered shop it reads nothing from that page.
+          </p>
+          <p>On a covered shop it reads only:</p>
+          <ul>
+            <li>whether the page is a shop it covers;</li>
+            <li>coupon codes, coupon controls and product prices that the page publishes;</li>
+            <li>the store's own promo field, so it can type a code you chose and read back what the
+              store said;</li>
+            <li>the attributes of card fields on a checkout page, so it can tell you your browser's
+              autofill is available;</li>
+            <li>the empty ad slots left behind on pages where the ad-blocking switch is on, so it
+              can hide them and count them.</li>
+          </ul>
+          <p>
+            It never reads or sends your password fields, card numbers, expiry dates or security
+            codes, your messages, or the content of pages that are not covered shops.
+          </p>
+        </section>
+
+        <section id="face">
+          <h2>The optional face-based age check</h2>
+          <p>
+            The 18+ check is optional and asks you separately before it starts. The camera opens
+            only from the panel's own button, only after you tick an empty box, and the package asks
+            for no camera permission. The stream is stopped when the scan finishes, when you cancel,
+            when you sign out, and when the camera track ends.
+          </p>
+          <p>
+            <strong>With no relay configured — the default — nothing leaves the device.</strong> You
+            turn your head to a few angles; the panel measures small copies of the camera picture on
+            this device, compares the angles as a temporary face model, and drops them. No provider,
+            no account, no key. Only the outcome, the words “On-device check” and the time are saved
+            with your account.
+          </p>
+          <p>
+            <strong>If you connect an age-check relay,</strong> the consent facts on screen say so
+            before the camera opens, and name the relay. In that case one straight-on frame is
+            posted over HTTPS to the relay, which passes it to the face provider. The provider
+            estimates an age from that frame, and the relay discards it — it writes nothing to disk
+            and logs no image. The angles you turned through are still compared on this device and
+            dropped. Only the outcome, the provider's name, its reference and the time are saved
+            with your account.
+          </p>
+          <p>
+            An age estimate is a statistical guess, not proof of age and not an identity check.
+            Declining the check leaves the rest of the Extension working; only the cash-out and its
+            promotional boost stay locked.
+          </p>
+        </section>
+
+        <section id="ads">
+          <h2>Advertising and tracker requests</h2>
+          <p>
+            With the ad-blocking switch on, the Extension stops requests to advertising and tracker
+            domains in the browser itself. That is a network rule applied to request addresses — not
+            a reading of the pages you visit — so it records no browsing history for you or for us.
+            Blocking begins only after you have agreed to the Terms, and switching ad blocking off
+            stops the blocking, the ad-slot hiding and counting, and the ad-value credit.
+          </p>
+        </section>
+
+        <section id="cookies">
+          <h2>Cookies, analytics and tracking</h2>
+          <p>
+            The Extension sets no cookies and contains no analytics, telemetry, fingerprinting or
+            advertising SDK of its own, and it does not use advertising identifiers. Sponsored
+            offers are labelled as sponsored in the panel; payment for a placement can affect
+            whether such an offer is shown and where it sits, but it does not change whether a code
+            works or what it saves you.
+          </p>
+        </section>
+
+        <section id="sharing">
+          <h2>Selling, sharing and disclosure</h2>
+          <p>
+            We do not sell your data. Because the Extension holds your data on your device and has
+            no account server, there is no store of it for us to sell, share or disclose. The only
+            sharing that happens is the requests you configure, listed under
+            <a href="#leaves">What leaves your device</a>, and any disclosure required by law in a
+            case where we actually hold something — which, for the data described here, we do not.
+          </p>
+        </section>
+
+        <section id="retention">
+          <h2>Retention and deletion</h2>
+          <p>Data stays in this browser profile until it is deleted there:</p>
+          <ul>
+            <li><strong>Session</strong> — expires a week after last use and a month after it was
+              opened; signing out removes it immediately.</li>
+            <li><strong>Price points</strong> — older entries are pruned as new ones are recorded.</li>
+            <li><strong>Everything else</strong> — remains until you delete it.</li>
+          </ul>
+          <p>
+            <strong>Deleting it is the deletion.</strong> There is no server copy to remove.
+            <strong>Clear saved codes and history</strong> in the settings deletes the signed-in
+            account's shopping record — saved and verified codes, price points, savings and wallet —
+            and leaves another account on the same browser untouched. <strong>Export a copy</strong>
+            writes a file containing that same shopping record plus your settings, with every stored
+            credential left out and kept on the device it was entered on. <strong>Sign out of this
+            device</strong> ends the session. Removing the Extension from your browser, or clearing
+            the browser profile's data, deletes the account, the wallet and everything else with it
+            — and we cannot restore any of it.
+          </p>
+        </section>
+
+        <section id="rights">
+          <h2>Your rights</h2>
+          <p>
+            Some of what the Extension handles can be personal data under the laws that apply to
+            you. Where it is, we handle it on the basis of your agreement to the Terms and the
+            purpose of providing the features you asked for. Because the data sits in your own
+            browser, the settings controls are how you exercise your rights for anything we do not
+            hold:
+          </p>
+          <ul>
+            <li><strong>Access and portability</strong> — <strong>Export a copy</strong> gives you
+              the saved and verified codes, the price points, the savings and wallet figures, and
+              your settings with credentials removed. The account record itself (email, phone, date
+              of birth, password hash) is visible in the panel while you are signed in but is not
+              part of the export.</li>
+            <li><strong>Correction</strong> — the Extension has no editor for the account record, so
+              what it holds is what you entered at signup. If a detail is wrong, export your
+              shopping record and sign up again with the correct details; a new account starts with
+              its own balance.</li>
+            <li><strong>Deletion</strong> — <strong>Clear saved codes and history</strong> deletes
+              the shopping record; removing the Extension deletes the account, the record and the
+              stored settings with it.</li>
+            <li><strong>Restriction and objection</strong> — switch a feature off, decline the
+              optional age check, or do not configure a partner address; each removes the handling
+              that feature performs.</li>
+          </ul>
+          <p>
+            Depending on where you live you may also have the right to complain to your
+            data-protection authority. Questions, or a request the controls do not cover, go to the
+            address in section 23 of the <a href="terms.html#s23">Terms</a>.
+          </p>
+        </section>
+
+        <section id="security">
+          <h2>Security</h2>
+          <ul>
+            <li>Your password is stored only as a salted PBKDF2-SHA-256 hash (210,000 iterations),
+              never in a form that can be read back, and it never leaves the device.</li>
+            <li>Repeated failed sign-ins are slowed by a growing lock-out.</li>
+            <li>Sessions expire on their own, so a copied session stops working.</li>
+            <li>The package runs only its own scripts; no remote code is loaded, and connections are
+              limited to HTTPS or a loopback listener.</li>
+            <li>Partner addresses must be HTTPS or loopback before a credential is sent to them.</li>
+            <li>Page access is limited to the catalog's shops and the sites you add one at a time.</li>
+          </ul>
+          <p>
+            No system is perfect. Anyone with access to this browser profile and an open session can
+            see the account's balances and act in it — if you share a machine, sign out when you are
+            done, or clear the Extension's data in its settings.
+          </p>
+        </section>
+
+        <section id="children">
+          <h2>Children</h2>
+          <p>
+            The Extension is for people aged 18 or over, or the age of majority where you live if
+            that is higher. It is not directed to children, and we do not knowingly collect data
+            from them. The age gate uses the date of birth you enter, or the optional face-based
+            check; neither verifies a government identity document.
+          </p>
+        </section>
+
+        <section id="transfers">
+          <h2>International transfers</h2>
+          <p>
+            We do not transfer your data, because we do not hold it. When you configure a provider —
+            cashback programme, payout provider, price API or age-check relay — the request goes to
+            the address you entered, and that provider processes it wherever it operates, under its
+            own notice.
+          </p>
+        </section>
+
+        <section id="changes">
+          <h2>Changes to this policy</h2>
+          <p>
+            This policy is versioned alongside the Terms. When the Terms change to a new version,
+            this policy is updated with it, the version and date at the top change, and the panel
+            asks you to read and agree to the new Terms before it continues. If you do not agree,
+            the panel stays on its notice screen and you can remove the Extension.
+          </p>
+        </section>
+
+        <section id="summary" class="terms-summary">
+          <h2>Summary</h2>
+          <ul>
+            <li>Everything the Extension knows about you sits in your browser profile; there is no
+              Luma Pay account server.</li>
+            <li>Data leaves only to addresses you configured yourself, and only the request that
+              feature needs.</li>
+            <li>With no age-check relay, the optional face scan is measured entirely on your device;
+              nothing is uploaded, and no image or face template is ever stored.</li>
+            <li>Card numbers are never read, stored or transmitted.</li>
+            <li>No analytics, no telemetry, no advertising identifiers, and your data is not sold.</li>
+            <li>Deleting the data in the settings — or removing the Extension — is the deletion.</li>
+          </ul>
+        </section>
+      </article>
+    </div>
+
+    <footer class="terms-foot">
+      <div class="terms-wrap">
+        <p>
+          Luma Pay Shopping Agent · Privacy Policy · version 1.2 · 12 November 2026 ·
+          <a href="terms.html">Terms of Use</a> · <a href="support.html">Support</a>
+        </p>
+      </div>
+    </footer>
+  </body>
+</html>

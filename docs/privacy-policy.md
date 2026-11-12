@@ -1,9 +1,11 @@
 # Privacy policy — Luma Pay Shopping Agent
 
-**Version 1.1 · Last updated 12 November 2026 · Applies to extension version 0.5.0**
+**Version 1.2 · Last updated 12 November 2026 · Applies to extension version 0.6.0**
 
-This policy describes what the Luma Pay Shopping Agent browser extension (the “Extension”) does
-with data. It is written to match the Terms of Use and Disclosures that the Extension shows before
+This policy is kept in two copies that must say the same thing: the packaged page a shopper and a
+reviewer open, [`extension/privacy.html`](../extension/privacy.html), and this working draft, which
+also carries the repository notes and the publication steps still open. It describes what the Luma
+Pay Shopping Agent browser extension (the “Extension”) does with data. It is written to match the Terms of Use and Disclosures that the Extension shows before
 it does anything: the consent facts in the panel, and sections 5, 8, 11, 12 and 13 of
 [`extension/terms.html`](../extension/terms.html). Where this policy and those Terms both speak to
 the same handling, they say the same thing — if they ever stop matching, the Terms govern and this
@@ -57,7 +59,7 @@ It covers data the Extension handles in your browser. It does **not** cover:
 Everything below is written to the Extension's own storage in the browser profile it is installed
 in. There is no Luma Pay server that holds an account, and no backup of it.
 
-**Your acceptance of the Terms.** A record with the version you agreed to (currently 1.1) and the
+**Your acceptance of the Terms.** A record with the version you agreed to (currently 1.2) and the
 time you agreed. A record without a real version and timestamp is not treated as agreement
 (Terms §1).
 
@@ -290,11 +292,12 @@ gate by hand, and these are the places to re-read when either changes:
 Still open before publication (see `docs/opera-submission.md`):
 
 - [ ] Publish this policy at a public URL and enter it in the store listing.
-- [ ] Reconcile one wording difference with the gate: Terms §13 says **Export a copy** gives you
-      “everything it holds”, but `exportData()` in the service worker leaves stored credentials out
-      (deliberately) and does not include the account record or the Terms acceptance. Either the
-      Terms sentence or the export has to change so the two agree; this policy describes what the
-      export actually contains.
+- [x] Reconcile the export wording with the gate: Terms §13 now describes what **Export a copy**
+      contains instead of claiming “everything it holds”, which the service worker never did. Terms
+      and this policy are at version 1.2, so the panel asks again.
+- [x] Ship a copy of this policy inside the package (`extension/privacy.html`) so it is reachable
+      from the notice card, the terms and the settings page, and so a reviewer can read it offline.
+- [ ] Publish `extension/support.html` at a URL entered in the submission form.
 - [ ] Replace the placeholder identity/contact wording in “Who this policy is from” with the
       operator's legal name and address once the store listing exists.
 - [ ] Obtain legal review alongside the Terms of Use.

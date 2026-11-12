@@ -38,6 +38,7 @@ import {
 } from "../lib/guard.js";
 import { decideSite } from "../lib/site-add.js";
 import { mergeCodes, cleanCode } from "../lib/codes.js";
+import { readConsent } from "../lib/terms.js";
 import { creditAds, normalizeRecord, summaryOf, MAX_ADS_PER_TAB } from "../lib/ad-value.js";
 import { scopedKey, scopePrefix } from "../lib/accounts.js";
 import {
@@ -312,6 +313,9 @@ async function reportAds(count, sender) {
   // it; with no tab there is nothing to credit.
   const tabId = sender && sender.tab && typeof sender.tab.id === "number" ? sender.tab.id : null;
   if (tabId === null) return { error: "refused" };
+  // Nothing is credited before the shopper has agreed to the terms, whatever a
+  // page script sends.
+  if (!(await readConsent())) return { error: "refused" };
   const used = creditedByTab.get(tabId) || 0;
   const room = MAX_ADS_PER_TAB - used;
   if (room <= 0) return adsSummary();
@@ -324,15 +328,18 @@ async function reportAds(count, sender) {
   return adsSummary();
 }
 
-// The blocking ruleset follows the Settings toggle, so turning it off stops
-// ads being blocked as well as counted.
+// The blocking ruleset follows both the panel's gate and the Settings toggle:
+// it is declared off, and only a profile that has agreed to the terms AND left
+// ad blocking on turns it on. Turning the switch off stops ads being blocked as
+// well as counted, and withdrawing agreement turns it back off.
 async function syncAdBlock() {
   const rules = chrome.declarativeNetRequest;
   if (!rules || !rules.updateEnabledRulesets) return;
   const settings = await readSettings();
+  const agreed = Boolean(await readConsent());
   try {
     await rules.updateEnabledRulesets(
-      settings.enabled.adBlock === false
+      !agreed || settings.enabled.adBlock === false
         ? { disableRulesetIds: ["ads"] }
         : { enableRulesetIds: ["ads"] }
     );
@@ -971,7 +978,11 @@ chrome.runtime.onMessage.addListener(function (message, sender, sendResponse) {
 });
 
 chrome.storage.onChanged.addListener(function (changes, area) {
-  if (area === "local" && changes.settings) feedCache.clear();
+  if (area !== "local") return;
+  if (changes.settings) feedCache.clear();
+  // Agreeing to the terms, or a new version of them, moves the blocking ruleset
+  // with the gate.
+  if (changes.terms) syncAdBlock();
 });
 
 // Toolbar click opens the panel — the whole UI lives there. Where that panel is

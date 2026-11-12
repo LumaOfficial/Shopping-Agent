@@ -11,6 +11,11 @@ import { constantTimeEquals, endpoint, intValue, textValue, webUrl } from "../sr
 import { sanitizeSettings } from "../src/lib/settings.js";
 import { currentAccount, signIn, signUp } from "../src/lib/accounts.js";
 import { MAX_ADS_PER_DAY, MAX_ADS_PER_TAB } from "../src/lib/ad-value.js";
+import { TERMS_VERSION } from "../src/lib/terms.js";
+
+// Every test here drives a profile that has opened the panel and agreed to the
+// terms, because nothing — including ad value — is credited before that.
+const AGREED = { terms: { version: TERMS_VERSION, at: Date.UTC(2026, 10, 12) } };
 
 const PERSON = {
   fullName: "Guard Tester",
@@ -20,13 +25,22 @@ const PERSON = {
   password: "guardpass123",
 };
 
-async function boot(t) {
-  const fake = await loadWorker();
+async function boot(t, seed) {
+  const fake = await loadWorker(Object.assign({}, AGREED, seed));
   t.after(() => {
     delete globalThis.chrome;
   });
   return fake;
 }
+
+test("nothing is credited before the terms are agreed", async (t) => {
+  const fake = await boot(t, { terms: undefined });
+  const page = { id: fake.chrome.runtime.id, tab: { id: 21 }, url: "https://shop.test/" };
+
+  const reply = await fake.send({ type: "ads:report", count: 4 }, page);
+  assert.equal(reply.error, "refused");
+  assert.equal(fake.store.ads, undefined, "nothing was credited");
+});
 
 test("another extension cannot change settings", async (t) => {
   const fake = await boot(t);

@@ -50,29 +50,55 @@
   }
 
   var started = false;
+  var agreed = false;
+  // The last settings the extension wrote, so a gate change can re-apply the
+  // switch without reading the page or storage again.
+  var current = null;
 
-  // The first pass waits for the switch, so a profile with ad blocking off has
-  // its slots left alone from the first paint rather than after one report.
+  // The first pass waits for both the switch and the panel's gate: a shopper who
+  // has not agreed sees the page's slots left alone, and a profile with ad
+  // blocking off has them left alone from the first paint rather than after one
+  // report.
   function start() {
-    if (started) return;
+    if (started || !agreed) return;
     started = true;
     settle();
     global.setTimeout(settle, 1200);
     global.setTimeout(settle, 4000);
   }
 
-  try {
-    chrome.storage.local.get("settings", function (stored) {
-      applySwitch(stored && stored.settings);
+  // src/content/consent.js answers from the record the panel writes on its agree
+  // button. Without that file there is no way to read the gate, so nothing runs.
+  function gate() {
+    if (typeof global.SavingsConsent !== "function") return;
+    global.SavingsConsent(function (ok) {
+      agreed = ok;
+      if (!ok) {
+        enabled = false;
+        started = false;
+        return;
+      }
+      applySwitch(current);
       start();
     });
+  }
+
+  try {
+    chrome.storage.local.get("settings", function (stored) {
+      current = stored && stored.settings;
+      gate();
+    });
   } catch (_error) {
-    start();
+    // No storage means no gate to read, so nothing runs.
   }
 
   chrome.storage.onChanged.addListener(function (changes, area) {
-    if (area !== "local" || !changes.settings) return;
-    applySwitch(changes.settings.newValue);
+    if (area !== "local") return;
+    if (changes.settings) {
+      current = changes.settings.newValue;
+      applySwitch(current);
+    }
+    if (changes.terms) gate();
   });
 
   // Hides every slot it has not seen yet and answers with the page's total, so
@@ -101,7 +127,7 @@
   // One report per page, carrying only the new count. Ads that load late are
   // reported on a later pass instead of being recounted.
   function settle() {
-    if (!enabled) return;
+    if (!enabled || !agreed) return;
     var count = scan();
     if (count <= reported) return;
     var add = count - reported;

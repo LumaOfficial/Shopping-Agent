@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Luma Pay Shopping Agent",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "Luma Pay Shopping Agent finds coupons, cashback and price history while you shop, and hides ad slots in the shops it covers.",
   "icons": {
     "16": "icons/luma-pay-16.png",
@@ -30,7 +30,7 @@
     "rule_resources": [
       {
         "id": "ads",
-        "enabled": true,
+        "enabled": false,
         "path": "rules/ads.json"
       }
     ]
@@ -852,6 +852,7 @@
         "*://*.zumiez.com/*"
       ],
       "js": [
+        "src/content/consent.js",
         "src/content/ad-guard.js",
         "src/lib/compat.js",
         "src/content/coupon-engine.js",

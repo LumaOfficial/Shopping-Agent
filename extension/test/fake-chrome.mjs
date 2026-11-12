@@ -47,6 +47,7 @@ export function createFakeChrome(seed) {
     listeners[name] = [];
   });
   const opened = [];
+  const rulesets = [];
 
   const chrome = {
     storage: {
@@ -82,7 +83,11 @@ export function createFakeChrome(seed) {
       async unregisterContentScripts() {},
     },
     declarativeNetRequest: {
-      async updateEnabledRulesets() {},
+      // Every call is recorded so a test can see the blocking ruleset follow the
+      // panel's gate and the settings switch.
+      async updateEnabledRulesets(update) {
+        rulesets.push(update);
+      },
     },
     action: { onClicked: { addListener() {} } },
     commands: { onCommand: { addListener() {} } },
@@ -128,7 +133,7 @@ export function createFakeChrome(seed) {
     });
   }
 
-  return { chrome, store, send, opened, listeners };
+  return { chrome, store, send, opened, listeners, rulesets };
 }
 
 // Every test needs its own copy of the worker: its module state (the offer

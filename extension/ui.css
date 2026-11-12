@@ -707,8 +707,15 @@ body.sidepanel a.mini {
   text-decoration: none;
 }
 
-body.sidepanel .terms-read {
-  margin-bottom: 14px;
+body.sidepanel .terms-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  margin: 0 0 14px;
+}
+
+body.sidepanel .terms-links .terms-read {
+  margin-bottom: 0;
 }
 
 body.sidepanel .terms-agree {

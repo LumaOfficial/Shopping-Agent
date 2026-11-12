@@ -74,6 +74,12 @@ body.terms {
   align-items: start;
 }
 
+/* The privacy and support pages carry no contents list, so their document takes
+   the full measure instead of sitting in the column the list would have used. */
+.terms-body.single {
+  grid-template-columns: minmax(0, 1fr);
+}
+
 .terms-toc {
   position: sticky;
   top: 24px;

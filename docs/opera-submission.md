@@ -32,6 +32,30 @@ reading the criteria again:
 - `extension/test/manifest-compliance.test.mjs` asserts the mechanical criteria below, so a later
   edit cannot quietly re-broaden access or reintroduce minified code.
 
+**Revision 3 — 12 November 2026.** A second pass over the whole package, asking of each criterion
+"would a reviewer see this in the build?". What changed:
+
+- **Nothing acts before the gate.** The ad-blocking ruleset was declared `enabled: true`, so
+  requests to advertising domains were stopped from install — before the shopper had read the
+  notice or agreed to anything, which contradicts terms §1 and the panel's own promise that nothing
+  runs until the box is ticked. It is now declared off and turned on by the service worker only for
+  a profile that has agreed and left the switch on; `src/content/consent.js` holds the ad-slot
+  script back on the same record; `ads:report` refuses to credit anything without it.
+- **The privacy policy ships.** `privacy.html` is in the package, linked from the notice card, the
+  terms and the settings page, and written to match terms §13 (and §5, §8, §11, §12). It replaces
+  the "publish something later" line in the checklist with a document that can be reviewed now.
+- **A support page ships.** `support.html` covers opening the panel, first run, what each feature
+  does, what to check when it does nothing, and how to reach us — the relevant support page the
+  metadata criterion asks for, with a URL still to be entered in the form.
+- **The disclosure now matches the export.** Terms §13 said **Export a copy** gives "everything it
+  holds", while `exportData()` deliberately leaves credentials out. §13 now says what the export
+  contains; the version is 1.2, so the panel asks again.
+- **A stray `</article>`** at the end of `terms.html` is gone; `test/policies.test.mjs` now asserts
+  every packaged page closes `article`, `section` and `div` as often as it opens them.
+- The test suite grew from 59 to 69: the gate's effect on the ruleset, the ad credit refusal, the
+  page-script gate, the version agreement between the terms and the privacy page, and the markup
+  balance.
+
 ## What the operator is confirming
 
 The review below maps each criterion to what the package actually does, and names the file that
@@ -56,14 +80,14 @@ proves it. Two things have to be true before upload and only a person can confir
 | No redundant permissions | Each permission below is used by a named file; `sidePanel` is dropped from the Opera build; there is no standing access to every site | `tools/build.mjs` `operaManifest()`; `test/manifest-compliance.test.mjs`; table below | Met |
 | No ads in content scripts | Content scripts inject no advertising. The panel shows sponsored offers; the shop script hides ad slots and counts them | `src/content/ad-guard.js`, `src/partners/sponsor-offers.js` | Met |
 | Must not change referral parameters or misappropriate traffic | No link on a page is rewritten. A tracked link is built from the operator's own template only when the shopper taps Activate. Ad value is an estimate the operator pays, never an advertiser's money | `src/partners/cashback-network.js`; no `href =` write in `src/content/`; terms §6 | Met |
-| Must not collect private information without authorisation | The panel does nothing until the shopper ticks an empty box and agrees to the terms; the tick, its version and its date are stored | `src/lib/terms.js`, `extension/sidepanel.html`, `extension/terms.html` §1 | Met |
+| Must not collect private information without authorisation | Nothing acts before the shopper ticks an empty box and agrees: the panel stays on its notice, the ad-blocking ruleset is declared off and only the worker turns it on for an agreed profile, the ad-slot script reads the same record before it hides or counts, and ad credit is refused without it | `src/lib/terms.js`, `src/content/consent.js`, `src/background/service-worker.js` `syncAdBlock()`, `manifest.json` ruleset, `test/policies.test.mjs`, `test/security.test.mjs` | Met |
 | Must not send private data to an external store through XHR | Outbound calls go only to addresses the operator or shopper configured, over HTTPS or to a loopback listener, and only for the feature that was used | `src/partners/*`, `guard.endpoint()` in `src/lib/guard.js`, `test/security.test.mjs` | Met |
 | Code must not be obfuscated or minified | Plain ES modules and classic scripts, comments included, no build step beyond the manifest; asserted with no line over 500 characters and no `eval` | `dist/opera` is a copy of `extension/`; `test/manifest-compliance.test.mjs` | Met |
-| No obvious bugs | 59 Node tests cover the trust boundary, accounts, wallet, age check, the packaged manifest and the package itself; catalog check passes | `cd extension && node --test test/*.test.mjs` → 59 pass; `node tools/check-catalog.mjs` → agree | Met in Node; see "Not verified here" |
-| Icons similar in style, not words on a colour | Five PNG sizes from one mark (16/32/48/96/128) | `extension/icons/`; sizes asserted in `test/manifest-compliance.test.mjs` | Met |
+| No obvious bugs | 69 Node tests cover the trust boundary, accounts, wallet, age check, the gate's hold on blocking and credits, the disclosure pages, the packaged manifest and the package itself; catalog check passes | `cd extension && node --test test/*.test.mjs` → 69 pass; `node tools/check-catalog.mjs` → agree | Met in Node; see "Not verified here" |
+| Icons similar in style, not words on a colour | Five PNG sizes from one mark — the four the manifest declares (16/32/48/128) and the 96px sidebar icon — all RGBA and non-interlaced, none a wordmark | `extension/icons/`; sizes and PNG headers asserted in `test/manifest-compliance.test.mjs`; decoded and inspected at 16 and 32px | Met |
 | Testing on Windows, Mac and Linux | — | — | **Operator** |
 | Screenshots 612×408, white background, default UI | — | — | **Operator** |
-| Support page relevant to the extension | — | — | **Operator** |
+| Support page relevant to the extension | `support.html` ships in the package: opening the panel, first run, each feature, what to check when one does nothing, and how to reach us. No external links | `extension/support.html`, linked from `options.html`; `test/policies.test.mjs` | Met in the package; the listing URL is **Operator** |
 
 ## Permissions, and why each is asked for
 
@@ -169,16 +193,18 @@ Entered in the submission form, so the form and the package describe the same pr
 - **Name:** Luma Pay Shopping Agent
 - **Summary:** Luma Pay Shopping Agent finds coupon codes, cashback offers and price history while
   you shop, and hides ad slots in the shops it covers. It never reads your card details.
-- **Description:** Luma Pay Shopping Agent adds a panel to your browser. Open a shop and the panel
-  shows the codes that shop publishes, cashback rates from cashback programmes, and how the price
-  has moved. You choose a code and the panel types it into the store's own promo field and tells you
+- **Description:** Luma Pay Shopping Agent adds a compact panel beside the page — a short stack of
+  soft, rounded cards in the sidebar (or the side panel in other Chromium browsers). Open a shop
+  and the panel shows the codes that shop publishes, cashback rates from cashback programmes, and
+  how the price has moved. You choose a code and the panel types it into the store's own promo field and tells you
   whether the store accepted it — it never checks out or pays for anything. In the shops it covers,
   with ad blocking on, it also stops requests to advertising and tracker domains, hides the empty
   slots they leave behind, and shows what that space was worth in your wallet; switching ad blocking
   off stops all of it. The panel explains what it needs site access for — the shops in its catalog,
   and one site at a time when you add a shop yourself — and asks you to agree to its terms before it
-  does anything. Accounts, codes, prices and balances are stored in this browser profile; card
-  numbers are never read.
+  does anything; the terms, the privacy policy and a support page are all one link away from that
+  notice and ship inside the package. Accounts, codes, prices and balances are stored in this
+  browser profile; card numbers are never read.
 - **Category:** Shopping
 
 ## Submission checklist
@@ -188,7 +214,12 @@ Entered in the submission form, so the form and the package describe the same pr
 - [ ] `cd extension && node tools/check-catalog.mjs` — catalog and manifest agree, and it reports no
       content script outside the catalog and no all-sites host permission
 - [ ] Load `dist/opera` unpacked in Opera and confirm the panel opens from the sidebar rail and from
-      the toolbar button, and that the first screen is the terms card with an empty tick box
+      the toolbar button, and that the first screen is the terms card with an empty tick box, the
+      **Privacy policy** link beside **Read the full terms**, and **Agree and continue** disabled
+- [ ] On a fresh profile, before ticking anything, open a shop from the catalog and confirm its ad
+      slots are still filled and the panel shows the notice — nothing is blocked, hidden or
+      credited; then tick, agree and reload, and confirm the slots are hidden and the ad-value card
+      starts counting
 - [ ] Tick, accept, create an account, open a shop, and confirm codes are found and the ad-value card
       fills in
 - [ ] Open a page that is not a covered shop and confirm `opera://extensions` shows no access to it
@@ -201,9 +232,11 @@ Entered in the submission form, so the form and the package describe the same pr
       consent facts on screen match `extension/terms.html` §11
 - [ ] Screenshots at 612×408, white background: one of the panel in use, one showing where the
       extension sits in the browser
-- [ ] Support page published, relevant to the extension, and reachable
-- [ ] Privacy policy published and consistent with `extension/terms.html` §13 — draft in
-      [`docs/privacy-policy.md`](privacy-policy.md), still needs a public URL
+- [ ] Support page published at a URL entered in the submission form, relevant to the extension and
+      reachable — the copy in the package is `extension/support.html`
+- [ ] Privacy policy published at a URL entered in the submission form, consistent with
+      `extension/terms.html` §13 — the copy in the package is `extension/privacy.html`, the working
+      draft with the open publication steps is [`docs/privacy-policy.md`](privacy-policy.md)
 - [ ] Name, summary and description entered exactly as "Listing copy" above
 - [ ] No "Opera" in the title, the listing or the icons
 
@@ -213,3 +246,7 @@ Entered in the submission form, so the form and the package describe the same pr
 - Payout with a live reward service, cashback confirmation with a live programme, and the face age
   check against a live relay: all need the operator's own accounts and endpoints.
 - Whether Opera will accept the one-goal argument in finding 1. That is the review.
+- The gate holding the blocking ruleset back in a real browser: the worker's ruleset calls and the
+  ad-credit refusal are covered by `test/policies.test.mjs` and `test/security.test.mjs`, and the
+  panel's notice was checked in the preview harness, but no test here loads the packaged extension
+  in Opera and watches a real request go from allowed to blocked.
