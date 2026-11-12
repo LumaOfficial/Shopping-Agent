@@ -4,6 +4,7 @@
 // come from the operator's authorized feed, from what the shopper saved, or
 // from codes the store itself published on the page.
 import "../lib/compat.js";
+import { installPanelSurface, openPanel } from "../lib/panel-surface.js";
 import { resolveStore } from "../lib/stores.js";
 import { partnerSummary } from "../lib/copy.js";
 import { getOffers, feedEndpoint, feedHeaders, sourceLabel } from "../partners/offers-feed.js";
@@ -973,73 +974,14 @@ chrome.storage.onChanged.addListener(function (changes, area) {
   if (area === "local" && changes.settings) feedCache.clear();
 });
 
-// Toolbar click opens the panel — the whole UI lives there. Chromium browsers
-// have the Side Panel API, Firefox has its sidebar, and a browser with neither
-// (Firefox for Android, for one) gets the panel in a window or a tab.
-const HAS_SIDE_PANEL = !!(chrome.sidePanel && chrome.sidePanel.open);
-const HAS_SIDEBAR = !!(chrome.sidebarAction && chrome.sidebarAction.open);
-
-// Firefox hands out the promise-only `browser` object under the `chrome` name,
-// so these calls are awaited rather than given a callback that Firefox ignores.
-async function lastWindowId() {
-  try {
-    const win = await chrome.windows.getLastFocused({ populate: false });
-    return win && typeof win.id === "number" ? win.id : null;
-  } catch (_error) {
-    return null;
-  }
-}
-
-async function openSidePanel() {
-  const windowId = await lastWindowId();
-  if (windowId === null) return;
-  await chrome.sidePanel.open({ windowId }).catch(function () {
-    /* Only opens from a user gesture; a click or a command is one. */
-  });
-}
-
-function openSidebar() {
-  const sidebar = chrome.sidebarAction;
-  // toggle() closes the sidebar on a second click, which is what the toolbar
-  // button should do; open() is the fallback where toggle() is missing.
-  const opened = typeof sidebar.toggle === "function" ? sidebar.toggle() : sidebar.open();
-  return Promise.resolve(opened).catch(function () {
-    /* Firefox opens it from the toolbar button or its own shortcut. */
-  });
-}
-
-function openPanelWindow() {
-  const url = chrome.runtime.getURL("sidepanel.html");
-  const inTab = function () {
-    return chrome.tabs.create({ url: url }).catch(function () {});
-  };
-  if (!chrome.windows || !chrome.windows.create) return inTab();
-  return chrome.windows
-    .create({ url: url, type: "popup", width: 400, height: 760 })
-    .catch(inTab);
-}
-
-function openPanel() {
-  // Called straight from the click or the command handler: Firefox only opens
-  // its sidebar while the user gesture is live, so nothing is awaited before it.
-  if (HAS_SIDEBAR) return openSidebar();
-  if (HAS_SIDE_PANEL) return openSidePanel();
-  return openPanelWindow();
-}
-
-function openPanelOnActionClick() {
-  if (!HAS_SIDE_PANEL) return;
-  chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true }).catch(function (error) {
-    console.warn("[savings] side panel setup failed:", error);
-  });
-}
-
-openPanelOnActionClick();
+// Toolbar click opens the panel — the whole UI lives there. Where that panel is
+// belongs to the browser, so the surface is the one module the build varies:
+// src/lib/panel-surface.js is the Chromium Side Panel in a Chromium package and
+// Firefox's sidebar in a Firefox one.
+installPanelSurface();
 // Rulesets follow the saved setting from the first moment the worker runs.
 syncAdBlock();
 
-// Only fires where the click does not already open the side panel: Firefox and
-// any Chromium browser without the Side Panel API.
 chrome.action.onClicked.addListener(function () {
   openPanel();
 });
@@ -1050,7 +992,7 @@ chrome.commands.onCommand.addListener(function (command) {
 });
 
 chrome.runtime.onInstalled.addListener(function () {
-  openPanelOnActionClick();
+  installPanelSurface();
   syncAdBlock();
 });
 chrome.runtime.onStartup.addListener(syncAdBlock);
