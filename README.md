@@ -257,7 +257,7 @@ opens an address it has not checked.
   signed in, so opening the panel does not ask for the password again; signing
   out is a second, deliberate tap on the account chip.
 - **Codes only for the store you are on.** The panel resolves the tab's host
-  against a catalog of **814 stores / 831 host patterns** (including regional
+  against a catalog of **925 stores / 942 host patterns** (including regional
   Amazon, eBay and other domains). Any other page shows an empty state, plus a
   one-tap check that adds the site when the page proves it is a shop.
 - **A tour on the first run.** The panel opens with a seven-step tour — codes,
@@ -272,7 +272,10 @@ opens an address it has not checked.
   Opera, ChromeOS — and fails the run if any of them diverges.
 - **All stores, browsable** — the panel's *All stores* card lists the whole
   catalog, searchable by name, host or category and filterable by category, so
-  a shopper can see what is covered and open a store from the list.
+  a shopper can see what is covered and open a store from the list. A row also
+  carries how many ways to save the shipped list already knows at that store
+  (`storeSavingsCount()`), so a shopper can pick a shop worth opening instead of
+  guessing.
 - **Popular stores and categories** — a shuffleable rail of ten popular stores
   (each one tap from its site) and a category grid that opens the All stores
   list already filtered, so the panel is useful before a store is visited.

@@ -14,7 +14,7 @@
 //      price in the card is the price that qualifies.
 import { money } from "./format.js";
 
-export const DEALS_VERSION = 1;
+export const DEALS_VERSION = 2;
 export const DEALS_UPDATED = "2026-11-12";
 
 const deal = (id, store, label, category, note, extra) =>
@@ -89,6 +89,28 @@ export const POPULAR_PRODUCTS = [
 
   // Pet
   product("p-proplan-chewy", "chewy", "Purina Pro Plan 30-lb", "pet", 6899, 75, "Purina Pro Plan 30 lb"),
+
+  // The shops added with the catalogue expansion, one known product each, so a
+  // new store reaches the feed the moment its offer arrives.
+  product("p-nimbus-asics", "asics", "ASICS GEL-Nimbus 27", "shoes", 17000, 82, "GEL-Nimbus 27"),
+  product("p-endorphin-saucony", "saucony", "Saucony Endorphin Speed 5", "shoes", 17000, 74, "Endorphin Speed 5"),
+  product("p-sm7b-sweetwater", "sweetwater", "Shure SM7B microphone", "audio", 39900, 79, "Shure SM7B"),
+  product("p-elio-wayfair", "wayfair", "AllModern Elio sofa", "furniture", 89900, 70, "AllModern Elio sofa"),
+  product("p-craftsman-lowes", "lowes", "Craftsman 20V drill kit", "home", 14900, 78, "Craftsman 20V drill kit"),
+  product("p-501-macys", "macys", "Levi's 501 Original jeans", "fashion", 6950, 80, "Levi's 501 Original"),
+  product("p-af1-nordstrom", "nordstrom", "Nike Air Force 1 '07", "fashion", 11500, 76, "Air Force 1"),
+  product("p-achilles-ssense", "ssense", "Common Projects Achilles Low", "fashion", 43000, 66, "Achilles Low"),
+  product("p-olaplex-spacenk", "spacenk", "Olaplex No.3 Hair Perfector", "beauty", 3000, 72, "Olaplex No.3"),
+  product("p-bha-paulaschoice", "paulaschoice", "Paula's Choice 2% BHA Exfoliant", "beauty", 3400, 77, "2% BHA Exfoliant"),
+  product("p-hills-petco", "petco", "Hill's Science Diet 30-lb", "pet", 6999, 71, "Hill's Science Diet 30 lb"),
+  product("p-rambler-academy", "academy", "YETI Rambler Tumbler 30 oz", "outdoor", 4000, 73, "YETI Rambler 30 oz"),
+  product("p-pegasus-scheels", "scheels", "Nike Pegasus 41", "shoes", 14000, 70, "Nike Pegasus 41"),
+  product("p-photography-adobe", "adobe", "Creative Cloud Photography plan, 1 year", "software", 11988, 84, "Photography plan"),
+  product("p-audible-annual", "audible", "Audible Premium Plus, 12 months", "books", 14950, 76, "Premium Plus 12 months"),
+  product("p-pixel-google", "google", "Google Pixel 10", "phone", 79900, 86, "Pixel 10"),
+  product("p-hero13-gopro", "gopro", "GoPro HERO13 Black", "camera", 39999, 81, "HERO13 Black"),
+  product("p-mini4k-dji", "dji", "DJI Mini 4K", "camera", 29900, 75, "DJI Mini 4K"),
+  product("p-vitamix-5200", "vitamix", "Vitamix 5200 blender", "kitchen", 54900, 69, "Vitamix 5200"),
 ];
 
 // The partner offers. `category` narrows a row to one kind of product; a row
@@ -149,6 +171,35 @@ export const PARTNER_DEALS = [
     { percent: 5 }
   ),
   deal("bose-refurbished", "bose", "Certified refurbished", "audio", "Factory-renewed audio keeps the same warranty as new."),
+
+  // Same rules, wider net: each row names a programme the shop itself runs, and
+  // a rate only where the shop publishes one.
+  deal("asics-members", "asics", "OneASICS points", "shoes", "OneASICS membership is free, and its points apply on this order."),
+  deal("saucony-past-season", "saucony", "Past-season pricing", "shoes", "Past-season colourways of this shoe sit below the current model."),
+  deal("sweetwater-bundle", "sweetwater", "Bundles", "audio", "Sweetwater's own bundles price the mic with its cable and stand below the parts apart."),
+  deal("wayfair-daily", "wayfair", "Daily deals", "furniture", "Wayfair's daily deals put selected pieces below their usual price."),
+  deal("lowes-pro", "lowes", "Pro pricing", "home", "A Lowe's Pro account can lower the unit price on this tool."),
+  deal("macys-star", "macys", "Star Rewards", "fashion", "Star Rewards points apply on this order and spend inside their window."),
+  deal("nordstrom-match", "nordstrom", "Price match", "fashion", "Nordstrom matches the price of an identical item at a major retailer."),
+  deal("ssense-seasonal", "ssense", "Seasonal markdowns", "fashion", "SSENSE's seasonal sale prices this pair below its usual price."),
+  deal("spacenk-ndulge", "spacenk", "NDULGE rewards", "beauty", "Space NK's NDULGE points apply on this order and convert to store credit."),
+  deal("paulaschoice-sets", "paulaschoice", "Value sets", "beauty", "A Paula's Choice set prices this exfoliant with its companions below the parts apart."),
+  deal(
+    "petco-repeat",
+    "petco",
+    "Repeat delivery 5%",
+    "pet",
+    "Repeat delivery takes 5% off every following bag of the same food.",
+    { percent: 5 }
+  ),
+  deal("academy-rewards", "academy", "Academy rewards", "outdoor", "Academy's rewards points apply on this order and spend in store."),
+  deal("scheels-past-season", "scheels", "Past-season pricing", "shoes", "End-of-season colourways of this shoe sit below the current model."),
+  deal("adobe-annual", "adobe", "Annual plan saving", "software", "Paying yearly lowers the monthly price of the Photography plan."),
+  deal("audible-annual", "audible", "Annual plan", "books", "Twelve credits paid yearly come to less than twelve monthly payments."),
+  deal("google-tradein", "google", "Trade-in credit", "phone", "A working older phone lowers the price of this Pixel at checkout."),
+  deal("gopro-subscription", "gopro", "Subscription bundle", "camera", "The camera with a year of the subscription costs less than the two bought apart."),
+  deal("dji-flymore", "dji", "Fly More bundle", "camera", "The Fly More bundle prices the drone with its spare batteries below the parts apart."),
+  deal("vitamix-refurbished", "vitamix", "Certified refurbished", "kitchen", "Vitamix's refurbished machines carry the same warranty at a lower price."),
 ];
 
 // The store's own search for that product. Nothing else is fetched from the
@@ -173,6 +224,25 @@ const SEARCH = {
   kitchenaid: "https://www.kitchenaid.com/search?q={q}",
   williamssonoma: "https://www.williams-sonoma.com/search/results.html?words={q}",
   chewy: "https://www.chewy.com/s?query={q}",
+  asics: "https://www.asics.com/us/en-us/search?q={q}",
+  saucony: "https://www.saucony.com/en/search?q={q}",
+  sweetwater: "https://www.sweetwater.com/store/search?s={q}",
+  wayfair: "https://www.wayfair.com/keyword.php?keyword={q}",
+  lowes: "https://www.lowes.com/search?searchTerm={q}",
+  macys: "https://www.macys.com/shop/search?keyword={q}",
+  nordstrom: "https://www.nordstrom.com/sr?keyword={q}",
+  ssense: "https://www.ssense.com/en-us/search?q={q}",
+  spacenk: "https://www.spacenk.com/us/search?q={q}",
+  paulaschoice: "https://www.paulaschoice.com/search?q={q}",
+  petco: "https://www.petco.com/shop/en/petcostore/search?q={q}",
+  academy: "https://www.academy.com/search?searchTerm={q}",
+  scheels: "https://www.scheels.com/search?q={q}",
+  adobe: "https://www.adobe.com/search.html?q={q}",
+  audible: "https://www.audible.com/search?keywords={q}",
+  google: "https://store.google.com/search?q={q}",
+  gopro: "https://gopro.com/en/us/shop/cameras",
+  dji: "https://store.dji.com/search?q={q}",
+  vitamix: "https://www.vitamix.com/us/en_us/search?q={q}",
 };
 
 export function productUrl(item) {

@@ -1,5 +1,11 @@
 import { STORES, storeCount } from "./src/lib/stores.js";
-import { filterStores, storeCategories, storeHost, storeSite } from "./src/lib/store-directory.js";
+import {
+  filterStores,
+  storeCategories,
+  storeHost,
+  storeSavingsCount,
+  storeSite,
+} from "./src/lib/store-directory.js";
 import { mergeCodes, SOURCE_LABEL, daysLeft, endingSoon } from "./src/lib/codes.js";
 import { money, humanAge } from "./src/lib/format.js";
 import { PAGE_SOURCE_NOTE } from "./src/lib/copy.js";
@@ -199,6 +205,17 @@ function renderStoreList() {
     open.title = "Open " + store.name;
     open.dataset.url = storeSite(store);
     item.appendChild(open);
+
+    // The row says at a glance whether the list already knows a way to save
+    // here, so a shopper can pick a store worth opening instead of guessing.
+    const ways = storeSavingsCount(store.id);
+    if (ways) {
+      const badge = document.createElement("span");
+      badge.className = "ways";
+      badge.textContent = ways + (ways === 1 ? " way" : " ways");
+      badge.title = ways + (ways === 1 ? " way" : " ways") + " to save at " + store.name;
+      item.appendChild(badge);
+    }
 
     const host = document.createElement("span");
     host.className = "lbl";

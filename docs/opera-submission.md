@@ -134,6 +134,26 @@ would ask about it:
   package still passes the 94-test suite, `tools/check-catalog.mjs` and the 7-desktop
   `tools/emulate-platforms.mjs` run; the numbers below are from that rebuild.
 
+**Revision 8 — 12 November 2026.** Second catalogue expansion:
+
+- **111 more shops** are in `src/lib/stores.js` (among them Google Store, Framework, iFixit, MUJI,
+  Boot Barn, Space NK, Beautylish, Misfits Market, Albert Heijn, Chemist Warehouse, Shoppers Drug
+  Mart, MEC, Sport Chek, Smyths Toys, Udemy, Coursera, Audible, GOG, MOO, Goldbelly, Herman Miller,
+  Steelcase, UPLIFT Desk, Room & Board, AllModern, ZWILLING, Ooni, Crutchfield, Philips Hue, Ring,
+  Arlo, eufy, Leatherman, SeatGeek and StubHub), taking the catalogue from 814 to **925 stores /
+  942 host patterns**. Every new entry is a single shop origin added to the same
+  `content_scripts` entry by `tools/check-catalog.mjs --write`; the standing `host_permissions` list
+  and `optional_host_permissions` are unchanged, so the access the shopper grants is the same list
+  in a longer form.
+- **The bundled savings list grew from 379 to 601 rows**, covering 470 shops instead of 359, and
+  `CATALOG_VERSION` moves to 5. Each row describes a programme the shop itself runs; no code is
+  invented, and a code still only ever arrives from the page or from an operator's published list.
+- **The deals feed grew from 20 to 39 partner offers**, each paired with a product at its own store
+  (`POPULAR_PRODUCTS` 36 to 55), with a store search template for every newly paired shop so a card
+  can only ever open an address on that shop's own host. `DEALS_VERSION` moves to 2.
+- **The All stores directory prints each shop's ways to save** (`storeSavingsCount()`), counted once
+  from the shipped list, so the expanded catalogue stays browsable rather than just longer.
+
 **Revision 7 — 12 November 2026.** Catalogue expansion for 0.9.0:
 
 - **20 more shops** are in `src/lib/stores.js` (Pandora, Swarovski, Aesop, TULA, Versed, Briogeo,
@@ -213,7 +233,7 @@ proves it. Two things have to be true before upload and only a person can confir
 | `declarativeNetRequest` | Stop requests to advertising and tracker domains for the ad-value feature | `rules/ads.json` |
 | `alarms` | Run the hourly savings-list pass: re-read the list, drop rows whose end date passed, refresh the optional feed. Reads no page and can be switched off | `src/background/service-worker.js` `scheduleRefresh()`, `refreshCatalog()` |
 | `sidePanel` (Chromium only) | Puts the panel in the Chromium side panel; **not** in the Opera package | removed by the `opera` row in `tools/targets.mjs` |
-| Host access via `content_scripts` | The 831 shop host patterns across 814 stores in the catalog: recognise the shop the shopper opened, read the codes and prices that page publishes, fill the store's own promo field, hide and count empty ad slots | `manifest.json` `content_scripts` (one entry, six files); kept in step with `src/lib/stores.js` by `tools/check-catalog.mjs` |
+| Host access via `content_scripts` | The 942 shop host patterns across 925 stores in the catalog: recognise the shop the shopper opened, read the codes and prices that page publishes, fill the store's own promo field, hide and count empty ad slots | `manifest.json` `content_scripts` (one entry, six files); kept in step with `src/lib/stores.js` by `tools/check-catalog.mjs` |
 | `optional_host_permissions` `*://*/*` | Granted **one origin at a time**, only on a click: a shop the shopper adds themselves, or a partner endpoint the operator saves (feed, payout proxy, sponsor service, age relay) | `sidepanel.js` `checkSite()`, `options.js` `ensureHost()` |
 | Host `https://api.keepa.com/*` | Optional 90-day price low, only when a product API key is entered | `src/partners/price-history.js` |
 

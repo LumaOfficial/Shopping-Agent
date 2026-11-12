@@ -1555,10 +1555,30 @@ body.sidepanel .store-link:focus-visible {
   border-radius: 6px;
 }
 
+body.sidepanel .store-list .ways {
+  flex: 0 0 auto;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #f2edff;
+  color: #6a58c9;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
 body.sidepanel .store-list .lbl {
   margin-left: auto;
   color: #a39bc4;
   font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+[data-contrast="high"] body.sidepanel .store-list .ways {
+  background: #ffffff;
+  border: 1px solid #2a2440;
+  color: #2a2440;
 }
 
 /* ---------- Deals for you ---------- */
