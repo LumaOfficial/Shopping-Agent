@@ -12,6 +12,7 @@ import { sanitizeSettings } from "../src/lib/settings.js";
 import { currentAccount, signIn, signUp } from "../src/lib/accounts.js";
 import { MAX_ADS_PER_DAY, MAX_ADS_PER_TAB } from "../src/lib/ad-value.js";
 import { TERMS_VERSION } from "../src/lib/terms.js";
+import { normalizeOffer as normalizeSponsorOffer } from "../src/partners/sponsor-offers.js";
 
 // Every test here drives a profile that has opened the panel and agreed to the
 // terms, because nothing — including ad value — is credited before that.
@@ -40,6 +41,14 @@ test("nothing is credited before the terms are agreed", async (t) => {
   const reply = await fake.send({ type: "ads:report", count: 4 }, page);
   assert.equal(reply.error, "refused");
   assert.equal(fake.store.ads, undefined, "nothing was credited");
+});
+
+test("a sponsored offer only ever opens a real web address", () => {
+  assert.equal(normalizeSponsorOffer({ id: "a", url: "javascript:alert(1)", reward: 50 }), null);
+  assert.equal(normalizeSponsorOffer({ id: "b", url: "http:not-an-address", reward: 50 }), null);
+  assert.equal(normalizeSponsorOffer({ id: "c", url: "", reward: 50 }), null);
+  const fine = normalizeSponsorOffer({ id: "d", url: "https://ads.example.com/offer", reward: 50 });
+  assert.equal(fine.url, "https://ads.example.com/offer");
 });
 
 test("another extension cannot change settings", async (t) => {

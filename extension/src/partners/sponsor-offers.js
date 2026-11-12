@@ -14,6 +14,8 @@
 //        "confirmAt": 1767225600000 }
 //   A reply without a positive amount pays nothing, and the panel says so.
 
+import { webUrl } from "../lib/guard.js";
+
 const EMPTY = { offers: [], status: "unconfigured", error: null };
 
 export function sponsorConfigured(settings) {
@@ -36,9 +38,12 @@ function isExpired(offer, now) {
 export function normalizeOffer(raw) {
   if (!raw) return null;
   const id = String(raw.id || raw.offerId || "").trim().slice(0, 64);
-  const url = String(raw.url || raw.link || "").trim();
+  // The sponsor is a remote service, so its link goes through the same guard a
+  // feed's address does: a real http(s) address this browser may visit, never a
+  // string that only starts with one.
+  const url = webUrl(raw.url || raw.link);
   const reward = Math.round(Number(raw.reward || raw.amount || 0));
-  if (!id || !/^https?:/i.test(url) || !isFinite(reward) || reward <= 0) return null;
+  if (!id || !url || !isFinite(reward) || reward <= 0) return null;
   return {
     id,
     advertiser: String(raw.advertiser || raw.brand || "Sponsored").slice(0, 60),

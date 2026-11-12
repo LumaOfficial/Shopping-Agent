@@ -964,6 +964,29 @@ export const STORES = [
   { id: "factor75", name: "Factor", host: "factor75.com", category: "Grocery" },
   { id: "hannaford", name: "Hannaford", host: "hannaford.com", category: "Grocery" },
   { id: "foodcity", name: "Food City", host: "foodcity.com", category: "Grocery" },
+
+  // Added in 0.9: brands the panel was asked for, in the same shape as the rest
+  // so nothing about host matching or saved codes needs a special case.
+  { id: "pandora", name: "Pandora", host: "pandora.net", category: "Fashion" },
+  { id: "swarovski", name: "Swarovski", host: "swarovski.com", category: "Fashion" },
+  { id: "aesop", name: "Aesop", host: "aesop.com", category: "Beauty" },
+  { id: "tula", name: "TULA", host: "tula.com", category: "Beauty" },
+  { id: "versed", name: "Versed", host: "versedskin.com", category: "Beauty" },
+  { id: "briogeo", name: "Briogeo", host: "briogeohair.com", category: "Beauty" },
+  { id: "drunkelephant", name: "Drunk Elephant", host: "drunkelephant.com", category: "Beauty" },
+  { id: "birchbox", name: "Birchbox", host: "birchbox.com", category: "Beauty" },
+  { id: "fabfitfun", name: "FabFitFun", host: "fabfitfun.com", category: "Beauty" },
+  { id: "loccitane", name: "L'Occitane", host: "loccitane.com", category: "Beauty" },
+  { id: "cotopaxi", name: "Cotopaxi", host: "cotopaxi.com", category: "Outdoor" },
+  { id: "fringesport", name: "Fringe Sport", host: "fringesport.com", category: "Fitness" },
+  { id: "americangirl", name: "American Girl", host: "americangirl.com", category: "Kids" },
+  { id: "jetbrains", name: "JetBrains", host: "jetbrains.com", category: "Software" },
+  { id: "bodybuilding", name: "Bodybuilding.com", host: "bodybuilding.com", category: "Health" },
+  { id: "redwing", name: "Red Wing", host: "redwingshoes.com", category: "Workwear" },
+  { id: "dickies", name: "Dickies", host: "dickies.com", category: "Workwear" },
+  { id: "sennheiser", name: "Sennheiser", host: "sennheiser.com", category: "Electronics" },
+  { id: "rugsusa", name: "Rugs USA", host: "rugsusa.com", category: "Home" },
+  { id: "cratejoy", name: "Cratejoy", host: "cratejoy.com", category: "Gifts" },
 ];
 
 // Every entry may list one host or several regional hosts.

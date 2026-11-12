@@ -134,6 +134,24 @@ would ask about it:
   package still passes the 94-test suite, `tools/check-catalog.mjs` and the 7-desktop
   `tools/emulate-platforms.mjs` run; the numbers below are from that rebuild.
 
+**Revision 7 — 12 November 2026.** Catalogue expansion for 0.9.0:
+
+- **20 more shops** are in `src/lib/stores.js` (Pandora, Swarovski, Aesop, TULA, Versed, Briogeo,
+  Drunk Elephant, Birchbox, FabFitFun, L'Occitane, Cotopaxi, Fringe Sport, American Girl, JetBrains,
+  Bodybuilding.com, Red Wing, Dickies, Sennheiser, Rugs USA, Cratejoy), taking the catalogue from
+  794 to **814 stores / 831 host patterns**. Every new entry is a specific shop origin, added to the
+  same single `content_scripts` entry by `tools/check-catalog.mjs --write`; the standing
+  `host_permissions` list and `optional_host_permissions` are unchanged.
+- **The bundled savings list grew from 247 to 379 rows**, covering 359 shops instead of 240. Each
+  row describes a programme the shop itself runs (a member scheme, an outlet, price matching, a
+  first-box offer); no code is invented, and a code still only ever arrives from the page or from an
+  operator's published list.
+- **`catalog.test.mjs` now refuses a row for a shop the panel cannot open, a duplicate row, or a kind
+  the panel cannot draw**, so the expansion cannot drift out of the merchant catalogue.
+- The package version is **0.9.0** (`manifest.json`, and the privacy policy's "applies to version"
+  line). The Terms version stays 1.4: nothing about what is collected changed. The rebuilt package
+  passes the **120-test suite**, `tools/check-catalog.mjs` and the packaged-page checks.
+
 ## What the operator is confirming
 
 The review below maps each criterion to what the package actually does, and names the file that
@@ -177,7 +195,7 @@ proves it. Two things have to be true before upload and only a person can confir
 | `declarativeNetRequest` | Stop requests to advertising and tracker domains for the ad-value feature | `rules/ads.json` |
 | `alarms` | Run the hourly savings-list pass: re-read the list, drop rows whose end date passed, refresh the optional feed. Reads no page and can be switched off | `src/background/service-worker.js` `scheduleRefresh()`, `refreshCatalog()` |
 | `sidePanel` (Chromium only) | Puts the panel in the Chromium side panel; **not** in the Opera package | removed by `tools/build.mjs` |
-| Host access via `content_scripts` | The 811 shop host patterns across 794 stores in the catalog: recognise the shop the shopper opened, read the codes and prices that page publishes, fill the store's own promo field, hide and count empty ad slots | `manifest.json` `content_scripts` (one entry, six files); kept in step with `src/lib/stores.js` by `tools/check-catalog.mjs` |
+| Host access via `content_scripts` | The 831 shop host patterns across 814 stores in the catalog: recognise the shop the shopper opened, read the codes and prices that page publishes, fill the store's own promo field, hide and count empty ad slots | `manifest.json` `content_scripts` (one entry, six files); kept in step with `src/lib/stores.js` by `tools/check-catalog.mjs` |
 | `optional_host_permissions` `*://*/*` | Granted **one origin at a time**, only on a click: a shop the shopper adds themselves, or a partner endpoint the operator saves (feed, payout proxy, sponsor service, age relay) | `sidepanel.js` `checkSite()`, `options.js` `ensureHost()` |
 | Host `https://api.keepa.com/*` | Optional 90-day price low, only when a product API key is entered | `src/partners/price-history.js` |
 

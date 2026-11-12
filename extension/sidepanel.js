@@ -9,6 +9,7 @@ import { HOLD_DAYS } from "./src/partners/cashback-ledger.js";
 import { startLogoShow } from "./src/lib/logo-show.js";
 import { startPanelExtras } from "./src/lib/panel-extras.js";
 import { siteHost } from "./src/lib/site-request.js";
+import { webUrl } from "./src/lib/guard.js";
 import { currentAccount, hasAccounts, signUp, signIn, signOut } from "./src/lib/accounts.js";
 import { startAgeCheck } from "./src/lib/age-panel.js";
 import { MIN_AGE } from "./src/lib/age-verify.js";
@@ -1675,7 +1676,11 @@ byId("store-categories").addEventListener("click", (event) => {
 byId("store-list").addEventListener("click", (event) => {
   const button = event.target.closest("button[data-url]");
   if (!button) return;
-  chrome.tabs.create({ url: button.dataset.url });
+  // Read the address back through the guard instead of handing the attribute to
+  // the browser: the rendered row is the only source today, and this keeps a
+  // future one from opening a scheme the browser would run rather than visit.
+  const url = webUrl(button.dataset.url);
+  if (url) chrome.tabs.create({ url });
 });
 
 applyBrowserCopy();

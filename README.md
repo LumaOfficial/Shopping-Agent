@@ -198,7 +198,7 @@ stay true for months, so nothing depends on someone editing coupons each morning
   signed in, so opening the panel does not ask for the password again; signing
   out is a second, deliberate tap on the account chip.
 - **Codes only for the store you are on.** The panel resolves the tab's host
-  against a catalog of **794 stores / 811 host patterns** (including regional
+  against a catalog of **814 stores / 831 host patterns** (including regional
   Amazon, eBay and other domains). Any other page shows an empty state, plus a
   one-tap check that adds the site when the page proves it is a shop.
 - **A tour on the first run.** The panel opens with a seven-step tour — codes,

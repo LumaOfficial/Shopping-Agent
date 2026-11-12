@@ -1,6 +1,6 @@
 # Privacy policy — Luma Pay Shopping Agent
 
-**Version 1.4 · Last updated 12 November 2026 · Applies to extension version 0.8.0**
+**Version 1.4 · Last updated 12 November 2026 · Applies to extension version 0.9.0**
 
 This policy is kept in two copies that must say the same thing: the packaged page a shopper and a
 reviewer open, [`extension/privacy.html`](../extension/privacy.html), and this working draft, which

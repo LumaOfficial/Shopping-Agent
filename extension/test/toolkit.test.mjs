@@ -286,4 +286,14 @@ test("a code that ends this week is counted and listed first", () => {
     endingSoon([later, soon, forever], 7, now).map((coupon) => coupon.code),
     ["ENDSOON"]
   );
+
+  // A date-only expiry lands on midnight UTC, so the same one-day slack
+  // isExpired() allows keeps the code on offer; it has to be counted here too
+  // rather than dropping out of the "ending soon" figure before the row does.
+  const justPast = normalizeCode({ code: "JUSTPAST", expires: new Date(now - 20 * 60 * 60 * 1000).toISOString() });
+  const gone = normalizeCode({ code: "GONE", expires: new Date(now - 30 * 60 * 60 * 1000).toISOString() });
+  assert.deepEqual(
+    endingSoon([justPast, gone], 7, now).map((coupon) => coupon.code),
+    ["JUSTPAST"]
+  );
 });

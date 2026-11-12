@@ -61,9 +61,13 @@ export function daysLeft(coupon, now) {
 // Codes worth trying first because they run out soon.
 export function endingSoon(codes, days, now) {
   const limit = typeof days === "number" ? days : 7;
+  const at = now || Date.now();
   return (Array.isArray(codes) ? codes : []).filter((coupon) => {
-    const left = daysLeft(coupon, now);
-    return left !== null && left >= 0 && left <= limit;
+    const left = daysLeft(coupon, at);
+    // A date-only expiry read as midnight is still offered for the same one-day
+    // slack isExpired() allows, so a code in that last day counts as ending soon
+    // instead of disappearing from both lists.
+    return left !== null && left <= limit && !isExpired(coupon, at);
   });
 }
 

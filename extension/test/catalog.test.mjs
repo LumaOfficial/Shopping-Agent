@@ -5,7 +5,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { loadWorker } from "./fake-chrome.mjs";
-import { catalogOffers, catalogStatus, normalizeCatalog } from "../src/lib/catalog.js";
+import { catalogOffers, catalogStatus, normalizeCatalog, CATALOG } from "../src/lib/catalog.js";
+import { STORES } from "../src/lib/stores.js";
 import { scopedKey, signUp } from "../src/lib/accounts.js";
 
 const PERSON = {
@@ -27,6 +28,21 @@ test("the bundled list covers major stores without inventing a code", () => {
   assert.ok(amazon.some((offer) => /coupon/i.test(offer.title)), "Amazon's coupon page is listed");
   assert.ok(catalogStatus().count > 100, "the list is substantial: " + catalogStatus().count);
   assert.match(catalogStatus().updated, /^\d{4}-\d{2}-\d{2}$/);
+});
+
+test("every bundled row names a real store, once, with a kind the panel can draw", () => {
+  const ids = new Set(STORES.map((store) => store.id));
+  const unknown = Array.from(new Set(CATALOG.filter((offer) => !ids.has(offer.store)).map((offer) => offer.store)));
+  assert.deepEqual(unknown, [], "a row for a store the panel cannot open is a dead tip");
+  const seen = new Set();
+  CATALOG.forEach((offer) => {
+    const key = offer.store + "|" + offer.kind + "|" + offer.title;
+    assert.ok(!seen.has(key), "duplicate row: " + key);
+    seen.add(key);
+    assert.ok(["coupon", "deal", "member", "outlet", "service"].includes(offer.kind), offer.kind);
+    assert.ok(offer.title && offer.detail, "a row needs a title and a detail");
+  });
+  assert.ok(new Set(CATALOG.map((offer) => offer.store)).size > 300, "the list covers a broad set of shops");
 });
 
 test("an offer with an end date drops out on its own", () => {
