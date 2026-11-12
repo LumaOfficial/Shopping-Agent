@@ -105,43 +105,61 @@ function usable(pose) {
   return "";
 }
 
-// { ok, hint }: ok means this angle has been reached and can be kept.
+// { ok, hint, progress }: ok means this angle has been reached and can be kept;
+// progress is how far towards it the face has come, from 0 to 1, so the panel
+// can fill the ring while the shopper turns instead of only when it lands.
 export function judgePose(step, pose, baseline) {
   const problem = usable(pose);
-  if (problem) return { ok: false, hint: problem };
+  if (problem) return { ok: false, hint: problem, progress: 0 };
 
   if (step.axis === "center") {
     if (Math.abs(pose.x) > CENTER_TOLERANCE || Math.abs(pose.y) > CENTER_TOLERANCE) {
-      return { ok: false, hint: "Bring your face into the middle of the ring." };
+      return { ok: false, hint: "Bring your face into the middle of the ring.", progress: 0 };
     }
     if (pose.aspect < 0.5) {
-      return { ok: false, hint: "Face the camera straight on to start the scan." };
+      return { ok: false, hint: "Face the camera straight on to start the scan.", progress: 0 };
     }
-    return { ok: true, hint: "" };
+    return { ok: true, hint: "", progress: 1 };
   }
 
   const from = baseline || { x: 0, y: 0, aspect: pose.aspect, width: pose.width, height: pose.height };
   const along = step.axis === "x" ? pose.x - from.x : pose.y - from.y;
   const travelled = (step.sign || 1) * along;
+  const progress = Math.min(1, Math.max(0, travelled / TURN));
+  const side = step.sign < 0 ? "left" : "right";
 
   // Turned the other way: worth saying, because doing it again the same way
-  // will never pass.
+  // will never pass — and the same sentence for a chin that dropped instead of
+  // lifting, since "turn to your left" is nonsense for a tilt.
   if (travelled <= -TURN * 0.6) {
-    return { ok: false, hint: "That is the other way — turn to your " + (step.sign < 0 ? "left" : "right") + "." };
+    return {
+      ok: false,
+      hint:
+        step.axis === "x"
+          ? "That is the other way — turn to your " + side + "."
+          : "That is the other way — lift your chin instead.",
+      progress: 0,
+    };
   }
   if (step.axis === "x" && travelled < TURN) {
     const narrower = from.aspect && pose.aspect <= from.aspect * NARROW && travelled >= TURN * 0.45;
     if (!narrower) {
       return {
         ok: false,
-        hint: travelled >= TURN * 0.45 ? "Almost — a little further to your " + (step.sign < 0 ? "left" : "right") + "." : step.label + ".",
+        hint: travelled >= TURN * 0.45 ? "Almost — a little further to your " + side + "." : step.label + ".",
+        progress,
       };
     }
+    return { ok: true, hint: "", progress: 1 };
   }
   if (step.axis === "y" && travelled < TURN) {
-    return { ok: false, hint: travelled >= TURN * 0.4 ? "Almost — chin a little higher." : "Tilt your chin up." };
+    return {
+      ok: false,
+      hint: travelled >= TURN * 0.4 ? "Almost — chin a little higher." : "Tilt your chin up.",
+      progress,
+    };
   }
-  return { ok: true, hint: "" };
+  return { ok: true, hint: "", progress: 1 };
 }
 
 function span(values) {

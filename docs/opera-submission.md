@@ -111,6 +111,33 @@ shows nothing else until it does. Keep it that way — a change that shows the p
 pre-ticks the box, or treats a stored `true` as agreement breaks the disclosure this submission
 relies on.
 
+### 4. The face scan asks, then keeps only a verdict
+
+The optional 18+ check is the one place the package asks for a device the manifest does not
+mention, so it is worth reading against the "collect private information without authorisation"
+criterion.
+
+- **Asked, not assumed.** The camera opens only from the panel's own button, and only after an
+  empty tick box (`#age-agree`) is checked; `render()` keeps that button disabled until then
+  (`src/lib/age-panel.js`). The manifest declares no camera permission and no host permission for
+  a device — `getUserMedia` is called at that moment and nowhere else.
+- **Ended deliberately.** The stream is stopped when the scan finishes, when Cancel is pressed, when
+  the account signs out, and when the camera track itself ends; nothing keeps the lens open in the
+  background.
+- **Never stored.** Frames exist as one scratch canvas for the length of a measurement. The guided
+  angles are compared as a temporary model in `src/lib/face-rotate.js` and dropped. What is written
+  is the verdict alone — state, provider name, reference, time (`src/lib/age-verify.js`). No image
+  and no face template reaches `chrome.storage`, the account record, or any server:
+  `test/face-rotate.test.mjs` drives a complete scan through the real service worker and asserts
+  what the account holds afterwards.
+- **Said on screen, before the camera.** The consent facts shown above the box state that nothing
+  leaves the device with no relay configured, and name the relay when one is
+  (`consentFacts()` in `src/lib/age-verify.js`). They match `extension/terms.html` §11 — change one
+  and the other has to change too.
+
+There is one path off the device: a relay the operator configures in the options page
+(`relayConfigured()`), which is disclosed in those facts. With no relay there is no request at all.
+
 ## Listing copy this review assumes
 
 Entered in the submission form, so the form and the package describe the same product.
@@ -138,6 +165,8 @@ Entered in the submission form, so the form and the package describe the same pr
 - [ ] Tick, accept, create an account, open a shop, and confirm codes are found and the ad-value card
       fills in
 - [ ] Turn ad blocking off in the settings and confirm blocking stops
+- [ ] Run the face scan once (or cancel it): the camera opens only after the tick box, and the
+      consent facts on screen match `extension/terms.html` §11
 - [ ] Screenshots at 612×408, white background: one of the panel in use, one showing where the
       extension sits in the browser
 - [ ] Support page published, relevant to the extension, and reachable

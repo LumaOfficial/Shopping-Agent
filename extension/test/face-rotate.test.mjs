@@ -64,6 +64,24 @@ test("a tilt up is read from the face sitting higher in the frame", async () => 
   assert.equal(judgePose(STEPS[3], straight().pose, baseline).ok, false);
 });
 
+test("an angle reports how far it has come, so the ring can fill on the way", async () => {
+  const baseline = straight().pose;
+  const partway = poseFrom(summarize(turnFrame(6, 0, 0.97), SIDE, SIDE), SIDE);
+  const verdict = judgePose(STEPS[1], partway, baseline);
+  assert.equal(verdict.ok, false);
+  assert.ok(verdict.progress > 0 && verdict.progress < 1, "a half turn reports partway");
+  assert.equal(judgePose(STEPS[1], turnLeft().pose, baseline).progress, 1, "a full turn reports done");
+});
+
+test("a dropped chin is told to lift, not to turn sideways", async () => {
+  const baseline = straight().pose;
+  const chinDown = poseFrom(summarize(turnFrame(0, 16, 1), SIDE, SIDE), SIDE);
+  const verdict = judgePose(STEPS[3], chinDown, baseline);
+  assert.equal(verdict.ok, false);
+  assert.match(verdict.hint, /lift your chin/i);
+  assert.doesNotMatch(verdict.hint, /left|right/i);
+});
+
 test("a frame with nobody in it can never be kept as an angle", async () => {
   const empty = poseFrom(summarize(new Uint8Array(SIDE * SIDE * 4).fill(60), SIDE, SIDE), SIDE);
   assert.equal(empty, null);

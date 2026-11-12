@@ -58,7 +58,9 @@ export function startAgeCheck(options) {
   const guide = {
     timer: null,
     index: 0,
-    hits: 0,
+    // The last few verdicts for the angle being asked for. An angle counts once
+    // it has held across them, so one blurred frame cannot throw a turn away.
+    window: [],
     baseline: null,
     views: [],
     lastLuma: null,
@@ -145,7 +147,7 @@ export function startAgeCheck(options) {
       head.style.setProperty("--ry", (step.turn.x || 0) + "deg");
       head.style.setProperty("--rx", (step.turn.y || 0) + "deg");
     }
-    if (ring) ring.style.setProperty("--turn", String(Math.round((guide.index / STEPS.length) * 100)));
+    if (ring) paintProgress(0, false);
     if (steps) {
       while (steps.firstChild) steps.removeChild(steps.firstChild);
       STEPS.forEach((_step, at) => {
@@ -154,6 +156,18 @@ export function startAgeCheck(options) {
         steps.appendChild(dot);
       });
     }
+  }
+
+  // The ring fills with how far the current angle has come — not only once it is
+  // reached — and dims while no face is in the frame, so the shopper can see the
+  // scan responding to them instead of waiting on a blank ring.
+  function paintProgress(progress, lost) {
+    const ring = byId("age-ring");
+    if (!ring) return;
+    const share = (guide.index + Math.max(0, Math.min(1, Number(progress) || 0))) / STEPS.length;
+    ring.style.setProperty("--turn", String(Math.round(share * 100)));
+    ring.classList.toggle("near", !lost && Number(progress) >= 0.75);
+    ring.classList.toggle("lost", Boolean(lost));
   }
 
   function armGuide(text) {
@@ -173,13 +187,20 @@ export function startAgeCheck(options) {
   function restartGuide() {
     stopGuide();
     guide.index = 0;
-    guide.hits = 0;
+    guide.window = [];
     guide.baseline = null;
     guide.views = [];
     guide.lastLuma = null;
     guide.moved = 0;
     guide.samples = 0;
     guide.image = null;
+    // The model line belongs to the scan that just ended; a new one starts clean.
+    const model = byId("age-model");
+    if (model) {
+      model.hidden = true;
+      model.className = "age-model";
+      model.textContent = "";
+    }
     setStatus("");
     paintGuide();
   }
@@ -196,16 +217,19 @@ export function startAgeCheck(options) {
 
   function tickGuide() {
     if (!stream || !video.videoWidth) return;
-    const stats = measure(video, true, MEASURE_SIDE);
+    const stats = measure(video, true);
     const pose = poseFrom(stats, MEASURE_SIDE);
     const verdict = judgePose(STEPS[guide.index], pose, guide.baseline);
+    paintProgress(verdict.progress, !pose);
+    guide.window.push(verdict.ok ? 1 : 0);
+    if (guide.window.length > HOLD + 1) guide.window.shift();
     if (!verdict.ok) {
-      guide.hits = 0;
       setHint(verdict.hint);
       return;
     }
-    guide.hits += 1;
-    if (guide.hits < HOLD) {
+    // Held across the recent frames rather than required of every single one.
+    const held = guide.window.reduce((total, sample) => total + sample, 0);
+    if (guide.window.length < HOLD || held < HOLD) {
       setHint("Hold it there…");
       return;
     }
@@ -214,7 +238,7 @@ export function startAgeCheck(options) {
 
   // One angle reached: keep the measurement (never the picture) and move on.
   function keepView(step, pose, stats) {
-    guide.hits = 0;
+    guide.window = [];
     if (step.axis === "center") {
       guide.baseline = pose;
       // The relay path needs one frame; the straight-on view is the one it gets.
@@ -318,17 +342,25 @@ export function startAgeCheck(options) {
   }
 
   // A small copy of the frame, measured in place: skin share, brightness and a
-  // luma buffer the next frame is compared against for movement.
-  function measure(source, sized, small) {
-    const size = small || MEASURE_SIDE;
-    const canvas = document.createElement("canvas");
-    canvas.width = size;
-    canvas.height = size;
-    const context = canvas.getContext("2d", { willReadFrequently: true });
-    const box = sized ? { width: source.videoWidth || 0, height: source.videoHeight || 0 } : { width: source.width || 0, height: source.height || 0 };
+  // luma buffer the next frame is compared against for movement. The scratch
+  // canvas is made once — the guide measures five frames a second, and a new
+  // canvas each time would only feed the garbage collector.
+  let scratch = null;
+  let scratchContext = null;
+
+  function measure(source, sized) {
+    const box = sized
+      ? { width: source.videoWidth || 0, height: source.videoHeight || 0 }
+      : { width: source.width || 0, height: source.height || 0 };
     if (!box.width || !box.height) return null;
+    if (!scratch) {
+      scratch = document.createElement("canvas");
+      scratch.width = MEASURE_SIDE;
+      scratch.height = MEASURE_SIDE;
+      scratchContext = scratch.getContext("2d", { willReadFrequently: true });
+    }
     const edge = Math.min(box.width, box.height);
-    context.drawImage(
+    scratchContext.drawImage(
       source,
       (box.width - edge) / 2,
       (box.height - edge) / 2,
@@ -336,10 +368,14 @@ export function startAgeCheck(options) {
       edge,
       0,
       0,
-      size,
-      size
+      MEASURE_SIDE,
+      MEASURE_SIDE
     );
-    return summarize(context.getImageData(0, 0, size, size).data, size, size);
+    return summarize(
+      scratchContext.getImageData(0, 0, MEASURE_SIDE, MEASURE_SIDE).data,
+      MEASURE_SIDE,
+      MEASURE_SIDE
+    );
   }
 
   // One kept view, in the shape the worker judges: the straight-on numbers, with
@@ -432,6 +468,9 @@ export function startAgeCheck(options) {
         audio: false,
       });
       video.srcObject = stream;
+      // A camera that is taken away (unplugged, revoked, or the tab closed)
+      // should end the scan rather than leave the guide ticking on a dead frame.
+      stream.getVideoTracks().forEach((track) => track.addEventListener("ended", stop));
       await video.play().catch(() => {});
       cam.hidden = false;
       armGuide();

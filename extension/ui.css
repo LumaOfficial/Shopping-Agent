@@ -947,7 +947,24 @@ body.sidepanel .age-ring {
   background: conic-gradient(#a99bff calc(var(--turn, 0) * 1%), rgba(255, 255, 255, 0.16) 0);
   -webkit-mask: radial-gradient(circle, transparent 0 76%, #000 78%);
   mask: radial-gradient(circle, transparent 0 76%, #000 78%);
-  transition: background 0.35s ease;
+  transition: background 0.35s ease, opacity 0.3s ease, filter 0.3s ease;
+}
+
+/* Nearly at the angle being asked for: the ring warms up, so the turn visibly
+   lands. Nothing found in the frame: it steps back out of the way. */
+body.sidepanel .age-ring.near {
+  background: conic-gradient(#7fe3bd calc(var(--turn, 0) * 1%), rgba(255, 255, 255, 0.16) 0);
+  filter: drop-shadow(0 0 10px rgba(127, 227, 189, 0.5));
+}
+
+body.sidepanel .age-ring.lost {
+  opacity: 0.42;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body.sidepanel .age-ring {
+    transition: none;
+  }
 }
 
 body.sidepanel .age-head {
