@@ -63,6 +63,13 @@ a {
 
 /* ---------- Buttons (settings page) ---------- */
 
+/* A link that reads as a button: the terms reopen from the settings page. */
+a.btn {
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+}
+
 .btn {
   position: relative;
   overflow: hidden;
@@ -520,8 +527,8 @@ body.sidepanel .gear:active {
 
 /* ---------- Account ---------- */
 
-/* Signed out, the panel is the account card and nothing else. */
-body.sidepanel .in.locked > :not(.top):not(#auth-block) {
+/* Locked, the panel is the terms card or the account card and nothing else. */
+body.sidepanel .in.locked > :not(.top):not(#auth-block):not(#terms-block) {
   display: none;
 }
 
@@ -652,6 +659,72 @@ body.sidepanel .auth .btn.w {
 
 body.sidepanel .auth .status {
   margin-top: 14px;
+}
+
+/* ---------- Terms ---------- */
+
+/* The card a locked panel opens on: the disclosures, the link to the whole
+   document, and a tick box that starts empty. */
+body.sidepanel .terms {
+  padding: 26px 26px 22px;
+}
+
+body.sidepanel .terms h2 {
+  margin: 0 0 8px;
+  font-weight: 300;
+  font-size: 25px;
+  letter-spacing: -0.02em;
+}
+
+body.sidepanel .terms > .muted {
+  margin: 0 0 16px;
+}
+
+body.sidepanel .terms-facts {
+  margin: 0 0 16px;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 10px;
+}
+
+body.sidepanel .terms-facts li {
+  padding-left: 12px;
+  border-left: 2px solid #ece4ff;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: #4a4463;
+}
+
+body.sidepanel .terms-facts strong {
+  display: block;
+  color: #2d2d3a;
+  font-weight: 600;
+}
+
+body.sidepanel a.mini {
+  display: inline-block;
+  text-decoration: none;
+}
+
+body.sidepanel .terms-read {
+  margin-bottom: 14px;
+}
+
+body.sidepanel .terms-agree {
+  margin-bottom: 4px;
+}
+
+body.sidepanel .terms-agree input {
+  flex: none;
+}
+
+body.sidepanel .terms-choice {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 12px;
+  flex-wrap: wrap;
 }
 
 /* ---------- Hero ---------- */

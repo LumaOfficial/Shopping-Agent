@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <title>Savings</title>
+    <title>Luma Pay Shopping Agent</title>
     <link
       rel="icon"
       href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='9' fill='%230e1424'/%3E%3Cpath d='M10 21l6-11 6 11' fill='none' stroke='%23f6c96b' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"
@@ -15,7 +15,7 @@
     <div class="in" id="panel">
       <header class="top">
         <div class="brand">
-          <strong>Savings</strong>
+          <strong>Luma Pay</strong>
           <em id="store-name">Checking this page…</em>
         </div>
         <button class="who" id="account-chip" type="button" hidden></button>
@@ -31,6 +31,50 @@
       <section class="card acct-menu" id="acct-menu" hidden>
         <p class="muted tiny" id="acct-line"></p>
         <button class="mini" id="acct-signout" type="button">Sign out of this device</button>
+        <a class="mini" id="acct-terms" href="terms.html" target="_blank" rel="noreferrer"
+          >Terms and disclosures</a
+        >
+      </section>
+
+      <!-- Shown first, and the only thing on a locked panel until it is agreed:
+           the terms, the site access they explain, and an empty tick box. -->
+      <section class="card terms c0" id="terms-block" hidden>
+        <h2>Luma Pay Shopping Agent</h2>
+        <p class="muted tiny">
+          What the panel asks your browser for, and what it does with it — before it does anything
+          for you.
+        </p>
+        <ul class="terms-facts">
+          <li>
+            <strong>One purpose.</strong> Finding codes, cashback and prices while you shop, and
+            filling only the store's own promo field.
+          </li>
+          <li>
+            <strong>Why it asks to see sites.</strong> It has to recognize the shop you opened, read
+            the codes and prices that page publishes, and hide the ad slots it blocks. Nothing else on
+            the page is read.
+          </li>
+          <li>
+            <strong>How it is paid for.</strong> Affiliate cashback, labeled sponsored offers, and the
+            ad value it credits to your wallet when ad blocking is on.
+          </li>
+          <li>
+            <strong>What stays here.</strong> Account, codes, prices and balances live in this browser
+            profile. Card numbers are never read.
+          </li>
+        </ul>
+        <a class="mini terms-read" id="terms-read" href="terms.html" target="_blank" rel="noreferrer"
+          >Read the full terms</a
+        >
+        <label class="age-agree terms-agree">
+          <input id="terms-agree" type="checkbox" />
+          <span>I have read and agree to the Terms and Disclosures</span>
+        </label>
+        <button class="btn w" id="terms-accept" type="button" disabled>Agree and continue</button>
+        <div class="terms-choice">
+          <button class="mini" id="terms-decline" type="button">Not now</button>
+          <span class="muted tiny" id="terms-note">Nothing is scanned or shown without agreement.</span>
+        </div>
       </section>
 
       <section class="card auth c1" id="auth-block" hidden>
@@ -108,10 +152,7 @@
       </section>
 
       <section class="card empty c1" id="empty" hidden>
-        <img
-          src="https://media.base44.com/images/public/6aee82d0f5a582acbefc3e9c/1729607e8_generated_37aa19bb.jpg"
-          alt="Sheer fabric fold in violet and apricot"
-        />
+        <img src="art/empty-fold.svg" alt="Sheer fabric fold in violet and apricot" />
         <div class="tx">
           <h2 id="empty-title">Open a store to see savings</h2>
           <p class="muted" id="empty-text">Browse a supported store and this panel fills in.</p>

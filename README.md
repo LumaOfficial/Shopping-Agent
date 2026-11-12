@@ -1,4 +1,4 @@
-# Shopping-Agent
+# Luma Pay Shopping Agent
 
 ## Browser support
 
@@ -15,6 +15,11 @@ fill the store's own promo field.
 
 Safari needs Apple's Xcode conversion of a WebExtension package and is not
 packaged here.
+
+Preparing the Opera upload — permission rationale, the policy criteria mapped to
+the code, findings and the submission checklist — is in
+[`docs/opera-submission.md`](docs/opera-submission.md). It is our own review of
+the published criteria, not an Opera approval.
 
 ### Build
 
@@ -63,6 +68,37 @@ active tab, so it fills in for the store you are on.
 The panel names whichever browser you are in where the browser's own autofill is
 involved ("Show Edge autofill", "Show Opera autofill", …); nothing else differs.
 
+### Terms and site access
+
+The panel opens on a notice card, not on savings. It states the one purpose, why
+the extension asks for access to the sites you visit (recognising the shop,
+reading the codes and prices that page publishes, filling only the store's own
+promo field, hiding the ad slots it blocks), how the product is paid for, and
+what stays in this browser profile. The full document is `terms.html`, packaged
+with the extension and linked from the panel and from the settings page.
+
+Agreement is a deliberate act:
+
+- the tick box in the panel starts empty — there is no `checked` attribute and
+  nothing pre-selects it;
+- the **Agree and continue** button is disabled until it is ticked;
+- `src/lib/terms.js` stores the acceptance with the terms version and the date,
+  and `readConsent()` returns it only when both are present and the version is
+  current — a stored `true`, a string or an older version is not consent;
+- nothing else in the panel runs while there is no consent: no page is read, no
+  offer is looked up, no wallet is shown, and **Not now** leaves the panel on
+  that notice.
+
+Bump `TERMS_VERSION` in `src/lib/terms.js` when the document changes; that alone
+asks every shopper to read and agree again, and the panel shows the new version
+before it continues. `test/terms.test.mjs` checks that the packaged document, the
+gate and the panel's empty tick box stay in step.
+
+The document is a starting point written to match what the code does, including
+a liability section limited to what the law in the shopper's country allows. It
+is not legal advice: have your own counsel review it, the listing copy and the
+privacy policy before you upload.
+
 ### Where codes come from
 
 Codes need no setup: the panel reads them from the store page you are already
@@ -91,7 +127,8 @@ empty list, and the extension never invents an offer.
 
 ### What works
 
-- **Accounts keep money apart.** The panel opens on a signup or sign-in card.
+- **Accounts keep money apart.** Once the terms are agreed, the panel opens on a
+  signup or sign-in card.
   An account is a profile on this browser — full name, email, phone number, date
   of birth (18 or older to cash out) and a password stored only as a salted
   PBKDF2 hash. Cashback, savings and ad value are stored under that account's own
@@ -420,7 +457,9 @@ user from themselves.
 
 | File | Role |
 | --- | --- |
-| `sidepanel.html` / `sidepanel.js` | The whole UI |
+| `sidepanel.html` / `sidepanel.js` | The whole UI, opening on the terms notice until it is agreed |
+| `terms.html` / `terms.js` / `terms.css` | The Terms and Disclosures document, packaged with the extension and linked from the panel and the settings page |
+| `art/empty-fold.svg` | The empty-state artwork, packaged rather than fetched from a CDN |
 | `src/background/service-worker.js` | Only code that calls partner endpoints; caches the feed per store; validates the source; stores saved/verified codes, price points and savings |
 | `src/content/content.js` | Frame-aware bridge: `page:scan`, `page:clip`, `coupon:probe`, `coupon:apply`, `checkout:probe`, `checkout:focus` (attributes only) |
 | `src/content/coupon-engine.js` | Promo-field autofill + outcome detection |
@@ -443,6 +482,7 @@ user from themselves.
 | `src/lib/codes.js` | One code shape, de-duplication order, expiry rule |
 | `src/lib/guard.js` | The trust boundary: who sent a message, which addresses and figures are allowed, constant-time hash compare, per-action rate caps |
 | `src/lib/settings.js` | Stored settings defaults, and the allowlist that sanitizes them on the way in |
+| `src/lib/terms.js` | The consent record — terms version, the date it was given — and the check the panel gates on |
 | `src/lib/format.js` | Money (minor units), relative times |
 | `src/lib/copy.js` | All "Partner Platforms" wording |
 | `src/lib/browser.js` | Which browser is running, for the autofill wording |
@@ -604,6 +644,16 @@ detector in `src/lib/age-local.js`. What it confirms:
   answers a turn the wrong way with a correction, and keeps a tilt up;
 - a set of angles that never moved, and a scan that stopped halfway, are not a
   face model and are refused before anything is submitted.
+
+The terms gate has a suite in `test/terms.test.mjs`. What it confirms:
+
+- a fresh profile has agreed to nothing, so a locked panel is the default;
+- an acceptance is stored with the terms version and the moment it was given;
+- a stored `true`, a string, an object with no timestamp, a missing version and
+  an older version all read back as *no consent*;
+- withdrawing clears the record, and the settings page can say what was agreed;
+- the packaged document carries the version the gate checks, the plain-language
+  summary is present, and the panel's tick box has no `checked` attribute.
 
 The security rules have their own suite in `test/security.test.mjs`, driven the
 same way — real worker, real messages, no browser. What it confirms:

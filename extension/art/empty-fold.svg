@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" role="img" aria-label="Sheer fabric folds in violet and apricot">
+  <defs>
+    <linearGradient id="base" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#efe7ff" />
+      <stop offset="0.55" stop-color="#f7e6f0" />
+      <stop offset="1" stop-color="#ffe7d2" />
+    </linearGradient>
+    <linearGradient id="violet" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0" stop-color="#8f7bf5" stop-opacity="0.92" />
+      <stop offset="1" stop-color="#c9bcfb" stop-opacity="0.35" />
+    </linearGradient>
+    <linearGradient id="apricot" x1="1" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffcda2" stop-opacity="0.95" />
+      <stop offset="1" stop-color="#ffd9bd" stop-opacity="0.2" />
+    </linearGradient>
+    <linearGradient id="sheer" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.85" />
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0" />
+    </linearGradient>
+    <filter id="soft" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="26" />
+    </filter>
+  </defs>
+
+  <rect width="1600" height="900" fill="url(#base)" />
+
+  <g filter="url(#soft)">
+    <path d="M-120 900C120 700 300 560 520 500c260-70 430-40 640 60 190 90 330 120 560 90v330H-120z" fill="url(#violet)" />
+    <path d="M1720 -80c-240 120-400 190-620 210-250 24-430-70-620-40-180 28-330 140-560 210v-420h1800z" fill="url(#apricot)" />
+  </g>
+
+  <g opacity="0.9">
+    <path d="M240 900C360 660 520 500 760 430c250-74 470-30 620 70v400H240z" fill="url(#sheer)" opacity="0.55" />
+    <path d="M900 -40c60 200 190 330 380 410 170 72 300 150 390 250v-660H900z" fill="url(#sheer)" opacity="0.35" />
+  </g>
+
+  <g fill="none" stroke="#ffffff" stroke-linecap="round">
+    <path d="M120 880C300 640 470 520 720 456c240-62 430-24 620 74" stroke-width="3" opacity="0.55" />
+    <path d="M180 900C360 700 520 600 760 546c210-48 380-16 560 66" stroke-width="2" opacity="0.4" />
+    <path d="M1080 40c90 190 230 316 420 388" stroke-width="2" opacity="0.3" />
+  </g>
+</svg>

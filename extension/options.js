@@ -2,6 +2,7 @@ import { withDefaults } from "./src/lib/settings.js";
 import { money } from "./src/lib/format.js";
 import { currentAccount, hasAccounts, signOut } from "./src/lib/accounts.js";
 import { endpoint } from "./src/lib/guard.js";
+import { consentLine, readConsent, termsUrl } from "./src/lib/terms.js";
 
 const byId = (id) => document.getElementById(id);
 
@@ -483,4 +484,16 @@ byId("simple-cashout").addEventListener("click", async () => {
   loadData();
 });
 
+// What the panel asked the shopper to agree to, and the way back to it. The
+// document ships inside the extension, so this opens a packaged page.
+async function renderTerms() {
+  byId("terms-status").textContent = consentLine(await readConsent());
+}
+
+byId("terms-link").addEventListener("click", (event) => {
+  event.preventDefault();
+  chrome.tabs.create({ url: termsUrl() });
+});
+
+renderTerms();
 load();

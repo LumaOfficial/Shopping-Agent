@@ -12,6 +12,7 @@ import { siteHost } from "./src/lib/site-request.js";
 import { currentAccount, hasAccounts, signUp, signIn, signOut } from "./src/lib/accounts.js";
 import { startAgeCheck } from "./src/lib/age-panel.js";
 import { MIN_AGE } from "./src/lib/age-verify.js";
+import { acceptTerms, readConsent, termsUrl } from "./src/lib/terms.js";
 
 const byId = (id) => document.getElementById(id);
 
@@ -1138,15 +1139,23 @@ function showAuthTab(which) {
 }
 
 async function applyAccount(account) {
+  // Both gates are needed: an account, and agreement to the terms that explain
+  // what the panel asks the browser for. Neither is assumed.
+  const consent = Boolean(await readConsent());
   state.account = account;
-  state.locked = !account;
-  byId("panel").classList.toggle("locked", !account);
-  byId("auth-block").hidden = Boolean(account);
+  state.locked = !account || !consent;
+  byId("panel").classList.toggle("locked", state.locked);
+  byId("terms-block").hidden = consent;
+  byId("auth-block").hidden = Boolean(account) || !consent;
   byId("acct-menu").hidden = true;
   const chip = byId("account-chip");
-  chip.hidden = !account;
+  chip.hidden = !account || !consent;
   // Verification belongs to the account, so the card follows the session.
-  ageCheck.show(Boolean(account));
+  ageCheck.show(Boolean(account) && consent);
+  if (!consent) {
+    byId("store-name").textContent = "Read and agree first";
+    return;
+  }
   if (account) {
     chip.textContent = firstName(account.fullName);
     chip.title = "Signed in as " + account.email + " · Open account";
@@ -1161,13 +1170,41 @@ async function applyAccount(account) {
 async function boot() {
   const account = await currentAccount();
   await applyAccount(account);
-  if (account) {
-    render();
-    return;
+  if (!account && (await readConsent())) {
+    // A fresh browser has nothing to sign in to yet, so open on signup.
+    showAuthTab((await hasAccounts()) ? "signin" : "signup");
   }
-  // A fresh browser has nothing to sign in to yet, so open on signup.
-  showAuthTab((await hasAccounts()) ? "signin" : "signup");
+  if (!state.locked) render();
 }
+
+// ---- terms --------------------------------------------------------------
+function openTerms(event) {
+  event.preventDefault();
+  chrome.tabs.create({ url: termsUrl() });
+}
+
+byId("terms-read").addEventListener("click", openTerms);
+byId("acct-terms").addEventListener("click", openTerms);
+
+// The tick box is the agreement: it starts empty and the button stays disabled
+// until it is ticked, so no tap alone can accept the terms.
+byId("terms-agree").addEventListener("change", (event) => {
+  byId("terms-accept").disabled = !event.target.checked;
+});
+
+byId("terms-accept").addEventListener("click", async () => {
+  if (!byId("terms-agree").checked) return;
+  await acceptTerms();
+  byId("terms-agree").checked = false;
+  byId("terms-accept").disabled = true;
+  byId("terms-note").textContent = "Nothing is scanned or shown without agreement.";
+  await boot();
+});
+
+byId("terms-decline").addEventListener("click", () => {
+  byId("terms-note").textContent =
+    "Not agreed, so nothing runs. Tick the box whenever you want to continue.";
+});
 
 byId("auth-tab-signup").addEventListener("click", () => showAuthTab("signup"));
 byId("auth-tab-signin").addEventListener("click", () => showAuthTab("signin"));

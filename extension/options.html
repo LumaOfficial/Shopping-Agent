@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <title>Savings settings</title>
+    <title>Luma Pay Shopping Agent settings</title>
     <link
       rel="icon"
       href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='9' fill='%230e1424'/%3E%3Cpath d='M10 21l6-11 6 11' fill='none' stroke='%23f6c96b' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"
@@ -19,7 +19,7 @@
           Back
         </button>
       </div>
-      <h1>Savings settings</h1>
+      <h1>Luma Pay Shopping Agent settings</h1>
       <p class="muted">
         Nothing has to be set up. Coupon codes are found automatically on the page you are shopping —
         pick how much of the rest you want to see.
@@ -92,6 +92,18 @@
         </div>
         <p class="test-line" id="simple-cashout-result" role="status" aria-live="polite" hidden></p>
         <p class="hint">How your card is issued can be customised under <strong>Developer</strong>.</p>
+
+        <h2>Luma Pay Shopping Agent</h2>
+        <p class="muted" id="terms-status">Checking…</p>
+        <div class="actions" style="margin-top: 10px; padding-top: 0; border-top: 0">
+          <a class="btn ghost" id="terms-link" href="terms.html" target="_blank" rel="noreferrer"
+            >Read the terms and disclosures</a
+          >
+        </div>
+        <p class="hint">
+          The panel does nothing until you agree to the terms, and they can be read again here at any
+          time.
+        </p>
       </div>
 
       <div id="panel-advanced" role="tabpanel" aria-labelledby="tab-advanced" hidden>

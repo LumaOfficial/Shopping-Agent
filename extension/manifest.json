@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Shopping-Agent Savings",
+  "name": "Luma Pay Shopping Agent",
   "version": "0.5.0",
-  "description": "Finds coupon codes, cashback offers and price history from Partner Platforms while you shop. Never reads card details.",
+  "description": "Coupons, cashback and price history while you shop. Blocks ad slots and credits their value. Never reads card details.",
   "icons": {
     "16": "icons/luma-pay-16.png",
     "32": "icons/luma-pay-32.png",
@@ -38,7 +38,7 @@
     "type": "module"
   },
   "action": {
-    "default_title": "Open savings",
+    "default_title": "Open Luma Pay Shopping Agent",
     "default_icon": {
       "16": "icons/luma-pay-16.png",
       "32": "icons/luma-pay-32.png",

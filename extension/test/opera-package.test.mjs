@@ -58,6 +58,21 @@ test("the Opera package carries the Opera panel surface, not the Chromium one", 
   );
 });
 
+test("the package is named Luma Pay Shopping Agent and carries its terms", async () => {
+  const manifest = await manifestFor("opera");
+
+  assert.equal(manifest.name, "Luma Pay Shopping Agent");
+  // Opera's metadata criteria want background actions described, not just the
+  // headline feature: the ad-slot blocking is disclosed in the summary itself.
+  assert.match(manifest.description, /Blocks ad slots/);
+
+  // The terms are a page inside the package — one link away from the panel and,
+  // because the document ships, it opens with no network call at all.
+  for (const file of ["terms.html", "terms.css", "terms.js"]) {
+    await stat(join(out, "opera", file));
+  }
+});
+
 test("the Opera package ships the rules and leaves the build tools behind", async () => {
   const manifest = await manifestFor("opera");
 
@@ -70,6 +85,7 @@ test("the Opera package ships the rules and leaves the build tools behind", asyn
 test("the Chromium package keeps its side panel", async () => {
   const manifest = await manifestFor("chromium");
 
+  assert.equal(manifest.name, "Luma Pay Shopping Agent");
   assert.equal(manifest.side_panel.default_path, "sidepanel.html");
   assert.equal(manifest.permissions.includes("sidePanel"), true);
   assert.equal(manifest.background.service_worker, "src/background/service-worker.js");
