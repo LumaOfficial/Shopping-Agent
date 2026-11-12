@@ -3,6 +3,8 @@ import { money } from "./src/lib/format.js";
 import { currentAccount, hasAccounts, signOut } from "./src/lib/accounts.js";
 import { endpoint } from "./src/lib/guard.js";
 import { consentLine, readConsent, termsUrl } from "./src/lib/terms.js";
+import { TOUR_KEY, TOUR_VERSION } from "./src/lib/tutorial.js";
+import { detectPlatform, platformLine } from "./src/lib/platform.js";
 
 const byId = (id) => document.getElementById(id);
 
@@ -41,6 +43,8 @@ function renderSimpleWallet(stats) {
 }
 
 function fill(settings) {
+  byId("catalog-url").value = settings.catalogUrl;
+  byId("toggle-refresh").checked = settings.autoRefresh !== false;
   byId("feed-url").value = settings.feedUrl;
   byId("feed-auth").value = settings.feedAuth;
   byId("feed-user").value = settings.feedUser;
@@ -80,6 +84,8 @@ function syncAuthFields() {
 
 function collect() {
   return {
+    catalogUrl: byId("catalog-url").value.trim(),
+    autoRefresh: byId("toggle-refresh").checked,
     feedUrl: byId("feed-url").value.trim(),
     feedAuth: byId("feed-auth").value === "basic" ? "basic" : "bearer",
     feedUser: byId("feed-user").value.trim(),
@@ -153,6 +159,7 @@ function ageEndpointInsecure(settings) {
 // address is named rather than silently dropped on save.
 const ENDPOINT_FIELDS = [
   { key: "feedUrl", label: "the coupon feed" },
+  { key: "catalogUrl", label: "the published savings list" },
   { key: "cashbackTemplate", label: "the tracked link template" },
   { key: "payoutUrl", label: "the payout proxy" },
   { key: "sponsorUrl", label: "the sponsor service" },
@@ -186,21 +193,69 @@ async function save() {
     };
   }
   const granted = await ensureHost(settings.feedUrl);
+  const catalogGranted = await ensureHost(settings.catalogUrl);
   const payoutGranted = await ensureHost(settings.payoutUrl);
   const sponsorGranted = await ensureHost(settings.sponsorUrl);
   await ensureHost(settings.ageCheckUrl);
   await chrome.storage.local.set({ settings });
-  if (!(granted && payoutGranted && sponsorGranted)) {
+  if (!(granted && catalogGranted && payoutGranted && sponsorGranted)) {
     return { ok: false, message: "Saved, but access to that source host was denied." };
   }
   return { ok: true };
 }
+
+// What the worker actually holds for the savings list: which list, how many
+// offers, when it was read, and whether the hourly pass is on. Nothing here is
+// assumed — it is read back over the worker's own message.
+async function renderFreshness() {
+  const line = byId("refresh-status");
+  const report = await chrome.runtime.sendMessage({ type: "catalog:status" }).catch(() => null);
+  if (!report) {
+    line.textContent = "Could not read the savings list.";
+    return;
+  }
+  const parts = [
+    report.count + " store offers from " + (report.source === "published" ? "your published list" : "the bundled list"),
+    "updated " + (report.updated || "with this version"),
+    report.auto ? "re-checked hourly" : "checked when the panel opens",
+  ];
+  if (report.error) parts.push(report.error);
+  line.textContent = parts.join(" \u00b7 ") + ".";
+  byId("toggle-refresh").checked = Boolean(report.auto);
+}
+
+byId("refresh-now").addEventListener("click", async () => {
+  const button = byId("refresh-now");
+  button.disabled = true;
+  button.textContent = "Updating\u2026";
+  await chrome.runtime.sendMessage({ type: "catalog:refresh" }).catch(() => null);
+  button.disabled = false;
+  button.textContent = "Update now";
+  await renderFreshness();
+});
+
+// Replaying writes the tour's start state; an open panel picks it up through
+// chrome.storage.onChanged, and a closed one opens with it next time.
+byId("replay-tour").addEventListener("click", async () => {
+  await chrome.storage.local.set({
+    [TOUR_KEY]: { version: TOUR_VERSION, done: false, step: 0, at: Date.now(), reason: "replay" },
+  });
+  byId("refresh-status").textContent = "The tour opens the next time you open the panel.";
+});
+
+// The switch takes effect as soon as it is flipped, rather than waiting for the
+// form's Save button.
+byId("toggle-refresh").addEventListener("change", async () => {
+  const outcome = await save();
+  if (outcome.ok) await renderFreshness();
+});
 
 async function load() {
   const stored = await chrome.storage.local.get("settings");
   fill(withDefaults(stored.settings));
   showLevel(rememberedLevel());
   loadData();
+  renderFreshness();
   // #payouts deep-links here, so land on the one level that holds the payout
   // fields.
   if (location.hash === "#payouts") {
@@ -311,18 +366,27 @@ async function loadData() {
 // The security section states what is true on this device right now. Every line
 // it fills in is read back from storage, not assumed.
 async function renderSecurity(settings) {
-  const configured = [settings.feedUrl, settings.cashbackTemplate, settings.payoutUrl, settings.sponsorUrl, settings.ageCheckUrl]
-    .filter(Boolean).length;
+  const configured = [
+    settings.feedUrl,
+    settings.catalogUrl,
+    settings.cashbackTemplate,
+    settings.payoutUrl,
+    settings.sponsorUrl,
+    settings.ageCheckUrl,
+  ].filter(Boolean).length;
   byId("guard-endpoints").textContent = configured
     ? "All " + configured + " of your endpoints use HTTPS (or a listener on this machine). Plain HTTP on the open internet is refused."
     : "None configured yet, so nothing leaves this device.";
 
   const [signedIn, accounts] = await Promise.all([currentAccount(), hasAccounts()]);
-  byId("guard-device").textContent = accounts
-    ? signedIn
-      ? "Signed in as " + signedIn.email + " on this device."
-      : "An account exists on this device and is signed out."
-    : "No account on this device yet.";
+  byId("guard-device").textContent =
+    (accounts
+      ? signedIn
+        ? "Signed in as " + signedIn.email + " on this device."
+        : "An account exists on this device and is signed out."
+      : "No account on this device yet.") +
+    " \u00b7 " +
+    platformLine(detectPlatform());
   byId("guard-signout").disabled = !signedIn;
 }
 

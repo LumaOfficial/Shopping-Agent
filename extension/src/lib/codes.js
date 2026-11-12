@@ -1,10 +1,11 @@
 // Code bookkeeping shared by the service worker and the side panel: one code
 // shape, one de-duplication order, one definition of "expired".
-export const SOURCE_RANK = { verified: 4, feed: 3, saved: 2, page: 1 };
+export const SOURCE_RANK = { verified: 5, feed: 4, catalog: 3, saved: 2, page: 1 };
 
 export const SOURCE_LABEL = {
   verified: "works",
   feed: "feed",
+  catalog: "list",
   saved: "yours",
   page: "on page",
 };

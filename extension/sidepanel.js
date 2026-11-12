@@ -13,6 +13,8 @@ import { currentAccount, hasAccounts, signUp, signIn, signOut } from "./src/lib/
 import { startAgeCheck } from "./src/lib/age-panel.js";
 import { MIN_AGE } from "./src/lib/age-verify.js";
 import { acceptTerms, readConsent, termsUrl } from "./src/lib/terms.js";
+import { TOUR_KEY, readTour } from "./src/lib/tutorial.js";
+import { startTour } from "./src/lib/tour-panel.js";
 
 const byId = (id) => document.getElementById(id);
 
@@ -67,6 +69,8 @@ function reset() {
     byId(id).hidden = true;
   });
   byId("coupons").textContent = "";
+  byId("offers-list").hidden = true;
+  byId("offers-rows").textContent = "";
   byId("store-name").textContent = "";
   byId("field-note").hidden = true;
   byId("add-status").hidden = true;
@@ -505,9 +509,12 @@ function renderCoupons() {
       empty.textContent = "No code matches that filter.";
     } else if (state.data && state.data.feed && state.data.feed.configured) {
       empty.textContent = "No codes yet — the feed has none for this store and none are published on this page.";
+    } else if (state.data && Array.isArray(state.data.offers) && state.data.offers.length) {
+      empty.textContent =
+        "No code on this page right now — the store's own ways to save are listed below.";
     } else {
       empty.textContent =
-        "This store isn't registered yet. Submit it above, or scan again in case the codes load with the cart.";
+        "No codes on this page yet. Scan again once the cart is open, in case they load with it.";
     }
   }
 
@@ -525,6 +532,67 @@ function renderCoupons() {
       )
     )
   );
+}
+
+// Storewide savings that hold for months — the store's own loyalty scheme, an
+// outlet rail, a price-match policy. They come from the bundled savings list or
+// from a catalog the operator publishes, and the worker re-checks the list
+// hourly, so rows age out on their own. No code is invented for them.
+const OFFER_LABEL = {
+  coupon: "Coupon",
+  member: "Member",
+  outlet: "Outlet",
+  deal: "Deal",
+  service: "Policy",
+};
+
+function renderOffers(data) {
+  const block = byId("offers-list");
+  const rows = byId("offers-rows");
+  const offers = (data && Array.isArray(data.offers) ? data.offers : []).filter(
+    (offer) => offer && !offer.code
+  );
+  rows.textContent = "";
+  block.hidden = !offers.length || Boolean(data && data.features && data.features.coupons === false);
+  if (block.hidden) return;
+
+  const catalog = (data && data.catalog) || {};
+  // humanAge already reads "checked just now", so the freshness line only adds
+  // how often it comes back.
+  byId("offers-fresh").textContent = catalog.checkedAt
+    ? (catalog.auto ? "hourly \u00b7 " : "") + humanAge(catalog.checkedAt)
+    : catalog.updated
+      ? "list " + catalog.updated
+      : "";
+
+  offers.slice(0, 8).forEach((offer) => {
+    const item = document.createElement("li");
+    const kind = document.createElement("span");
+    kind.className = "chip offer " + (offer.kind || "deal");
+    kind.textContent = OFFER_LABEL[offer.kind] || "Offer";
+    const copy = document.createElement("div");
+    const title = document.createElement("strong");
+    title.textContent = offer.title;
+    copy.appendChild(title);
+    if (offer.detail) {
+      const detail = document.createElement("span");
+      detail.className = "muted tiny";
+      detail.textContent = offer.detail;
+      copy.appendChild(detail);
+    }
+    const open = document.createElement("button");
+    open.type = "button";
+    open.className = "mini";
+    open.textContent = "Open";
+    open.addEventListener("click", () => {
+      const url = offer.url || (data.store && data.store.home) || state.url;
+      if (url) chrome.tabs.create({ url });
+    });
+    item.appendChild(kind);
+    item.appendChild(copy);
+    item.appendChild(open);
+    rows.appendChild(item);
+  });
 }
 
 // "Didn't work": hidden locally, never tried again for this store. Undoable.
@@ -1091,6 +1159,7 @@ async function render() {
   renderCashback(data);
   renderRegister();
   renderCoupons();
+  renderOffers(data);
   if (features.coupons !== false) startAutoScan();
   byId("partner-line").textContent = data.footer;
   byId("access-line").textContent =
@@ -1165,6 +1234,8 @@ async function applyAccount(account) {
     byId("store-name").textContent = "Sign in to start";
     showAuthTab("signin");
   }
+  // First unlocked panel offers the tour; signing in later still gets it.
+  maybeStartTour();
 }
 
 async function boot() {
@@ -1571,4 +1642,39 @@ const ageCheck = startAgeCheck({
   },
 });
 
-boot();
+// The tour is offered once, on the first unlocked panel, and can be replayed
+// from the panel or from Settings. It never blocks the panel underneath.
+const tour = startTour({
+  onChange: (open) => {
+    if (open) byId("tour-block").scrollIntoView({ behavior: "smooth", block: "start" });
+  },
+});
+
+let tourChecked = false;
+async function maybeStartTour() {
+  if (tourChecked || state.locked) return;
+  tourChecked = true;
+  await tour.resume();
+}
+
+byId("tour-replay").addEventListener("click", () => {
+  tour.refresh();
+  tour.open(0);
+});
+
+// Settings replays the tour by clearing its progress; the open panel picks that
+// up without a reload. Only an explicit replay counts — the tour's own progress
+// writes land here too, and treating those as a replay would restart the tour
+// on every Next.
+if (chrome.storage.onChanged) {
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if (area !== "local" || !changes[TOUR_KEY]) return;
+    const next = changes[TOUR_KEY].newValue;
+    if (next && next.reason === "replay" && !readTour(next).done) {
+      tourChecked = true;
+      tour.open(0);
+    }
+  });
+}
+
+boot().then(() => maybeStartTour());

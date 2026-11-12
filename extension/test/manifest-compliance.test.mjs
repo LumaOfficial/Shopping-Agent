@@ -87,6 +87,8 @@ test("development: each permission is asked for because a file uses it", async (
     tabs: ["sidepanel.js", "chrome.tabs"],
     scripting: ["src/background/service-worker.js", "chrome.scripting"],
     declarativeNetRequest: ["src/background/service-worker.js", "chrome.declarativeNetRequest"],
+    // The hourly savings-catalog pass: the only reason a timer is needed.
+    alarms: ["src/background/service-worker.js", "chrome.alarms"],
     sidePanel: ["src/lib/panel-surface.js", "chrome.sidePanel"],
   };
 

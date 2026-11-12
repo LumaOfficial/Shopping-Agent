@@ -16,6 +16,20 @@ fill the store's own promo field.
 Safari needs Apple's Xcode conversion of a WebExtension package and is not
 packaged here.
 
+### Windows, macOS and Linux
+
+All three desktops run the same package and the same source. The only visible
+differences are the shortcut the panel prints (`Alt + Shift + S` on Windows, Linux
+and ChromeOS; `⌥ + ⇧ + S` on macOS) and the desktop named in the tour's last step;
+nothing branches on the platform. A webcam is asked for 4:3 at 640×480, which is
+what laptop cameras hand over most often on Windows and Linux, and the frame is
+centre-cropped for measuring rather than requiring a square capture.
+
+You do not need a Mac or a Linux box to check that: `tools/emulate-platforms.mjs`
+emulates each desktop's browser strings and runs the shipped modules against
+them, and the preview shows the panel with an OS switcher so the same code can be
+seen as Windows, macOS or Linux without changing machines.
+
 Preparing the Opera upload — permission rationale, the policy criteria mapped to
 the code, findings and the submission checklist — is in
 [`docs/opera-submission.md`](docs/opera-submission.md). It is our own review of
@@ -83,7 +97,9 @@ the catalog through `content_scripts` (kept in step with `src/lib/stores.js` by
 from `optional_host_permissions` on a click: a shop the shopper adds, or a
 partner endpoint the operator saves. `host_permissions` holds only the product
 API. Blocking advertising requests is the one thing that acts beyond those pages,
-it is a network rule that reads no page, and terms §5 discloses it.
+it is a network rule that reads no page, and terms §5 discloses it. The `alarms`
+permission exists only for the hourly savings-list pass: it reads no page, holds
+no data, and stops when automatic refresh is switched off.
 
 Agreement is a deliberate act:
 
@@ -140,11 +156,35 @@ Every code the panel shows is one of:
 | --- | --- |
 | **works** | a code this store accepted earlier on this device |
 | **feed** | the optional authorized offer endpoint configured in Settings |
+| **list** | a code an operator published to the optional savings-list URL, or one that shipped in the list |
 | **yours** | a code you pasted and saved for that store |
 | **on page** | a code the store itself publishes on the page you are viewing (automatic) |
 
-There is no bundled coupon list: a store with no codes from any source shows an
-empty list, and the extension never invents an offer.
+There is no bundled coupon list and the extension never invents a code. What
+ships is a **savings list**: storewide mechanics the store itself runs — a
+loyalty scheme, an outlet rail, a price-match policy — shown apart from the codes
+because they are not codes. Every row can carry an end date and is dropped once
+it passes, and the whole list is re-read hourly.
+
+### The savings list, and why it updates itself
+
+`src/lib/catalog.js` is the shipped list. It is deliberately made of things that
+stay true for months, so nothing depends on someone editing coupons each morning:
+
+- **Hourly pass.** `chrome.alarms` runs `luma-refresh` every hour. It drops the
+  offer cache, re-reads the list, removes saved codes whose end date has passed,
+  and refreshes the optional feed for the stores in use. The same pass runs on
+  install, on browser start, and whenever the settings change.
+- **Published list.** An operator can publish a newer JSON list at an HTTPS
+  address (`catalogUrl`, Advanced settings). When it answers with usable rows it
+  replaces the shipped list; when it does not, the shipped list keeps the panel
+  useful and the settings page names the error. A published row may carry a real
+  `code`, which then appears in the codes list labelled `list`.
+- **Expiry, not guesswork.** A row without a date is an evergreen mechanic; a
+  row with one disappears by itself. Nothing is "refreshed" by inventing a value.
+- **Visible freshness.** The panel's savings card prints `hourly · checked just
+  now`, and Settings shows which list is in use, how many rows it holds and when
+  it was last read.
 
 ### What works
 
@@ -158,9 +198,19 @@ empty list, and the extension never invents an offer.
   signed in, so opening the panel does not ask for the password again; signing
   out is a second, deliberate tap on the account chip.
 - **Codes only for the store you are on.** The panel resolves the tab's host
-  against a catalog of **769 stores / 787 host patterns** (including regional
+  against a catalog of **794 stores / 811 host patterns** (including regional
   Amazon, eBay and other domains). Any other page shows an empty state, plus a
   one-tap check that adds the site when the page proves it is a shop.
+- **A tour on the first run.** The panel opens with a seven-step tour — codes,
+  cashback, prices, the face scan, ads, and the shopper's own desktop and its
+  keyboard shortcut. It resumes where it stopped if the panel closes, can be
+  skipped, and replays from the panel or from Settings. The copy lives in
+  `src/lib/tutorial.js`, so what a shopper reads is exactly what the tests read.
+- **Every desktop.** Windows, macOS and Linux get the same source, with the
+  platform's own shortcut named (`Alt + Shift + S`, `⌥ + ⇧ + S` on a Mac).
+  `tools/emulate-platforms.mjs` runs the shipped code under seven emulated
+  desktops — Windows Chrome and Edge, macOS Chrome and Opera, Linux Chromium and
+  Opera, ChromeOS — and fails the run if any of them diverges.
 - **All stores, browsable** — the panel's *All stores* card lists the whole
   catalog, searchable by name, host or category and filterable by category, so
   a shopper can see what is covered and open a store from the list.
@@ -347,6 +397,15 @@ way is answered with a correction, and an angle that is never reached simply doe
 not count. Each kept angle reads the biggest face-shaped patch of skin in the
 frame (its size, outline, fill and facial detail).
 
+**No leaning back.** The scan is built for the distance a shopper is already at.
+A close-up face may fill almost the whole frame (up to 94% of it) and still be a
+normal scan; the oval guide is generous, the face may sit well off centre, and a
+close-up needs less travel to prove a turn, because the same head movement covers
+more of the frame. The only distance message left is the gentle *ease back an
+inch or two* for a face that fills the entire frame. `test/platform.test.mjs`
+asserts a close-up frame at desk distance passes all four angles, and
+`tools/emulate-platforms.mjs` repeats that check on every emulated desktop.
+
 **The model is the double check.** The kept angles are compared as one temporary
 face model — the same face, in the same light, really having moved between them.
 If they do not agree, nothing is submitted and the card asks for the angles
@@ -503,7 +562,12 @@ user from themselves.
 | `src/lib/site-add.js` | Add-or-remove decision from that evidence, plus the store's display name |
 | `src/lib/site-request.js` | Normalizes the tab's host into the site key |
 | `src/lib/stores.js` | Merchant catalog and host matching |
+| `src/lib/catalog.js` | The shipped savings list, expiry filtering, and the shape a published list must have |
+| `src/lib/platform.js` | Which desktop is running this panel, and the shortcut to name |
+| `src/lib/tutorial.js` | The tour's copy, including the desktop-specific last step |
+| `src/lib/tour-panel.js` | The tour card: steps, resume, replay, progress in device storage |
 | `src/lib/panel-extras.js` | Popular-store rail and category tiles, both from the catalog |
+| `tools/emulate-platforms.mjs` | Runs the shipped code under Windows, macOS, Linux and ChromeOS signals and prints a pass/fail table |
 | `src/lib/logo-show.js` | The *Animate* trailer: cache, decode, build, then orbit → wall → mosaic |
 | `src/lib/brand-marks.js` | The popular storefronts the trailer leads with, and their brand inks |
 | `src/lib/codes.js` | One code shape, de-duplication order, expiry rule |
@@ -532,12 +596,14 @@ feed below only adds more of them.
 The page is split into three levels, opening on the one last used:
 
 - **Simple** — the on/off switches in plain words, the cashback balance and one
-  "Get a virtual Visa" tap. No endpoints, tokens or identifiers. When the balance
-  reaches the minimum the tap always finishes: with a reward service connected it
-  asks that service for a card, and without one it issues a preview card labelled
-  as having no cash value.
-- **Advanced** — the optional coupon feed, the cashback network template, the
-  product API key and local data (export / clear).
+  "Get a virtual Visa" tap, plus **Keeping up to date**: the freshness line, the
+  automatic-refresh switch, *Update now* and *Replay the tour*. No endpoints,
+  tokens or identifiers. When the balance reaches the minimum the tap always
+  finishes: with a reward service connected it asks that service for a card, and
+  without one it issues a preview card labelled as having no cash value.
+- **Advanced** — the optional coupon feed, the optional published savings list,
+  the cashback network template, the product API key and local data
+  (export / clear).
 - **Developer** — payout proxy and Tango Card credentials, sponsored offers and
   partner wording.
 
@@ -671,6 +737,28 @@ detector in `src/lib/age-local.js`. What it confirms:
   answers a turn the wrong way with a correction, and keeps a tilt up;
 - a set of angles that never moved, and a scan that stopped halfway, are not a
   face model and are refused before anything is submitted.
+
+The cross-platform and savings-list suites are separate:
+
+```bash
+cd extension && node --test test/platform.test.mjs test/catalog.test.mjs
+cd extension && node tools/emulate-platforms.mjs
+```
+
+- **Platforms** (`test/platform.test.mjs`) — every desktop UA and platform string
+  is recognised (including ChromeOS, which reports a Linux platform), the
+  shortcut named matches the desktop, the tour's last step names it, a seen tour
+  stays seen while an older version is offered again, and a close-up frame at
+  desk distance passes all four angles without leaning back.
+- **Emulation report** (`tools/emulate-platforms.mjs`) — seven desktops in one
+  table: detection, shortcut, tour step, close-up scan and store rows. It runs
+  the shipped modules, not copies, and exits non-zero on any divergence.
+- **Savings list** (`test/catalog.test.mjs`) — the shipped rows exist for major
+  stores and carry no invented code; expired published rows drop out; a bad store
+  id, a non-HTTPS link or a script address is rejected; the worker returns offers,
+  freshness and the store's home address; turning automatic refresh off is
+  reflected in the report; and firing `luma-refresh` removes a saved code whose
+  end date has passed while keeping the live one.
 
 The terms gate has a suite in `test/terms.test.mjs`. What it confirms:
 

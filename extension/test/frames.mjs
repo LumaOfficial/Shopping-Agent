@@ -7,31 +7,53 @@ export const SIDE = 256;
 // A lit face on a plain wall: skin-toned oval, brows, eyes and a mouth so the
 // frame carries the facial detail a real one does. `shift` moves the head, which
 // is what the second frame of a live scan does.
-export function faceFrame(shift) {
-  return drawFace(Number(shift) || 0, 0, 1);
+// `scale` enlarges the head inside the frame. 1 is a face sitting at a normal
+// distance; 1.4 is the close-up a laptop camera sees when someone stays exactly
+// where they were sitting, which the scan has to accept just the same.
+export function faceFrame(shift, scale) {
+  return drawFace(Number(shift) || 0, 0, 1, Number(scale) || 1, SIDE);
+}
+
+// A close-up straight-on frame, for the "nobody should have to lean back" case.
+export function closeUpFrame(shift) {
+  return faceFrame(shift, 1.4);
 }
 
 // The same face seen from another angle: the head moved by dx/dy pixels and, as
 // a turned head really does, reading a little narrower across (narrow < 1).
-export function turnFrame(dx, dy, narrow) {
-  return drawFace(Number(dx) || 0, Number(dy) || 0, narrow || 1);
+export function turnFrame(dx, dy, narrow, scale) {
+  return drawFace(Number(dx) || 0, Number(dy) || 0, narrow || 1, Number(scale) || 1, SIDE);
 }
 
-function drawFace(offsetX, offsetY, narrow) {
-  const halfWidth = 78 * narrow;
-  const data = new Uint8Array(SIDE * SIDE * 4);
-  for (let y = 0; y < SIDE; y += 1) {
-    for (let x = 0; x < SIDE; x += 1) {
-      const at = (y * SIDE + x) * 4;
+// A frame drawn at another size, so a caller can prove the measurement does not
+// depend on the camera's resolution.
+export function sizedFace(size, shift, scale) {
+  return drawFace(Number(shift) || 0, 0, 1, Number(scale) || 1, Number(size) || SIDE);
+}
+
+function drawFace(offsetX, offsetY, narrow, scale, size) {
+  const halfWidth = 78 * narrow * scale;
+  const halfHeight = 96 * scale;
+  const data = new Uint8Array(size * size * 4);
+  const centreX = size / 2 + offsetX;
+  const centreY = size / 2 + offsetY;
+  for (let y = 0; y < size; y += 1) {
+    for (let x = 0; x < size; x += 1) {
+      const at = (y * size + x) * 4;
       let colour = [60, 60, 62];
-      const dx = x - SIDE / 2 - offsetX;
-      const dy = y - SIDE / 2 - offsetY;
-      if ((dx * dx) / (halfWidth * halfWidth) + (dy * dy) / (96 * 96) < 1) {
+      const dx = x - centreX;
+      const dy = y - centreY;
+      if ((dx * dx) / (halfWidth * halfWidth) + (dy * dy) / (halfHeight * halfHeight) < 1) {
         colour = [205, 160, 135];
-        if (Math.abs(y - 92 - offsetY) < 4 && Math.abs(dx) < 30) colour = [90, 60, 50];
-        if ((x - 108 - offsetX) ** 2 + (y - 108 - offsetY) ** 2 < 60) colour = [55, 40, 38];
-        if ((x - 148 - offsetX) ** 2 + (y - 108 - offsetY) ** 2 < 60) colour = [55, 40, 38];
-        if (Math.abs(y - 165 - offsetY) < 5 && Math.abs(dx) < 22) colour = [150, 85, 85];
+        if (Math.abs(dy + 36 * scale) < 4 * scale && Math.abs(dx) < 30 * scale) colour = [90, 60, 50];
+        const eye = Math.sqrt(60) * scale;
+        if ((x - (centreX - 20 * scale)) ** 2 + (y - (centreY - 20 * scale)) ** 2 < eye * eye) {
+          colour = [55, 40, 38];
+        }
+        if ((x - (centreX + 20 * scale)) ** 2 + (y - (centreY - 20 * scale)) ** 2 < eye * eye) {
+          colour = [55, 40, 38];
+        }
+        if (Math.abs(dy - 37 * scale) < 5 * scale && Math.abs(dx) < 22 * scale) colour = [150, 85, 85];
       }
       data[at] = colour[0];
       data[at + 1] = colour[1];

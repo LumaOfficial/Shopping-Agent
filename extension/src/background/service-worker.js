@@ -5,9 +5,10 @@
 // from codes the store itself published on the page.
 import "../lib/compat.js";
 import { installPanelSurface, openPanel } from "../lib/panel-surface.js";
-import { resolveStore } from "../lib/stores.js";
+import { resolveStore, hostsOf } from "../lib/stores.js";
 import { partnerSummary } from "../lib/copy.js";
 import { getOffers, feedEndpoint, feedHeaders, sourceLabel } from "../partners/offers-feed.js";
+import { CATALOG_UPDATED, catalogOffers, catalogStatus, normalizeCatalog } from "../lib/catalog.js";
 import { buildCashbackLink } from "../partners/cashback-network.js";
 import { getPriceHistory } from "../partners/price-history.js";
 import {
@@ -37,7 +38,7 @@ import {
   webUrl,
 } from "../lib/guard.js";
 import { decideSite } from "../lib/site-add.js";
-import { mergeCodes, cleanCode } from "../lib/codes.js";
+import { mergeCodes, cleanCode, isExpired } from "../lib/codes.js";
 import { readConsent } from "../lib/terms.js";
 import { creditAds, normalizeRecord, summaryOf, MAX_ADS_PER_TAB } from "../lib/ad-value.js";
 import { scopedKey, scopePrefix } from "../lib/accounts.js";
@@ -53,6 +54,10 @@ import {
 import { LOCAL_PROVIDER, judgeLocal } from "../lib/age-local.js";
 
 const FEED_TTL_MS = 10 * 60 * 1000;
+// The savings catalog is re-read hourly. A published catalog is fetched; the
+// bundled one is filtered for expiry, which is what keeps it from going stale.
+const CATALOG_TTL_MS = 60 * 60 * 1000;
+const CATALOG_ALARM = "luma-refresh";
 const MAX_VERIFIED = 40;
 const MAX_SAVED = 60;
 const MAX_DEAD = 60;
@@ -88,6 +93,116 @@ async function writeMap(key, value) {
   await writeScoped(key, value);
 }
 
+// ---- savings catalog ----------------------------------------------------
+// The bundled list ships with the extension and is filtered for expiry every
+// time it is read. An operator can publish a newer list at an HTTPS address
+// (settings.catalogUrl); when that answers with usable rows it wins, and when
+// it does not the bundled list keeps the panel useful instead of leaving it
+// empty. Either way the result is cached for an hour and re-read on a timer, so
+// nobody has to update coupons by hand.
+let catalogCache = null;
+
+async function activeCatalog(settings, refresh) {
+  const fresh = catalogCache && Date.now() - catalogCache.at < CATALOG_TTL_MS;
+  if (!refresh && fresh) return catalogCache;
+
+  const address = String((settings && settings.catalogUrl) || "").trim();
+  if (address) {
+    try {
+      const response = await fetch(address, {
+        headers: { accept: "application/json" },
+        cache: "no-store",
+      });
+      if (!response.ok) throw new Error("HTTP " + response.status);
+      const parsed = normalizeCatalog(await response.json());
+      if (!parsed.offers.length) throw new Error("the published list had no usable offers");
+      catalogCache = {
+        at: Date.now(),
+        offers: parsed.offers.map((offer) => Object.assign({ source: "catalog" }, offer)),
+        updated: parsed.updated || new Date().toISOString().slice(0, 10),
+        source: "published",
+        error: null,
+      };
+      return catalogCache;
+    } catch (error) {
+      catalogCache = {
+        at: Date.now(),
+        offers: null,
+        updated: CATALOG_UPDATED,
+        source: "starter",
+        error: "Published savings list: " + String((error && error.message) || error),
+      };
+      return catalogCache;
+    }
+  }
+
+  catalogCache = {
+    at: Date.now(),
+    offers: null,
+    updated: CATALOG_UPDATED,
+    source: "starter",
+    error: null,
+  };
+  return catalogCache;
+}
+
+function offersFor(storeId, catalog) {
+  const live = catalog && Array.isArray(catalog.offers) ? catalog.offers : catalogOffers(storeId);
+  return live.filter((offer) => offer && offer.store === storeId);
+}
+
+async function catalogReport(settings) {
+  const catalog = await activeCatalog(settings);
+  return {
+    version: catalogStatus().version,
+    updated: catalog.updated,
+    checkedAt: catalog.at,
+    source: catalog.source || "starter",
+    count: catalog.offers ? catalog.offers.length : catalogStatus().count,
+    auto: Boolean(settings && settings.autoRefresh),
+    error: (catalog && catalog.error) || null,
+  };
+}
+
+// A code the store published for a season is dropped once its date passes, so
+// the list a shopper sees is only ever the live part of it.
+async function pruneExpiredCodes() {
+  const saved = await readMap("saved");
+  let changed = false;
+  Object.keys(saved).forEach((storeId) => {
+    const list = Array.isArray(saved[storeId]) ? saved[storeId] : [];
+    const kept = list.filter((entry) => !isExpired(entry));
+    if (kept.length !== list.length) {
+      saved[storeId] = kept;
+      changed = true;
+    }
+  });
+  if (changed) await writeMap("saved", saved);
+}
+
+function scheduleRefresh(settings) {
+  try {
+    if (!chrome.alarms) return;
+    if (!settings || settings.autoRefresh === false) {
+      if (chrome.alarms.clear) chrome.alarms.clear(CATALOG_ALARM);
+      return;
+    }
+    chrome.alarms.create(CATALOG_ALARM, { delayInMinutes: 3, periodInMinutes: 60 });
+  } catch (_error) {
+    // A browser that refuses alarms simply refreshes when the panel opens.
+  }
+}
+
+// The hourly pass: drop the caches, re-read the list, remove anything that has
+// expired. It never touches the network unless a catalog or feed is configured.
+async function refreshCatalog(settings, refresh) {
+  if (refresh) catalogCache = null;
+  feedCache.clear();
+  const report = await catalogReport(settings);
+  await pruneExpiredCodes();
+  return report;
+}
+
 function cachedOffers(store, settings, refresh) {
   const cached = feedCache.get(store.id);
   if (!refresh && cached && Date.now() - cached.at < FEED_TTL_MS) return Promise.resolve(cached.payload);
@@ -121,9 +236,19 @@ async function resolveSite(url, options) {
     ? await cachedOffers(store, settings, options && options.refresh)
     : { status: "off", coupons: [], cashback: null, fetchedAt: null, error: null };
 
+  // The savings list is read alongside the page: it is what keeps a fresh
+  // install useful at a shop whose page published no code today.
+  const catalog = settings.enabled.coupons
+    ? await activeCatalog(settings, options && options.refresh)
+    : null;
+  const offers = catalog ? offersFor(store.id, catalog) : [];
+
   const codes = mergeCodes(
     (verified[store.id] || []).map((entry) => Object.assign({}, entry, { source: "verified" })),
     feed.coupons,
+    offers
+      .filter((offer) => offer.code)
+      .map((offer) => ({ code: offer.code, title: offer.title, source: "catalog" })),
     (saved[store.id] || []).map((entry) => Object.assign({}, entry, { source: "saved" }))
   );
 
@@ -143,12 +268,25 @@ async function resolveSite(url, options) {
       name: store.name,
       category: store.category,
       custom: Boolean(store.custom),
+      // The store's own site, for a savings row that opens it.
+      home: "https://" + hostsOf(store)[0],
       // Added on the spot by the panel, so it can be removed again from there.
       removable: Boolean(store.custom),
       evidence: (added && added.evidence) || [],
     },
     site,
     codes,
+    offers,
+    catalog: catalog
+      ? {
+          updated: catalog.updated,
+          checkedAt: catalog.at,
+          source: catalog.source || "starter",
+          count: catalog.offers ? catalog.offers.length : catalogStatus().count,
+          auto: Boolean(settings.autoRefresh),
+          error: catalog.error || null,
+        }
+      : null,
     feed: {
       configured: Boolean(settings.feedUrl),
       status: feed.status,
@@ -955,6 +1093,10 @@ async function handle(message, sender) {
     }
     case "source:test":
       return testSource();
+    case "catalog:status":
+      return catalogReport(await readSettings());
+    case "catalog:refresh":
+      return refreshCatalog(await readSettings(), true);
     case "stats:get":
       return stats();
     case "data:export":
@@ -979,7 +1121,13 @@ chrome.runtime.onMessage.addListener(function (message, sender, sendResponse) {
 
 chrome.storage.onChanged.addListener(function (changes, area) {
   if (area !== "local") return;
-  if (changes.settings) feedCache.clear();
+  if (changes.settings) {
+    feedCache.clear();
+    catalogCache = null;
+    // The hourly pass follows the switch and the address, without waiting for a
+    // restart.
+    readSettings().then(scheduleRefresh).catch(function () {});
+  }
   // Agreeing to the terms, or a new version of them, moves the blocking ruleset
   // with the gate.
   if (changes.terms) syncAdBlock();
@@ -1005,5 +1153,35 @@ chrome.commands.onCommand.addListener(function (command) {
 chrome.runtime.onInstalled.addListener(function () {
   installPanelSurface();
   syncAdBlock();
+  // A fresh install starts with a live list and a timer, so the first shop
+  // visited already has something on the panel.
+  readSettings()
+    .then(function (settings) {
+      scheduleRefresh(settings);
+      return refreshCatalog(settings, true);
+    })
+    .catch(function () {});
 });
-chrome.runtime.onStartup.addListener(syncAdBlock);
+chrome.runtime.onStartup.addListener(function () {
+  syncAdBlock();
+  readSettings()
+    .then(function (settings) {
+      scheduleRefresh(settings);
+      return refreshCatalog(settings, true);
+    })
+    .catch(function () {});
+});
+
+// The hourly pass. It only runs while automatic refresh is on, and it is the
+// only thing that has to happen for stale coupons to disappear.
+if (chrome.alarms && chrome.alarms.onAlarm) {
+  chrome.alarms.onAlarm.addListener(function (alarm) {
+    if (!alarm || alarm.name !== CATALOG_ALARM) return;
+    readSettings()
+      .then(function (settings) {
+        if (settings.autoRefresh === false) return null;
+        return refreshCatalog(settings, true);
+      })
+      .catch(function () {});
+  });
+}

@@ -463,8 +463,11 @@ export function startAgeCheck(options) {
     setStatus("");
     try {
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) throw new Error("no-camera");
+      // A 4:3 frame is what laptop and desktop webcams hand over most often on
+      // Windows and Linux; the frame is centre-cropped to a square for
+      // measuring, so asking for a square would only make some cameras fail.
       stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: "user", width: { ideal: 720 }, height: { ideal: 720 } },
+        video: { facingMode: "user", width: { ideal: 640 }, height: { ideal: 480 } },
         audio: false,
       });
       video.srcObject = stream;

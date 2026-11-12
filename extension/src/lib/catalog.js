@@ -1,0 +1,350 @@
+// The savings catalog: storewide ways to save that hold for months, so the
+// panel has something useful on a fresh install and at a shop whose page
+// publishes no code that day.
+//
+// Two honesty rules shape this file:
+//   1. No code is invented. An entry carries a code only when an operator
+//      publishes one through the authorized catalog URL (see the README); the
+//      bundled entries describe mechanics the store itself runs.
+//   2. Every entry can expire. A dated offer drops out on its own, and the
+//      worker re-checks the list hourly, so nothing here has to be updated by
+//      hand each morning.
+import { cleanCode } from "./codes.js";
+
+// Bumped when the bundled list changes, so a report can say which list the
+// browser is actually using.
+export const CATALOG_VERSION = 3;
+export const CATALOG_UPDATED = "2026-11-12";
+
+const entry = (store, kind, title, detail, ends) => ({ store, kind, title, detail, ends: ends || null });
+
+// Where a shopper most often leaves money on the table, by store. `kind` only
+// colours the row: coupon = a code or an offer to clip, member = a loyalty
+// scheme, outlet = a clearance/refurbished section, service = a policy.
+export const CATALOG = [
+  entry("amazon", "coupon", "Clip-on coupons", "Amazon's coupon page stacks extra savings on items already in your cart."),
+  entry("amazon", "outlet", "Warehouse and open-box deals", "Overstock and returned stock is priced below new and changes through the day."),
+  entry("ebay", "outlet", "Refurbished and certified", "Refurbished listings carry the seller's own warranty and a lower price."),
+  entry("etsy", "deal", "Shop-wide sales", "Individual sellers run their own sales; the shop's banner names the current one."),
+  entry("target", "member", "Target Circle offers", "Member offers you activate before checkout, on top of the weekly ad."),
+  entry("target", "deal", "Weekly ad", "The week's price drops, refreshed every Sunday."),
+  entry("walmart", "deal", "Rollbacks", "Temporary price drops on everyday items, marked on the shelf and the page."),
+  entry("walmart", "service", "Free pickup", "Store pickup is free on eligible orders, with no membership needed."),
+  entry("kohls", "member", "Kohl's Cash", "Earned on a purchase and spendable on a later one inside the window."),
+  entry("jcpenney", "coupon", "Coupon page", "JCPenney posts its current percent-off coupons on its own offers page."),
+  entry("costco", "member", "Member savings book", "The monthly book of instant savings, applied at the register."),
+  entry("samsclub", "member", "Instant savings", "Member-only price drops that apply automatically at checkout."),
+  entry("bestbuy", "outlet", "Open-box and clearance", "Open-box units are tested and discounted, with a shorter warranty."),
+  entry("bestbuy", "service", "Price match", "A lower price at a major competitor can be matched at the register."),
+  entry("newegg", "deal", "Daily deals", "Rotating shells and combo prices on components and laptops."),
+  entry("bhphotovideo", "deal", "Deal zone", "Daily discounts on cameras, lenses and studio gear."),
+  entry("microcenter", "deal", "In-store bundle pricing", "Processor and motherboard bundles are priced in store."),
+  entry("gamestop", "member", "Trade credit", "Trading a game in pays more as store credit than as cash."),
+  entry("apple", "outlet", "Certified refurbished", "Apple-refurbished hardware with the same one-year warranty."),
+  entry("samsung", "service", "Trade-in credit", "A working older phone lowers the price of a new one."),
+  entry("dell", "outlet", "Dell Outlet", "Returned and refurbished machines, with the same support options."),
+  entry("lenovo", "outlet", "Lenovo outlet", "Off-lease and refurbished ThinkPads at outlet prices."),
+  entry("hp", "outlet", "Reconditioned laptops", "Factory-reconditioned units with a limited warranty."),
+  entry("homedepot", "service", "Bulk and pro pricing", "Larger quantities and a pro account can lower the unit price."),
+  entry("lowes", "service", "Price match and clearance", "A lower advertised price can be matched, and clearance aisles are marked."),
+  entry("wayfair", "outlet", "Open-box and clearance", "Returned furniture is listed with its condition noted."),
+  entry("ikea", "member", "IKEA Family offers", "Member prices on selected items, free with the loyalty card."),
+  entry("westelm", "outlet", "Clearance", "End-of-season furniture and decor at reduced prices."),
+  entry("potterybarn", "outlet", "Clearance", "Discontinued colours and floor samples, marked down."),
+  entry("williamssonoma", "outlet", "Outlet", "Discontinued cookware and small appliances."),
+  entry("crateandbarrel", "outlet", "Clearance", "Last-season pieces at a lower price."),
+  entry("overstock", "deal", "Overstock deals", "Closeout home goods, with the price shown before shipping."),
+  entry("macys", "member", "Star Rewards", "Star Money earned on purchases, spendable inside the window."),
+  entry("nordstrom", "service", "Price match", "Nordstrom matches the price of an identical item at a major retailer."),
+  entry("nordstromrack", "deal", "Clear the Rack", "Extra markdowns on already reduced styles."),
+  entry("bloomingdales", "member", "Loyalist offers", "Points and member-only promotions on selected brands."),
+  entry("saks", "deal", "Designer sale", "Seasonal markdowns across designer ready-to-wear."),
+  entry("nike", "member", "Member access", "Member-only releases and free returns on the store's own account."),
+  entry("adidas", "outlet", "Outlet", "Past-season trainers and kit at outlet prices."),
+  entry("lululemon", "outlet", "We Made Too Much", "The store's own markdown section, restocked weekly."),
+  entry("underarmour", "outlet", "Outlet", "Clearance training kit at reduced prices."),
+  entry("footlocker", "member", "FLX rewards", "Points on purchases and member offers on selected pairs."),
+  entry("gap", "member", "Email sign-up offer", "Joining the list sends a first-order code to the address you use."),
+  entry("oldnavy", "member", "Email sign-up offer", "A welcome code arrives by email after joining the list."),
+  entry("bananarepublic", "member", "Cardholder offers", "Cardholders get periodic percentage-off days."),
+  entry("hm", "member", "H&M membership", "Member prices and points, free to join in the app or on the site."),
+  entry("zara", "deal", "Sale section", "Twice-yearly markdowns plus a permanent reduced rail."),
+  entry("uniqlo", "deal", "Limited-time offers", "Weekly price cuts on core items."),
+  entry("asos", "outlet", "Outlet", "Reduced lines and extra markdowns at the outlet."),
+  entry("urbanoutfitters", "deal", "Sale", "Seasonal markdowns, with a further reduction at the rail."),
+  entry("anthropologie", "deal", "Sale", "Seasonal markdowns on clothing and home."),
+  entry("zappos", "member", "VIP rewards", "Points on orders, and free expedited shipping at the higher tiers."),
+  entry("nordstromrack", "member", "Rack rewards", "Points on full-price purchases, redeemable later."),
+  entry("warbyparker", "service", "Home try-on", "Five frames at home for five days, free, before buying."),
+  entry("thredup", "deal", "Clearance", "Secondhand clothing with an extra markdown on clearance."),
+  entry("poshmark", "service", "Make an offer", "Sellers can accept an offer below the listed price."),
+  entry("stockx", "service", "Bid instead of buy", "A bid below the ask can be accepted at any time."),
+  entry("rei", "member", "Member dividend", "Co-op members earn a yearly dividend on eligible purchases."),
+  entry("rei", "outlet", "REI Outlet", "Past-season gear with the co-op's return policy."),
+  entry("dickssportinggoods", "member", "ScoreCard rewards", "Points per dollar, plus member-only flash offers."),
+  entry("backcountry", "outlet", "Outlet", "Past-season outdoor gear at reduced prices."),
+  entry("patagonia", "outlet", "Worn Wear", "Repaired and used Patagonia gear, bought back and resold."),
+  entry("thenorthface", "outlet", "Outlet", "Past-season jackets and kit."),
+  entry("columbia", "outlet", "Outlet", "Reduced outerwear and footwear from past seasons."),
+  entry("sephora", "member", "Beauty Insider offers", "Points, birthday gifts and member-only sets."),
+  entry("ulta", "member", "Ultamate Rewards", "Points convert to store credit, with member-only multipliers."),
+  entry("bathandbodyworks", "coupon", "Coupon page", "The store posts its current body-care coupons on its own offers page."),
+  entry("chewy", "service", "Autoship discount", "Repeat deliveries are priced below one-off orders."),
+  entry("petco", "member", "Vital Care offers", "Member pricing and repeat-delivery savings."),
+  entry("kroger", "member", "Digital coupons", "Clipped to the loyalty card and applied at the register."),
+  entry("walgreens", "member", "myWalgreens offers", "Digital coupons and cash-back rewards on the loyalty account."),
+  entry("cvs", "member", "ExtraCare coupons", "Coupons loaded to the card, plus ExtraBucks on selected items."),
+  entry("staples", "service", "Easy rebates", "A rebate submitted online comes back as a prepaid card or credit."),
+  entry("officedepot", "member", "Rewards and clearance", "Member rewards on business orders, plus clearance on furniture."),
+  entry("harborfreight", "coupon", "Coupon page", "Harbor Freight publishes its current tool coupons on its own site."),
+  entry("autozone", "service", "Price match", "A lower price at a nearby parts store can be matched."),
+  entry("adorama", "outlet", "Used gear", "Inspected used cameras and lenses, graded by condition."),
+  entry("backmarket", "outlet", "Refurbished", "Refurbished phones and laptops with a warranty included."),
+  entry("sandisk", "deal", "Sale on storage", "Memory cards and drives at reduced prices during promotions."),
+  entry("anker", "deal", "Store deals", "Chargers and cables discounted on the store's own sale page."),
+  entry("microsoft", "deal", "Store deals", "Surface and Xbox bundles at reduced prices during promotions."),
+  entry("sony", "deal", "Seasonal sale", "Headphones, cameras and consoles at seasonal prices."),
+  entry("bose", "outlet", "Refurbished", "Factory-renewed audio with the same warranty as new."),
+  entry("sonos", "outlet", "Certified refurbished", "Refurbished speakers sold directly by Sonos."),
+  entry("razer", "outlet", "Certified refurbished", "Refurbished peripherals and laptops at a lower price."),
+  entry("playstation", "deal", "Store sale", "Digital games and add-ons discounted in rotating sales."),
+  entry("xbox", "deal", "Store sale", "Digital titles and Game Pass promotions."),
+  entry("nintendo", "deal", "Store sale", "First-party titles discounted a few times a year."),
+  entry("steam", "deal", "Wishlist sale", "Wishlisted games go on sale without an email."),
+  entry("epicgames", "deal", "Weekly free game", "One free title each week, kept in the library."),
+  entry("cdkeys", "deal", "Key pricing", "Region-checked keys priced below the store price."),
+  entry("containerstore", "member", "Organize Rewards", "Points on purchases and member-only promotions."),
+  entry("worldmarket", "member", "Rewards", "Member pricing and birthday offers."),
+  entry("lecreuset", "outlet", "Factory outlet", "Seconds and discontinued colours at outlet prices."),
+  entry("allclad", "outlet", "Factory seconds", "Cosmetically imperfect pans with the full warranty."),
+  entry("kitchenaid", "outlet", "Refurbished", "Factory-refurbished mixers with a warranty."),
+  entry("ninjakitchen", "deal", "Store deals", "Bundles and seasonal discounts on the store's own site."),
+  entry("build", "deal", "Clearance", "Discontinued fixtures and hardware at reduced prices."),
+  entry("saatva", "deal", "Seasonal offer", "Mattress promotions that include accessories rather than a fake discount."),
+  entry("purple", "deal", "Bundle offer", "Sheets and pillows bundled with a mattress."),
+  entry("jcrew", "member", "Email sign-up offer", "A welcome code arrives by email after joining the list."),
+  entry("madewell", "member", "Insider rewards", "Points and birthday rewards on the loyalty account."),
+  entry("everlane", "deal", "Choose what you pay", "Selected styles sold at a reduced price during the event."),
+  entry("landsend", "coupon", "Coupon page", "Lands' End posts its current percent-off codes on its own site."),
+  entry("ralphlauren", "outlet", "Outlet", "Past-season polo and knitwear at outlet prices."),
+  entry("coach", "outlet", "Coach Outlet", "Past-season bags and accessories at outlet prices."),
+  entry("michaelkors", "outlet", "Outlet", "Reduced bags and accessories in the outlet section."),
+  entry("katespade", "outlet", "Surprise sale", "Limited-time markdowns on bags and accessories."),
+  entry("nike", "outlet", "Nike clearance", "Reduced footwear and apparel in the clearance section."),
+  entry("away", "deal", "Bundle pricing", "A suitcase and bag bought together cost less than separately."),
+  entry("samsonite", "deal", "Sale", "Luggage sets at seasonal prices."),
+  entry("drmartens", "outlet", "Outlet", "Past-season boots at outlet prices."),
+  entry("timberland", "outlet", "Outlet", "Reduced boots and outerwear."),
+  entry("birkenstock", "outlet", "Clearance", "Discontinued colours at a lower price."),
+  entry("hoka", "deal", "Sale", "Past-season colourways at reduced prices."),
+  entry("brooksrunning", "deal", "Sale", "Previous models at a lower price."),
+  entry("gymshark", "deal", "Outlet", "Reduced training kit in the outlet section."),
+  entry("fabletics", "member", "Member pricing", "Member prices on sets, with the membership terms shown at checkout."),
+  entry("vuoriclothing", "deal", "Last call", "Discontinued colours at a lower price."),
+  entry("aloyoga", "deal", "Sale", "Seasonal markdowns on yoga kit."),
+  entry("llbean", "service", "Guarantee and outlet", "The store's guarantee plus a permanent outlet section."),
+  entry("eddiebauer", "deal", "Sale", "Seasonal markdowns on outerwear."),
+  entry("salomon", "deal", "Sale", "Past-season trail shoes at reduced prices."),
+  entry("merrell", "deal", "Sale", "Reduced hiking footwear."),
+  entry("arcteryx", "outlet", "Outlet", "Past-season technical gear, sold by the brand."),
+  entry("yeti", "deal", "Store sale", "Seasonal discounts on selected coolers and drinkware."),
+  entry("hydroflask", "deal", "Sale", "Discontinued colours at reduced prices."),
+  entry("coleman", "deal", "Sale", "Camping kit at seasonal prices."),
+  entry("maccosmetics", "member", "MAC Lover rewards", "Points and birthday gifts on the loyalty account."),
+  entry("clinique", "deal", "Bonus time", "A gift set with a qualifying purchase during the event."),
+  entry("esteelauder", "deal", "Gift with purchase", "A gift set with a qualifying purchase."),
+  entry("kiehls", "deal", "Gift with purchase", "Samples and sets during the store's promotions."),
+  entry("lush", "member", "Knot Wrap rewards", "Points on purchases and free products at the higher tiers."),
+  entry("cerave", "coupon", "Coupon page", "The brand posts current coupons on its own offers page."),
+  entry("dermstore", "deal", "Sale", "Seasonal markdowns on skincare."),
+  entry("lookfantastic", "deal", "Sale", "Reduced haircare and skincare, shipped from the UK."),
+  entry("gnc", "member", "myGNC rewards", "Points and member-only pricing on supplements."),
+  entry("vitaminshoppe", "member", "Rewards", "Points that convert to store credit."),
+  entry("myprotein", "deal", "Outlet", "Short-dated and end-of-line stock at lower prices."),
+  entry("roguefitness", "deal", "Clearance", "Discontinued plates and racks at reduced prices."),
+  entry("nordictrack", "deal", "Sale", "Equipment bundles at seasonal prices."),
+  entry("goodrx", "coupon", "Prescription prices", "Compare cash prices across pharmacies with a free coupon."),
+  entry("riteaid", "member", "Rewards", "Points and digital coupons on the loyalty account."),
+  entry("safeway", "member", "Just for U", "Clipped digital coupons and member pricing at the register."),
+  entry("albertsons", "member", "Just for U", "Clipped coupons and member-only prices."),
+  entry("publix", "coupon", "Weekly ad", "The weekly ad and the store's own coupons, updated each cycle."),
+  entry("heb", "coupon", "Digital coupons", "Coupons loaded to the account and applied at the register."),
+  entry("meijer", "coupon", "mPerks coupons", "Digital coupons clipped to the loyalty account."),
+  entry("wholefoodsmarket", "member", "Prime member deals", "Member-only prices in store and on delivery."),
+  entry("hellofresh", "deal", "New customer offer", "A first-box discount, with the regular price shown after it."),
+  entry("lego", "member", "VIP rewards", "Points on purchases, and double-point weekends."),
+  entry("mattel", "deal", "Store sale", "Seasonal markdowns on toys and collectibles."),
+  entry("michaels", "coupon", "Coupon page", "Michaels posts its current coupons on its own site."),
+  entry("joann", "coupon", "Coupon page", "Joann posts its current coupons on its own site."),
+  entry("hobbylobby", "coupon", "Weekly coupon", "The store's own weekly coupon, shown on its site."),
+  entry("shutterfly", "deal", "Sitewide sale", "Frequent percentage-off sales on prints and photo books."),
+  entry("vistaprint", "deal", "Sitewide sale", "Seasonal discounts on printed marketing."),
+  entry("advanceautoparts", "coupon", "Rebate and coupon page", "Current rebates and coupons are posted on the store's site."),
+  entry("oreillyauto", "coupon", "Coupon page", "Current coupons and rebates on the store's site."),
+  entry("rockauto", "deal", "Closeout parts", "Wholesaler-closeout parts at reduced prices."),
+  entry("tirerack", "service", "Tire rebates", "Manufacturer rebates on selected tire sets."),
+  entry("discounttire", "deal", "Tire sale", "Seasonal tire promotions with installation included."),
+  entry("summitracing", "deal", "Sale", "Seasonal discounts on performance parts."),
+  entry("bookshop", "service", "Supports bookshops", "Each order sends a share to an independent bookshop."),
+  entry("thriftbooks", "deal", "Sale", "Used books with an extra markdown during sales."),
+  entry("booksamillion", "member", "Millionaire's Club", "Member pricing and coupons on books."),
+  entry("priceline", "deal", "Express deals", "Unnamed hotels at a lower rate, revealed after booking."),
+  entry("kayak", "service", "Price alerts", "A watch on a route emails when the fare drops."),
+  entry("agoda", "deal", "Member rates", "Signed-in prices below the public rate."),
+  entry("vrbo", "deal", "Weekly discounts", "Longer stays lower the nightly rate."),
+  entry("airbnb", "deal", "Weekly discounts", "Hosts discount longer stays, shown before booking."),
+  entry("enterprise", "member", "Member rates", "Signed-in rates below the walk-up price."),
+  entry("amtrak", "deal", "Rail sale", "Limited-time fares on selected routes."),
+  entry("united", "member", "MileagePlus deals", "Award sales and member fares on selected routes."),
+  entry("delta", "member", "SkyMiles deals", "Award sales and member fares."),
+  entry("southwest", "deal", "Wanna Get Away fares", "The lowest fare class, with the same bags allowance."),
+  entry("argos", "deal", "Clearance", "End-of-line home and tech at reduced prices."),
+  entry("johnlewis", "service", "Never knowingly undersold", "A lower price at a comparable retailer is matched."),
+  entry("currys", "deal", "Clearance", "Ex-display and end-of-line tech."),
+  entry("boots", "member", "Advantage Card", "Points on purchases and member-only offers."),
+  entry("marksandspencer", "member", "Sparks rewards", "Points and member offers on clothing and food."),
+  entry("canadiantire", "member", "Triangle rewards", "Points on purchases, spendable in store."),
+  entry("bestbuyca", "deal", "Open-box", "Tested returns at a lower price."),
+  entry("walmartca", "deal", "Rollback", "Temporary price drops on everyday items."),
+  entry("jbhifi", "deal", "Sale", "Seasonal discounts on electronics."),
+  entry("kmartau", "deal", "Sale", "Seasonal markdowns on home and clothing."),
+  entry("bunnings", "service", "Price guarantee", "A lower price at a competitor is matched."),
+  entry("mediamarkt", "deal", "Sale", "Seasonal discounts on electronics."),
+  entry("zalando", "outlet", "Outlet", "Reduced lines and extra markdowns."),
+  entry("bol", "deal", "Sale", "Seasonal discounts across the store."),
+  entry("flipkart", "deal", "Big Billion sale", "Seasonal sale events with bank offers."),
+  entry("myntra", "deal", "End of Reason sale", "Seasonal sale events on clothing."),
+  entry("noon", "deal", "Sale", "Seasonal discounts with bank offers."),
+  entry("rakuten", "service", "Cash back portal", "A share of the order comes back as a payout."),
+  entry("aritzia", "deal", "Sale", "Seasonal markdowns on clothing."),
+  entry("reformation", "deal", "Sale", "Seasonal markdowns on clothing."),
+  entry("skims", "deal", "Sale", "Seasonal markdowns on shapewear."),
+  entry("allbirds", "deal", "Sale", "Discontinued colours at reduced prices."),
+  entry("onrunning", "deal", "Sale", "Past-season shoes at reduced prices."),
+  entry("ugg", "deal", "Sale", "Seasonal markdowns on boots."),
+  entry("pacsun", "coupon", "Coupon page", "The store posts its current percent-off codes on its own site."),
+  entry("mango", "deal", "Sale", "Seasonal markdowns on clothing."),
+  entry("cos", "deal", "Sale", "Seasonal markdowns on clothing."),
+  entry("tillys", "coupon", "Coupon page", "The store posts its current codes on its own site."),
+  entry("fentybeauty", "member", "Beauty rewards", "Points and birthday gifts on the loyalty account."),
+  entry("glowrecipe", "deal", "Sale", "Seasonal markdowns on skincare."),
+  entry("deciem", "deal", "Slowvember sale", "The brand's annual month-long discount."),
+  entry("ipsy", "deal", "First bag offer", "A discounted first bag, with the regular price shown after it."),
+  entry("arhaus", "deal", "Clearance", "Floor samples and discontinued pieces."),
+  entry("ballarddesigns", "deal", "Sale", "Seasonal markdowns on furniture."),
+  entry("frontgate", "deal", "Sale", "Seasonal markdowns on outdoor furniture."),
+  entry("verizon", "service", "Trade-in credit", "A working older phone lowers the price of a new one."),
+  entry("att", "service", "Trade-in credit", "A working older phone lowers the price of a new one."),
+  entry("tmobile", "service", "Trade-in credit", "A working older phone lowers the price of a new one."),
+  entry("decathlon", "member", "Member pricing", "Free membership unlocks lower prices on selected kit."),
+  entry("moosejaw", "member", "Rewards", "Points on outdoor gear, spendable later."),
+  entry("canva", "service", "Free for education", "Verified schools and non-profits get the paid plan free."),
+  entry("nordvpn", "deal", "Long-plan pricing", "Longer plans lower the monthly price; the renewal price is shown."),
+  entry("squarespace", "deal", "Annual plan saving", "Paying yearly lowers the monthly price."),
+  entry("jetblue", "member", "TrueBlue deals", "Award sales and member fares."),
+  entry("alaskaair", "member", "Mileage Plan deals", "Award sales and member fares."),
+  entry("halfords", "member", "Motoring Club", "Member pricing on servicing and parts."),
+  entry("selfridges", "deal", "Sale", "Seasonal designer markdowns."),
+  entry("sportsdirect", "deal", "Clearance", "Reduced sports kit and footwear."),
+  entry("tesco", "member", "Clubcard prices", "Member prices on selected groceries."),
+  entry("ao", "deal", "Clearance", "Ex-display appliances at reduced prices."),
+  entry("kogan", "deal", "Sale", "Seasonal discounts on electronics."),
+  entry("theiconic", "deal", "Sale", "Seasonal markdowns on clothing."),
+  entry("myer", "deal", "Sale", "Seasonal markdowns across departments."),
+  entry("carmax", "service", "No-haggle pricing", "The listed price is the price, with a fixed inspection."),
+  entry("carvana", "service", "No-haggle pricing", "The listed price is the price, delivered."),
+  entry("carparts", "coupon", "Coupon page", "Current parts coupons are posted on the store's site."),
+  entry("napaonline", "member", "Rewards", "Points on parts and member-only promotions."),
+  entry("weathertech", "deal", "Sale", "Seasonal discounts on mats and liners."),
+  entry("quill", "coupon", "Coupon page", "Office supplies coupon codes are posted on the store's site."),
+  entry("uline", "service", "Volume pricing", "Larger quantities lower the unit price automatically."),
+  entry("grainger", "service", "Volume pricing", "Volume tiers and account pricing on industrial supply."),
+  entry("moleskine", "deal", "Sale", "Seasonal markdowns on notebooks."),
+  entry("ihg", "member", "IHG One Rewards", "Points on stays, and member rates on selected nights."),
+  entry("wyndham", "member", "Wyndham Rewards", "Points on stays, spendable on award nights."),
+  entry("choicehotels", "member", "Choice Privileges", "Points on stays, spendable on award nights."),
+  entry("avis", "member", "Avis Preferred", "Member rates and faster pickup."),
+  entry("budget", "member", "RapidRez", "Saved details and member rates."),
+  entry("tripadvisor", "service", "Price comparison", "Compares the same room across booking sites."),
+  entry("hostelworld", "deal", "Member deals", "Signed-in rates and free cancellation on selected stays."),
+  entry("waterstones", "member", "Plus rewards", "Points on books and member-only prices."),
+  entry("indigo", "member", " plum rewards", "Points on books, spendable later."),
+];
+
+const KINDS = new Set(["coupon", "deal", "member", "outlet", "service"]);
+
+function text(value, limit) {
+  return String(value == null ? "" : value).trim().slice(0, limit);
+}
+
+// One shape for bundled entries and for an operator's published catalog alike.
+function normalizeOffer(raw, now) {
+  if (!raw || typeof raw !== "object") return null;
+  const store = text(raw.store, 64).toLowerCase();
+  const title = text(raw.title, 120);
+  if (!/^[a-z0-9][a-z0-9._-]*$/.test(store) || !title) return null;
+  const ends = raw.ends ? Date.parse(raw.ends) : NaN;
+  if (isFinite(ends) && ends < now) return null;
+  // A row that carries an address may only carry an https one; anything else is
+  // a malformed or hostile row rather than a row without a link.
+  const link = String(raw.url || "").trim();
+  if (link && !/^https:\/\/[^\s]+$/i.test(link)) return null;
+  const url = link || null;
+  const code = raw.code ? cleanCode(raw.code) : null;
+  return {
+    store,
+    kind: KINDS.has(raw.kind) ? raw.kind : "deal",
+    title,
+    detail: text(raw.detail, 220),
+    url,
+    code,
+    // The date the entry stops being offered, so an operator's seasonal list
+    // ages out even if they stop publishing.
+    ends: isFinite(ends) ? new Date(ends).toISOString() : null,
+  };
+}
+
+// The live list for one store. Expiry is applied here rather than at the call
+// site, so a stale offer can never be shown even if a caller forgets.
+export function catalogOffers(storeId, now) {
+  const at = Number(now) || Date.now();
+  const id = text(storeId, 64).toLowerCase();
+  if (!id) return [];
+  return CATALOG.map((raw) => normalizeOffer(raw, at))
+    .filter((offer) => offer && offer.store === id)
+    .map((offer) => Object.assign({ source: "catalog" }, offer));
+}
+
+// A published catalog is accepted only in the documented shapes, and only for
+// the fields above: an operator cannot smuggle script or a scheme into a row.
+export function normalizeCatalog(payload, now) {
+  const at = Number(now) || Date.now();
+  const list = Array.isArray(payload)
+    ? payload
+    : payload && Array.isArray(payload.offers)
+      ? payload.offers
+      : [];
+  const seen = new Set();
+  const offers = [];
+  list.forEach((raw) => {
+    const offer = normalizeOffer(raw, at);
+    if (!offer) return;
+    const key = offer.store + "|" + offer.title + "|" + (offer.code || "");
+    if (seen.has(key)) return;
+    seen.add(key);
+    offers.push(offer);
+  });
+  return {
+    version: Number(payload && payload.version) || 0,
+    updated: payload && payload.updated ? text(payload.updated, 40) : null,
+    offers,
+  };
+}
+
+export function catalogStatus() {
+  return {
+    version: CATALOG_VERSION,
+    updated: CATALOG_UPDATED,
+    count: CATALOG.length,
+  };
+}

@@ -66,7 +66,7 @@ test("a tilt up is read from the face sitting higher in the frame", async () => 
 
 test("an angle reports how far it has come, so the ring can fill on the way", async () => {
   const baseline = straight().pose;
-  const partway = poseFrom(summarize(turnFrame(6, 0, 0.97), SIDE, SIDE), SIDE);
+  const partway = poseFrom(summarize(turnFrame(3, 0, 0.985), SIDE, SIDE), SIDE);
   const verdict = judgePose(STEPS[1], partway, baseline);
   assert.equal(verdict.ok, false);
   assert.ok(verdict.progress > 0 && verdict.progress < 1, "a half turn reports partway");

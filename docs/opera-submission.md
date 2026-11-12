@@ -56,6 +56,33 @@ reading the criteria again:
   page-script gate, the version agreement between the terms and the privacy page, and the markup
   balance.
 
+**Revision 4 — 12 November 2026.** Features added after revision 3, each checked for what a
+reviewer would ask about it:
+
+- **One new permission: `alarms`.** It exists solely for the hourly savings-list pass. It reads no
+  page, holds no data, is used by `src/background/service-worker.js`, and stops when automatic
+  refresh is switched off. Declared and asserted in `test/manifest-compliance.test.mjs`.
+- **A savings list ships, with no invented codes.** `src/lib/catalog.js` holds storewide mechanics
+  the store itself runs (loyalty schemes, outlet rails, price-match policies), shown apart from
+  codes. A row may carry an end date and drops out when it passes. A code appears in the codes list
+  only when the store publishes it on the page, when the shopper saved it, when an authorized feed
+  supplies it, or when an operator publishes it to the optional list URL — never because it was
+  made up.
+- **Automatic refresh, disclosed.** The hourly pass re-reads the list, prunes codes whose end date
+  passed and refreshes the optional feed. It is a timer, not a background crawler; Settings says
+  what it does and can turn it off.
+- **A first-run tour.** Seven steps explain codes, cashback, prices, the optional face scan, ads and
+  the shopper's desktop. It is dismissed or skipped with a tap, and replayed from Settings.
+- **The face scan no longer asks anyone to lean back.** A close-up face may fill up to 94% of the
+  frame, the oval is generous, and a close-up needs less travel to prove a turn. The only distance
+  prompt left is a gentle "ease back an inch or two" for a face that fills the whole frame.
+- **Windows, macOS and Linux are checked without the machines.** `tools/emulate-platforms.mjs`
+  runs the shipped modules under seven emulated desktops; `test/platform.test.mjs` asserts the
+  desktop strings, shortcuts, tour copy and the close-up scan. This is emulation of browser signals,
+  not a run on physical hardware — the operator row below says so.
+- **The suite is now 84 tests**, including the savings list, the hourly pass, the tour and the
+  platform matrix.
+
 ## What the operator is confirming
 
 The review below maps each criterion to what the package actually does, and names the file that
@@ -83,9 +110,9 @@ proves it. Two things have to be true before upload and only a person can confir
 | Must not collect private information without authorisation | Nothing acts before the shopper ticks an empty box and agrees: the panel stays on its notice, the ad-blocking ruleset is declared off and only the worker turns it on for an agreed profile, the ad-slot script reads the same record before it hides or counts, and ad credit is refused without it | `src/lib/terms.js`, `src/content/consent.js`, `src/background/service-worker.js` `syncAdBlock()`, `manifest.json` ruleset, `test/policies.test.mjs`, `test/security.test.mjs` | Met |
 | Must not send private data to an external store through XHR | Outbound calls go only to addresses the operator or shopper configured, over HTTPS or to a loopback listener, and only for the feature that was used | `src/partners/*`, `guard.endpoint()` in `src/lib/guard.js`, `test/security.test.mjs` | Met |
 | Code must not be obfuscated or minified | Plain ES modules and classic scripts, comments included, no build step beyond the manifest; asserted with no line over 500 characters and no `eval` | `dist/opera` is a copy of `extension/`; `test/manifest-compliance.test.mjs` | Met |
-| No obvious bugs | 69 Node tests cover the trust boundary, accounts, wallet, age check, the gate's hold on blocking and credits, the disclosure pages, the packaged manifest and the package itself; catalog check passes | `cd extension && node --test test/*.test.mjs` → 69 pass; `node tools/check-catalog.mjs` → agree | Met in Node; see "Not verified here" |
+| No obvious bugs | 84 Node tests cover the trust boundary, accounts, wallet, age check, the savings list and its hourly pass, the tour, the platform matrix, the gate's hold on blocking and credits, the disclosure pages, the packaged manifest and the package itself; catalog check passes | `cd extension && node --test test/*.test.mjs` → 84 pass; `node tools/emulate-platforms.mjs` → 7/7; `node tools/check-catalog.mjs` → agree | Met in Node; see "Not verified here" |
 | Icons similar in style, not words on a colour | Five PNG sizes from one mark — the four the manifest declares (16/32/48/128) and the 96px sidebar icon — all RGBA and non-interlaced, none a wordmark | `extension/icons/`; sizes and PNG headers asserted in `test/manifest-compliance.test.mjs`; decoded and inspected at 16 and 32px | Met |
-| Testing on Windows, Mac and Linux | — | — | **Operator** |
+| Testing on Windows, Mac and Linux | The shipped modules are driven under emulated Windows, macOS, Linux and ChromeOS browser signals — detection, shortcut, tour copy, close-up face scan and store resolution all agree — but this is not a run on physical hardware | `tools/emulate-platforms.mjs` (7/7), `test/platform.test.mjs` | Met by emulation; a physical-device pass is **Operator** |
 | Screenshots 612×408, white background, default UI | — | — | **Operator** |
 | Support page relevant to the extension | `support.html` ships in the package: opening the panel, first run, each feature, what to check when one does nothing, and how to reach us. No external links | `extension/support.html`, linked from `options.html`; `test/policies.test.mjs` | Met in the package; the listing URL is **Operator** |
 
@@ -97,6 +124,7 @@ proves it. Two things have to be true before upload and only a person can confir
 | `tabs` | Read the active tab's address so the panel knows which shop is open; open the terms, a payout card and a store in a tab | `sidepanel.js` `render()`, `openTerms()`, `options.js` |
 | `scripting` | Register the page script for a shop the shopper chose to add, and inject it into the frames of a shop page (carts live in iframes) | `src/background/service-worker.js` |
 | `declarativeNetRequest` | Stop requests to advertising and tracker domains for the ad-value feature | `rules/ads.json` |
+| `alarms` | Run the hourly savings-list pass: re-read the list, drop rows whose end date passed, refresh the optional feed. Reads no page and can be switched off | `src/background/service-worker.js` `scheduleRefresh()`, `refreshCatalog()` |
 | `sidePanel` (Chromium only) | Puts the panel in the Chromium side panel; **not** in the Opera package | removed by `tools/build.mjs` |
 | Host access via `content_scripts` | The 787 shop host patterns in the catalog: recognise the shop the shopper opened, read the codes and prices that page publishes, fill the store's own promo field, hide and count empty ad slots | `manifest.json` `content_scripts` (one entry, five files); kept in step with `src/lib/stores.js` by `tools/check-catalog.mjs` |
 | `optional_host_permissions` `*://*/*` | Granted **one origin at a time**, only on a click: a shop the shopper adds themselves, or a partner endpoint the operator saves (feed, payout proxy, sponsor service, age relay) | `sidepanel.js` `checkSite()`, `options.js` `ensureHost()` |

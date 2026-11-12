@@ -16,13 +16,16 @@ import {
 
 // How far the face has to travel from the straight-on view, as a share of the
 // frame. Small enough for a head turned a comfortable amount, big enough that
-// sitting still cannot pass for a turn.
-export const TURN = 0.035;
+// sitting still cannot pass for a turn. A close-up face covers more of the frame
+// for the same head movement, so it needs less travel again (see turnNeeded).
+export const TURN = 0.022;
 // A turned face also reads narrower than a straight-on one, which is a second,
 // independent sign of the same turn.
-export const NARROW = 0.92;
-// Where the straight-on view has to sit, from the middle of the frame.
-export const CENTER_TOLERANCE = 0.12;
+export const NARROW = 0.945;
+// Where the straight-on view has to sit, from the middle of the frame. Wide
+// enough that a laptop camera at the edge of a desk still passes: the shopper
+// should never have to shuffle the chair to satisfy the oval.
+export const CENTER_TOLERANCE = 0.2;
 // The face has to hold an angle this many samples in a row, so a single lucky
 // frame at the edge of the lens is not taken for a turn.
 export const HOLD = 2;
@@ -37,7 +40,7 @@ export const STEPS = [
     id: "center",
     axis: "center",
     label: "Look straight at the camera",
-    tip: "Line your face up with the ring",
+    tip: "Sit where you are \u2014 your face just has to fill the oval",
     turn: { x: 0, y: 0 },
     short: "Straight",
   },
@@ -64,7 +67,7 @@ export const STEPS = [
     axis: "y",
     sign: -1,
     label: "Tilt your chin up",
-    tip: "Keep your whole face inside the ring",
+    tip: "A small tilt is plenty \u2014 stay where you are",
     turn: { x: 0, y: -20 },
     short: "Up",
   },
@@ -96,13 +99,22 @@ export function poseFrom(stats, size) {
 // that is what a turn looks like from the camera.
 function usable(pose) {
   if (!pose) return "Looking for your face — face the camera in even light.";
-  if (pose.share < MIN_FACE_SHARE) return "Come a little closer — fill the ring with your face.";
-  if (pose.share > MAX_FACE_SHARE) return "You are too close to the lens. Move back a little.";
+  if (pose.share < MIN_FACE_SHARE) return "Come a little closer — fill the oval with your face.";
+  if (pose.share > MAX_FACE_SHARE) return "Ease back an inch or two — your face fills the whole frame.";
   if (pose.fill < MIN_FILL) return "Hold your whole face in the ring — no hand or hair over it.";
   if (pose.contrast < MIN_CONTRAST) return "No detail is visible. Face a lamp or a window.";
   if (pose.brightness < MIN_BRIGHTNESS) return "Too dark to read your face. Face a lamp or a window.";
   if (pose.brightness > MAX_BRIGHTNESS) return "Too bright to read your face. Step out of the glare.";
   return "";
+}
+
+// How far this particular face has to travel. A face that fills 40% of the frame
+// or more already covers a lot of ground, so the same turn moves it further and
+// a shorter travel proves it — which is what lets someone scan from the chair
+// they are already sitting in.
+export function turnNeeded(pose) {
+  const share = Number(pose && pose.share) || 0;
+  return TURN * (share >= 0.4 ? 0.7 : 1);
 }
 
 // { ok, hint, progress }: ok means this angle has been reached and can be kept;
@@ -125,13 +137,14 @@ export function judgePose(step, pose, baseline) {
   const from = baseline || { x: 0, y: 0, aspect: pose.aspect, width: pose.width, height: pose.height };
   const along = step.axis === "x" ? pose.x - from.x : pose.y - from.y;
   const travelled = (step.sign || 1) * along;
-  const progress = Math.min(1, Math.max(0, travelled / TURN));
+  const need = turnNeeded(pose);
+  const progress = Math.min(1, Math.max(0, travelled / need));
   const side = step.sign < 0 ? "left" : "right";
 
   // Turned the other way: worth saying, because doing it again the same way
   // will never pass — and the same sentence for a chin that dropped instead of
   // lifting, since "turn to your left" is nonsense for a tilt.
-  if (travelled <= -TURN * 0.6) {
+  if (travelled <= -need * 0.6) {
     return {
       ok: false,
       hint:
@@ -141,21 +154,21 @@ export function judgePose(step, pose, baseline) {
       progress: 0,
     };
   }
-  if (step.axis === "x" && travelled < TURN) {
-    const narrower = from.aspect && pose.aspect <= from.aspect * NARROW && travelled >= TURN * 0.45;
+  if (step.axis === "x" && travelled < need) {
+    const narrower = from.aspect && pose.aspect <= from.aspect * NARROW && travelled >= need * 0.45;
     if (!narrower) {
       return {
         ok: false,
-        hint: travelled >= TURN * 0.45 ? "Almost — a little further to your " + side + "." : step.label + ".",
+        hint: travelled >= need * 0.45 ? "Almost — a little further to your " + side + "." : step.label + ".",
         progress,
       };
     }
     return { ok: true, hint: "", progress: 1 };
   }
-  if (step.axis === "y" && travelled < TURN) {
+  if (step.axis === "y" && travelled < need) {
     return {
       ok: false,
-      hint: travelled >= TURN * 0.4 ? "Almost — chin a little higher." : "Tilt your chin up.",
+      hint: travelled >= need * 0.4 ? "Almost — chin a little higher." : "Tilt your chin up.",
       progress,
     };
   }
@@ -199,7 +212,7 @@ export function compareModel(views) {
   const contrasts = poses.map((pose) => pose.contrast);
   const shares = poses.map((pose) => pose.share);
 
-  if (span(shares) > 0.5 || Math.min.apply(null, shares) < MIN_FACE_SHARE) {
+  if (span(shares) > 0.62 || Math.min.apply(null, shares) < MIN_FACE_SHARE) {
     return { ok: false, message: "your face left the frame between angles" };
   }
   if (span(brightnesses) > LIGHT_DRIFT) {
@@ -208,10 +221,10 @@ export function compareModel(views) {
   if (span(contrasts) > CONTRAST_SPREAD || Math.min.apply(null, contrasts) < MIN_CONTRAST) {
     return { ok: false, message: "one of the angles lost the detail in your face" };
   }
-  if (model.spreadX < TURN) {
+  if (model.spreadX < TURN * 0.85) {
     return { ok: false, message: "the views barely moved sideways" };
   }
-  if (model.spreadY < TURN * 0.8) {
+  if (model.spreadY < TURN * 0.55) {
     return { ok: false, message: "the views barely moved up and down" };
   }
   return { ok: true, message: "", model };

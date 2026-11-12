@@ -12,15 +12,19 @@ export const LOCAL_PROVIDER = "On-device check";
 // some facial detail, sit in usable light and move a little between two frames.
 // The numbers are kept generous so ordinary indoor light and an unposed selfie
 // pass on the first try.
-export const MIN_FACE_SHARE = 0.03;
-export const MAX_FACE_SHARE = 0.8;
-export const MIN_FILL = 0.3;
-export const MIN_ASPECT = 0.5;
+//
+// The close-of-lens limits matter most: most people scan at whatever distance
+// their chair already is, so a face that fills almost the whole frame is a
+// normal scan, not a mistake. Nothing here asks anyone to lean back.
+export const MIN_FACE_SHARE = 0.018;
+export const MAX_FACE_SHARE = 0.94;
+export const MIN_FILL = 0.22;
+export const MIN_ASPECT = 0.45;
 export const MAX_ASPECT = 1.9;
-export const MIN_CONTRAST = 8;
-export const MIN_BRIGHTNESS = 45;
-export const MAX_BRIGHTNESS = 232;
-export const MIN_MOTION = 0.05;
+export const MIN_CONTRAST = 7;
+export const MIN_BRIGHTNESS = 40;
+export const MAX_BRIGHTNESS = 238;
+export const MIN_MOTION = 0.04;
 
 // Skin lives in a narrow band of chroma whatever the tone or the lamp, which is
 // why this reads Cb/Cr rather than raw red/green/blue: a bright wall and a pale
@@ -205,7 +209,7 @@ export function judgeLocal(stats) {
     return unclear("No face was found in that frame. Fill the frame with your face and try again.");
   }
   if (share > MAX_FACE_SHARE) {
-    return unclear("That frame was too close to the lens. Move back a little and try again.");
+    return unclear("Your face filled the whole frame. Ease back an inch or two \u2014 no further.");
   }
   if (typeof value.aspect === "number" && (value.aspect < MIN_ASPECT || value.aspect > MAX_ASPECT)) {
     return unclear("That did not look like a face. Face the camera straight on and try again.");

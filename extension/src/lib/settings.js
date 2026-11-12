@@ -29,6 +29,12 @@ export const DEFAULTS = {
   // The extension only ever stores its address and an optional bearer token.
   ageCheckUrl: "",
   ageCheckToken: "",
+  // Where an operator publishes a newer savings catalog. Optional: with nothing
+  // here the bundled list is used, and either way the worker re-checks it
+  // hourly so expired rows disappear without anyone asking.
+  catalogUrl: "",
+  // Keep the savings list and any connected feed current on a schedule.
+  autoRefresh: true,
   partnerMembers: "",
   enabledSites: [],
   enabled: {
@@ -61,7 +67,7 @@ const TEXT_LIMITS = {
 
 // Addresses this extension contacts. Each is validated in guard.js, so a plain
 // HTTP address on the open internet is dropped rather than sent a credential.
-const ENDPOINTS = ["feedUrl", "cashbackTemplate", "payoutUrl", "sponsorUrl", "ageCheckUrl"];
+const ENDPOINTS = ["feedUrl", "cashbackTemplate", "payoutUrl", "sponsorUrl", "ageCheckUrl", "catalogUrl"];
 
 const MAX_SITES = 500;
 
@@ -100,6 +106,10 @@ export function sanitizeSettings(raw) {
     if (key === "payoutMinimum") {
       const minimum = intValue(input.payoutMinimum, 0, 10000000);
       settings.payoutMinimum = minimum === null ? DEFAULTS.payoutMinimum : minimum;
+      return;
+    }
+    if (key === "autoRefresh") {
+      settings.autoRefresh = typeof input.autoRefresh === "boolean" ? input.autoRefresh : DEFAULTS.autoRefresh;
       return;
     }
     if (ENDPOINTS.indexOf(key) !== -1) {

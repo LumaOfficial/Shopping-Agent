@@ -936,6 +936,34 @@ export const STORES = [
   { id: "taobao", name: "Taobao", host: "taobao.com", category: "International" },
   { id: "tmall", name: "Tmall", host: "tmall.com", category: "International" },
   { id: "jd", name: "JD.com", host: "jd.com", category: "International" },
+
+  // Added in 0.7: shops shoppers asked for, kept in the same shape as the rest
+  // so host matching and saved codes need no special case.
+  { id: "carhartt", name: "Carhartt", host: "carhartt.com", category: "Workwear" },
+  { id: "duluthtrading", name: "Duluth Trading", host: "duluthtrading.com", category: "Workwear" },
+  { id: "smartwool", name: "Smartwool", host: "smartwool.com", category: "Outdoor" },
+  { id: "darntough", name: "Darn Tough", host: "darntough.com", category: "Outdoor" },
+  { id: "osprey", name: "Osprey", host: "osprey.com", category: "Outdoor" },
+  { id: "marmot", name: "Marmot", host: "marmot.com", category: "Outdoor" },
+  { id: "mountainhardwear", name: "Mountain Hardwear", host: "mountainhardwear.com", category: "Outdoor" },
+  { id: "burton", name: "Burton", host: "burton.com", category: "Outdoor" },
+  { id: "kuhl", name: "Kühl", host: "kuhl.com", category: "Outdoor" },
+  { id: "sportsmans", name: "Sportsman's Warehouse", host: "sportsmans.com", category: "Outdoor" },
+  { id: "jensonusa", name: "Jenson USA", host: "jensonusa.com", category: "Outdoor" },
+  { id: "competitivecyclist", name: "Competitive Cyclist", host: "competitivecyclist.com", category: "Outdoor" },
+  { id: "pgatoursuperstore", name: "PGA TOUR Superstore", host: "pgatoursuperstore.com", category: "Outdoor" },
+  { id: "lovesac", name: "Lovesac", host: "lovesac.com", category: "Home" },
+  { id: "raymourflanigan", name: "Raymour & Flanigan", host: "raymourflanigan.com", category: "Home" },
+  { id: "bobsdiscountfurniture", name: "Bob's Discount Furniture", host: "mybobs.com", category: "Home" },
+  { id: "zenni", name: "Zenni Optical", host: "zennioptical.com", category: "Eyewear" },
+  { id: "eyebuydirect", name: "Eyebuydirect", host: "eyebuydirect.com", category: "Eyewear" },
+  { id: "glasses", name: "Glasses.com", host: "glasses.com", category: "Eyewear" },
+  { id: "1800flowers", name: "1-800-Flowers", host: "1800flowers.com", category: "Gifts" },
+  { id: "thebouqs", name: "The Bouqs Co.", host: "bouqs.com", category: "Gifts" },
+  { id: "blueapron", name: "Blue Apron", host: "blueapron.com", category: "Grocery" },
+  { id: "factor75", name: "Factor", host: "factor75.com", category: "Grocery" },
+  { id: "hannaford", name: "Hannaford", host: "hannaford.com", category: "Grocery" },
+  { id: "foodcity", name: "Food City", host: "foodcity.com", category: "Grocery" },
 ];
 
 // Every entry may list one host or several regional hosts.

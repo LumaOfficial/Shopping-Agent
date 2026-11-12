@@ -82,6 +82,20 @@
           blocking when switched off. Nothing is bought, filled in or paid for without you.
         </p>
 
+        <h2>Keeping up to date</h2>
+        <p class="muted" id="refresh-status">Checking the savings list…</p>
+        <label class="toggle"
+          ><input id="toggle-refresh" type="checkbox" /> Keep coupons and offers fresh automatically</label
+        >
+        <div class="actions" style="margin-top: 10px; padding-top: 0; border-top: 0">
+          <button class="btn ghost" id="refresh-now" type="button">Update now</button>
+          <button class="btn ghost" id="replay-tour" type="button">Replay the tour</button>
+        </div>
+        <p class="hint">
+          With this on, the savings list is re-checked every hour and a code with an end date drops
+          out by itself. Off means it refreshes when you open the panel.
+        </p>
+
         <h2>Your cashback</h2>
         <p class="wallet-figure" id="simple-wallet">$0.00</p>
         <p class="muted" id="simple-payout">
@@ -154,6 +168,17 @@
           <button class="btn ghost" id="test-source" type="button">Test connection</button>
         </div>
         <p class="test-line" id="test-result" role="status" aria-live="polite" hidden></p>
+
+        <h2>Published savings list (optional)</h2>
+        <div class="field">
+          <label for="catalog-url">Catalog endpoint</label>
+          <input id="catalog-url" type="url" placeholder="https://offers.example.com/catalog.json" />
+          <p class="hint">
+            A JSON list of storewide offers you are entitled to publish. It replaces the bundled
+            savings list and is re-read hourly, so seasonal offers can be added or ended without a
+            new release. Leave blank to use the bundled list.
+          </p>
+        </div>
 
         <h2>Cashback network</h2>
         <div class="field">

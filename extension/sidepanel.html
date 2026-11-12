@@ -28,6 +28,25 @@
         </a>
       </header>
 
+      <!-- The newcomer's tour: one step per feature, resumable, replayable from
+           Settings. Hidden once the shopper has walked it or skipped it. -->
+      <section class="card tour c0" id="tour-block" role="region" aria-labelledby="tour-title" hidden>
+        <div class="tour-head">
+          <span class="tour-kicker" id="tour-kicker">Welcome · 1 of 7</span>
+          <span class="tour-dots" id="tour-dots" aria-hidden="true"></span>
+        </div>
+        <h2 id="tour-title">Savings that follow you around the shop</h2>
+        <p class="muted" id="tour-body" aria-live="polite"></p>
+        <ul class="tour-points" id="tour-points"></ul>
+        <div class="tour-actions">
+          <button class="btn w" id="tour-next" type="button">Next</button>
+          <div class="tour-sub">
+            <button class="mini" id="tour-back" type="button">Back</button>
+            <button class="mini" id="tour-skip" type="button">Skip tour</button>
+          </div>
+        </div>
+      </section>
+
       <section class="card acct-menu" id="acct-menu" hidden>
         <p class="muted tiny" id="acct-line"></p>
         <button class="mini" id="acct-signout" type="button">Sign out of this device</button>
@@ -229,6 +248,9 @@
           <span class="chip pending" id="age-boost">3% boost locked</span>
         </div>
         <p class="muted tiny" id="age-note"></p>
+        <p class="age-distance" id="age-distance">
+          Sit where you already are — your face only has to fill the oval. No leaning back.
+        </p>
         <p class="age-meta" id="age-meta" hidden></p>
 
         <div id="age-facts-wrap">
@@ -327,6 +349,13 @@
         <input class="search" id="code-search" type="search" placeholder="Filter codes" aria-label="Filter codes" hidden />
         <div id="coupons" class="coupons"></div>
         <p class="muted tiny empty-note" id="coupon-empty" hidden>No codes for this store yet.</p>
+        <div class="offers" id="offers-list" hidden>
+          <div class="offers-head">
+            <strong>Ways to save at this store</strong>
+            <span class="muted tiny" id="offers-fresh"></span>
+          </div>
+          <ul class="offers-rows" id="offers-rows"></ul>
+        </div>
         <button class="btn soft w" id="fetch-codes" type="button" hidden>Scan this page again</button>
         <p class="muted tiny" id="field-note" style="margin-top: 6px" hidden>
           No coupon field visible yet — open your cart or checkout to apply a code.
@@ -456,7 +485,12 @@
       </section>
 
       <section class="card c8" id="how-block">
-        <h3>How savings works</h3>
+        <h3 style="justify-content: space-between">
+          How savings works
+          <span class="head-actions">
+            <button class="mini" id="tour-replay" type="button">Replay the tour</button>
+          </span>
+        </h3>
         <ol class="steps">
           <li>
             <span class="step-n" aria-hidden="true">1</span>

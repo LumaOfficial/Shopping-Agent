@@ -2,7 +2,7 @@
 // be imported and driven from Node. Storage is a plain in-memory map, and the
 // messages the panel would send are delivered through the real onMessage
 // listener the worker registers.
-const LISTENERS = ["onMessage", "onInstalled", "onStartup"];
+const LISTENERS = ["onMessage", "onInstalled", "onStartup", "onAlarm"];
 
 function storageArea(store, changed) {
   function names(key) {
@@ -48,6 +48,7 @@ export function createFakeChrome(seed) {
   });
   const opened = [];
   const rulesets = [];
+  const alarms = [];
 
   const chrome = {
     storage: {
@@ -88,6 +89,21 @@ export function createFakeChrome(seed) {
       async updateEnabledRulesets(update) {
         rulesets.push(update);
       },
+    },
+    alarms: {
+      // Recorded rather than scheduled: a test can see that the hourly pass was
+      // asked for, and fire it by hand.
+      create(name, options) {
+        alarms.push({ name, options });
+      },
+      async clear(name) {
+        const before = alarms.length;
+        for (let at = alarms.length - 1; at >= 0; at -= 1) {
+          if (alarms[at].name === name) alarms.splice(at, 1);
+        }
+        return alarms.length !== before;
+      },
+      onAlarm: { addListener(fn) { listeners.onAlarm.push(fn); } },
     },
     action: { onClicked: { addListener() {} } },
     commands: { onCommand: { addListener() {} } },
@@ -133,7 +149,13 @@ export function createFakeChrome(seed) {
     });
   }
 
-  return { chrome, store, send, opened, listeners, rulesets };
+  // Runs the alarm the worker registered, the way the browser would.
+  async function fireAlarm(name) {
+    listeners.onAlarm.forEach((fn) => fn({ name }));
+    await new Promise((resolve) => setTimeout(resolve, 0));
+  }
+
+  return { chrome, store, send, opened, listeners, rulesets, alarms, fireAlarm };
 }
 
 // Every test needs its own copy of the worker: its module state (the offer
