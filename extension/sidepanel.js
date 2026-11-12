@@ -1218,6 +1218,7 @@ async function applyAccount(account) {
   byId("auth-block").hidden = Boolean(account) || !consent;
   byId("acct-menu").hidden = true;
   const chip = byId("account-chip");
+  chip.setAttribute("aria-expanded", "false");
   chip.hidden = !account || !consent;
   // Verification belongs to the account, so the card follows the session.
   ageCheck.show(Boolean(account) && consent);
@@ -1326,10 +1327,18 @@ byId("signin-form").addEventListener("submit", async (event) => {
 
 // The chip opens the account card: signing out is a deliberate second tap, so a
 // stray click never costs someone their session.
-byId("account-chip").addEventListener("click", () => {
-  const menu = byId("acct-menu");
-  menu.hidden = !menu.hidden;
-  if (!menu.hidden) menu.scrollIntoView({ behavior: "smooth", block: "nearest" });
+const acctChip = byId("account-chip");
+function openAcctMenu(open) {
+  byId("acct-menu").hidden = !open;
+  acctChip.setAttribute("aria-expanded", String(open));
+  if (open) byId("acct-menu").scrollIntoView({ behavior: "smooth", block: "nearest" });
+}
+acctChip.addEventListener("click", () => openAcctMenu(byId("acct-menu").hidden));
+// A panel that opens from the keyboard closes from the keyboard too.
+byId("acct-menu").addEventListener("keydown", (event) => {
+  if (event.key !== "Escape") return;
+  openAcctMenu(false);
+  acctChip.focus();
 });
 
 byId("acct-signout").addEventListener("click", async () => {
@@ -1676,5 +1685,16 @@ if (chrome.storage.onChanged) {
     }
   });
 }
+
+// A long panel earns a way back up. The pill appears once the hero is behind
+// the shopper, and the jump respects a system that asked for less motion.
+const toTop = byId("to-top");
+const updateToTop = () => toTop.classList.toggle("is-on", window.scrollY > 520);
+window.addEventListener("scroll", updateToTop, { passive: true });
+updateToTop();
+toTop.addEventListener("click", () => {
+  const still = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  window.scrollTo({ top: 0, behavior: still ? "auto" : "smooth" });
+});
 
 boot().then(() => maybeStartTour());

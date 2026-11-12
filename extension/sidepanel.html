@@ -18,7 +18,14 @@
           <strong>Luma Pay</strong>
           <em id="store-name">Checking this page…</em>
         </div>
-        <button class="who" id="account-chip" type="button" hidden></button>
+        <button
+          class="who"
+          id="account-chip"
+          type="button"
+          aria-controls="acct-menu"
+          aria-expanded="false"
+          hidden
+        ></button>
         <a class="gear" href="options.html" target="_blank" title="Settings" aria-label="Open settings">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true">
             <path d="M4 8h9M18 8h2M4 16h3M12 16h8" />
@@ -579,6 +586,25 @@
     </div>
 
     <footer class="foot" id="partner-line"></footer>
+
+    <!-- Shown once the shopper is well down the panel; hidden from the keyboard
+         until then, because a control nobody can see should not take focus. -->
+    <button class="to-top" id="to-top" type="button" aria-label="Back to top">
+      <svg
+        width="18"
+        height="18"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="1.7"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        aria-hidden="true"
+      >
+        <path d="M12 19V5" />
+        <path d="M6 11l6-6 6 6" />
+      </svg>
+    </button>
 
     <div class="logo-show" id="logo-show" hidden>
       <div class="show-stage" role="dialog" aria-modal="true" aria-label="Every store Savings works on">
