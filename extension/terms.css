@@ -526,6 +526,45 @@ body.terms::after {
   opacity: 1;
 }
 
+/* ---------- The way back ---------- */
+
+/* These documents open in their own tab, so each carries a link back to the
+   panel. It sits above the kicker and reads as a pill rather than a sentence. */
+.terms-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0 0 22px;
+  padding: 7px 15px 7px 12px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.75);
+  color: var(--lit);
+  font-size: 13px;
+  font-weight: 500;
+  text-decoration: none;
+  transition: border-color 0.25s ease, background 0.25s ease, color 0.25s ease,
+    transform 0.3s var(--ease-soft);
+}
+
+.terms-back::before {
+  content: "\2190";
+  font-size: 15px;
+  line-height: 1;
+}
+
+.terms-back:hover {
+  border-color: var(--accent-2);
+  background: #fff;
+  color: var(--accent);
+  transform: translateX(-2px);
+}
+
+.terms-back:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
 /* ---------- Contents ---------- */
 
 .terms-toc {
