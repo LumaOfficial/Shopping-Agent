@@ -317,6 +317,7 @@ export function startToolkit() {
       const hint = byId("shortcut-hint");
       if (hint && !hint.hidden) {
         hint.hidden = true;
+        byId("toolkit-help").setAttribute("aria-expanded", "false");
         return;
       }
       const field = byId("store-search");
