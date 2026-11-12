@@ -68,7 +68,7 @@ test("the package is named Luma Pay Shopping Agent and carries its terms", async
 
   // The terms are a page inside the package — one link away from the panel and,
   // because the document ships, it opens with no network call at all.
-  for (const file of ["terms.html", "terms.css", "terms.js"]) {
+  for (const file of ["terms.html", "terms.css", "terms.js", "anim.js"]) {
     await stat(join(out, "opera", file));
   }
 });
