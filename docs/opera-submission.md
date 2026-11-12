@@ -113,6 +113,27 @@ reviewer would ask about it:
 - **The Terms version is 1.4**, in `src/lib/terms.js`, `src/content/consent.js` and the three
   packaged pages, so the panel asks again before anything runs. The suite is 94 tests.
 
+**Revision 6 — 12 November 2026.** Interface work after revision 5, checked for what a reviewer
+would ask about it:
+
+- **The three disclosure pages link back to the panel.** Terms, privacy and support each open with a
+  `Go Back Home` link to `sidepanel.html`; every one of those pages is in the package, so the link
+  resolves with no network call (`test/manifest-compliance.test.mjs` refuses a link to anything that
+  is not packaged).
+- **The panel has a "Back to top" pill** that appears once the shopper scrolls past the first
+  screen and returns via `window.scrollTo`. It is a plain button in `sidepanel.html`, driven by
+  `sidepanel.js`, and asks for no permission.
+- **Long pages and narrow sidebars read better.** The savings figure scales with the viewport
+  instead of a fixed size, the panel has a slim scrollbar, and the account chip is a real
+  disclosure button (`aria-expanded`, `aria-controls`, Escape closes it) with focus rings on the FAQ
+  rows and buttons.
+- **The static pages animate without leaving the package.** The aurora and grain motion is CSS and a
+  local script; it makes no request, and `anim.js` returns before starting when the reader's system
+  asks for reduced motion — as do the stylesheets.
+- Nothing above adds a permission, a host, an external file or a collection of data. The rebuilt
+  package still passes the 94-test suite, `tools/check-catalog.mjs` and the 7-desktop
+  `tools/emulate-platforms.mjs` run; the numbers below are from that rebuild.
+
 ## What the operator is confirming
 
 The review below maps each criterion to what the package actually does, and names the file that
@@ -140,7 +161,7 @@ proves it. Two things have to be true before upload and only a person can confir
 | Must not collect private information without authorisation | Nothing acts before the shopper ticks an empty box and agrees: the panel stays on its notice, the ad-blocking ruleset is declared off and only the worker turns it on for an agreed profile, the ad-slot script reads the same record before it hides or counts, and ad credit is refused without it | `src/lib/terms.js`, `src/content/consent.js`, `src/background/service-worker.js` `syncAdBlock()`, `manifest.json` ruleset, `test/policies.test.mjs`, `test/security.test.mjs` | Met |
 | Must not send private data to an external store through XHR | Outbound calls go only to addresses the operator or shopper configured, over HTTPS or to a loopback listener, and only for the feature that was used | `src/partners/*`, `guard.endpoint()` in `src/lib/guard.js`, `test/security.test.mjs` | Met |
 | Code must not be obfuscated or minified | Plain ES modules and classic scripts, comments included, no build step beyond the manifest; asserted with no line over 500 characters and no `eval` | `dist/opera` is a copy of `extension/`; `test/manifest-compliance.test.mjs` | Met |
-| No obvious bugs | 84 Node tests cover the trust boundary, accounts, wallet, age check, the savings list and its hourly pass, the tour, the platform matrix, the gate's hold on blocking and credits, the disclosure pages, the packaged manifest and the package itself; catalog check passes | `cd extension && node --test test/*.test.mjs` → 84 pass; `node tools/emulate-platforms.mjs` → 7/7; `node tools/check-catalog.mjs` → agree | Met in Node; see "Not verified here" |
+| No obvious bugs | 94 Node tests cover the trust boundary, accounts, wallet, age check, the savings list and its hourly pass, the tour, the platform matrix, the gate's hold on blocking and credits, the disclosure pages, the packaged manifest and the package itself; catalog check passes | `cd extension && node --test test/*.test.mjs` → 94 pass; `node tools/emulate-platforms.mjs` → 7/7; `node tools/check-catalog.mjs` → agree | Met in Node; see "Not verified here" |
 | Icons similar in style, not words on a colour | Five PNG sizes from one mark — the four the manifest declares (16/32/48/128) and the 96px sidebar icon — all RGBA and non-interlaced, none a wordmark | `extension/icons/`; sizes and PNG headers asserted in `test/manifest-compliance.test.mjs`; decoded and inspected at 16 and 32px | Met |
 | Testing on Windows, Mac and Linux | The shipped modules are driven under emulated Windows, macOS, Linux and ChromeOS browser signals — detection, shortcut, tour copy, close-up face scan and store resolution all agree — but this is not a run on physical hardware | `tools/emulate-platforms.mjs` (7/7), `test/platform.test.mjs` | Met by emulation; a physical-device pass is **Operator** |
 | Screenshots 612×408, white background, default UI | — | — | **Operator** |
@@ -156,7 +177,7 @@ proves it. Two things have to be true before upload and only a person can confir
 | `declarativeNetRequest` | Stop requests to advertising and tracker domains for the ad-value feature | `rules/ads.json` |
 | `alarms` | Run the hourly savings-list pass: re-read the list, drop rows whose end date passed, refresh the optional feed. Reads no page and can be switched off | `src/background/service-worker.js` `scheduleRefresh()`, `refreshCatalog()` |
 | `sidePanel` (Chromium only) | Puts the panel in the Chromium side panel; **not** in the Opera package | removed by `tools/build.mjs` |
-| Host access via `content_scripts` | The 787 shop host patterns in the catalog: recognise the shop the shopper opened, read the codes and prices that page publishes, fill the store's own promo field, hide and count empty ad slots | `manifest.json` `content_scripts` (one entry, five files); kept in step with `src/lib/stores.js` by `tools/check-catalog.mjs` |
+| Host access via `content_scripts` | The 811 shop host patterns across 794 stores in the catalog: recognise the shop the shopper opened, read the codes and prices that page publishes, fill the store's own promo field, hide and count empty ad slots | `manifest.json` `content_scripts` (one entry, six files); kept in step with `src/lib/stores.js` by `tools/check-catalog.mjs` |
 | `optional_host_permissions` `*://*/*` | Granted **one origin at a time**, only on a click: a shop the shopper adds themselves, or a partner endpoint the operator saves (feed, payout proxy, sponsor service, age relay) | `sidepanel.js` `checkSite()`, `options.js` `ensureHost()` |
 | Host `https://api.keepa.com/*` | Optional 90-day price low, only when a product API key is entered | `src/partners/price-history.js` |
 
@@ -268,7 +289,7 @@ Entered in the submission form, so the form and the package describe the same pr
 ## Submission checklist
 
 - [ ] `cd extension && node tools/build.mjs --target opera` on the commit being submitted
-- [ ] `cd extension && node --test test/*.test.mjs` — all 59 pass
+- [ ] `cd extension && node --test test/*.test.mjs` — all 94 pass
 - [ ] `cd extension && node tools/check-catalog.mjs` — catalog and manifest agree, and it reports no
       content script outside the catalog and no all-sites host permission
 - [ ] Load `dist/opera` unpacked in Opera and confirm the panel opens from the sidebar rail and from
