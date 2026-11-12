@@ -77,6 +77,14 @@ promo field, hiding the ad slots it blocks), how the product is paid for, and
 what stays in this browser profile. The full document is `terms.html`, packaged
 with the extension and linked from the panel and from the settings page.
 
+There is no standing access to every website. The manifest asks for the shops in
+the catalog through `content_scripts` (kept in step with `src/lib/stores.js` by
+`tools/check-catalog.mjs`), and everything else is granted one origin at a time
+from `optional_host_permissions` on a click: a shop the shopper adds, or a
+partner endpoint the operator saves. `host_permissions` holds only the product
+API. Blocking advertising requests is the one thing that acts beyond those pages,
+it is a network rule that reads no page, and terms §5 discloses it.
+
 Agreement is a deliberate act:
 
 - the tick box in the panel starts empty — there is no `checked` attribute and
@@ -224,14 +232,17 @@ empty list, and the extension never invents an offer.
   ads breaks most ad networks' terms, so this must be a programme that pays for
   these visits itself.
 - **Ad value** — the extension blocks ad and tracker requests with the
-  declarative rules in `rules/ads.json` and hides the empty ad slots on the page,
-  then shows what those impressions were worth instead of a coin balance. The
+  declarative rules in `rules/ads.json` and hides the empty ad slots on the shops
+  it covers, then shows what those impressions were worth instead of a coin
+  balance. The
   rate is one display impression, **$0.03 per 5 ads** (`src/lib/ad-value.js`), so
   five blocked ads read `$0.03`. The panel's **Ad value** card shows the running
   value, the ads blocked today and all time, and the ads blocked on the page the
   shopper is on. Nothing is paid out by this figure — it is the advertising value
   kept off the page, and the wallet still holds only cashback the networks
-  confirm. The switch in Settings stops both blocking and counting.
+  confirm. The switch in Settings stops both blocking and counting: the page
+  script reads it before its first pass, so a profile with the switch off
+  never hides a slot.
 - **Savings record** — total of the order-total drops the page confirmed, number
   of codes that worked, products tracked. Stored locally.
 - **Any shop, added on the spot** — for a site outside the catalog the panel
@@ -493,7 +504,7 @@ user from themselves.
 | `src/partners/cashback-payout.js` | Virtual Visa order — generic from Simple, Tango Card through your proxy from Developer |
 | `src/partners/sponsor-offers.js` | Sponsored offers → normalized ads, and the sponsor's booked reward |
 | `src/partners/price-history.js` | Optional product API 90-day low |
-| `tools/check-catalog.mjs` | Keeps `manifest.json` hosts in sync with the catalog |
+| `tools/check-catalog.mjs` | Keeps `manifest.json` hosts in sync with the catalog, and fails on a content script outside it or a standing all-sites host permission |
 | `tools/build.mjs` | Builds `dist/chromium/` and `dist/opera/` from this source |
 
 ### Connector configuration
@@ -673,6 +684,21 @@ same way — real worker, real messages, no browser. What it confirms:
 - a page address has to be `http(s)` — `javascript:` and `file:` are refused;
 - five wrong passwords pause sign-in even for the right password, and the stored
   account holds a salted hash with no trace of the plaintext.
+
+The Opera acceptance criteria that can be checked mechanically have their own
+suite in `test/manifest-compliance.test.mjs`. What it confirms:
+
+- the summary is complete sentences, names the background action and fits the
+  132-character manifest field, and no browser vendor appears in the title;
+- no host permission or content script gives standing access to every website,
+  each declared permission is used by a named file, and the optional host
+  permission a shopper's added shop needs is declared;
+- the CSP keeps scripts in the package and lets data leave only over HTTPS or to
+  a loopback listener;
+- no packaged script is minified, uses `eval` or `new Function`, or loads remote
+  code;
+- the four icon sizes are real PNGs, every page the manifest opens is in the
+  package, and nothing ships unused.
 
 The pure modules and both content scripts are covered by tests that also run in
 Node with jsdom: the coupon engine is driven against fixture cart pages —

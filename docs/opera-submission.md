@@ -17,6 +17,21 @@ The package under review is `dist/opera`, built with:
 cd extension && node tools/build.mjs --target opera
 ```
 
+**Revision 2 — 12 November 2026.** What changed in the package since revision 1, all of it from
+reading the criteria again:
+
+- the standing `*://*/*` host permission and the all-sites content script are gone: the extension
+  now asks for the shops in its catalog (the content-script list) and for one origin at a time when
+  the shopper adds a shop or the operator saves a partner endpoint (`optional_host_permissions`);
+- the ad-slot script runs with the shop script instead of on every page, and it now stops when the
+  ad-blocking switch is off — "off" used to stop the network rules while the page script kept
+  hiding and counting slots;
+- the manifest summary is a complete sentence and no longer says blocked ad value is credited as
+  money, which is the line a reviewer reads as misappropriating advertising revenue;
+- the CSP allows data to leave only over HTTPS or to a loopback listener, instead of every address;
+- `extension/test/manifest-compliance.test.mjs` asserts the mechanical criteria below, so a later
+  edit cannot quietly re-broaden access or reintroduce minified code.
+
 ## What the operator is confirming
 
 The review below maps each criterion to what the package actually does, and names the file that
@@ -31,21 +46,21 @@ proves it. Two things have to be true before upload and only a person can confir
 
 | Opera criterion | What the package does | Evidence | Status |
 | --- | --- | --- | --- |
-| One clearly stated purpose | One purpose: help a shopper save money in the store they are already in — codes, cashback, price history, sponsored offers, ad value credited to the same wallet | `extension/manifest.json` (name, description), `README.md` "What works" | **Attention** — see finding 1 |
+| One clearly stated purpose | One purpose: help a shopper save money in the store they are already in — codes, cashback, price history, sponsored offers, ad slots hidden in the shops it covers | `extension/manifest.json` (name, description), `README.md` "What works" | **Attention** — see finding 1 |
 | Name must not suggest a non-affiliated company | "Luma Pay Shopping Agent" is our own brand; no browser vendor's name appears in the title | `extension/manifest.json` `name`; `extension/terms.html` §2 | Met |
-| Summary answers what the extension does | Description: "Coupons, cashback and price history while you shop. Blocks ad slots and credits their value. Never reads card details." | `extension/manifest.json` `description`; asserted in `test/opera-package.test.mjs` | Met |
-| Background actions described | Ad-slot blocking and the value it credits are named in the description, and the panel's first screen explains them before anything runs | `extension/manifest.json`, `extension/sidepanel.html` terms card | Met |
-| No external JavaScript | Every script ships in the package; no page loads a remote script | `manifest.json` CSP `script-src 'self'`; `grep -n '<script' extension/*.html` shows only packaged files | Met |
+| Summary answers what the extension does | Description: "Luma Pay Shopping Agent finds coupons, cashback and price history while you shop, and hides ad slots in the shops it covers." — two complete sentences, 124 characters | `extension/manifest.json` `description`; `test/manifest-compliance.test.mjs` | Met |
+| Background actions described | Ad-slot hiding is named in the summary; the network-level ad blocking, what it does to a page's ads and how it is switched off are in terms §5 and §6, and the panel's first screen explains them before anything runs | `extension/manifest.json`, `extension/terms.html`, `extension/sidepanel.html` terms card | Met |
+| No external JavaScript | Every script ships in the package; no page loads a remote script | `manifest.json` CSP `script-src 'self'`; `test/manifest-compliance.test.mjs` | Met |
 | Third-party libraries genuine and unchanged | None are bundled; the extension has no dependencies at runtime | `extension/test/*.test.mjs` run on plain Node with no packages | Met |
-| No unused files | `tools/` and `test/` are left out of the package, and the Chromium panel module is written over in the Opera build then deleted | `tools/build.mjs`; `test/opera-package.test.mjs` | Met |
-| No redundant permissions | Each permission below is used; `sidePanel` is dropped from the Opera build | `tools/build.mjs` `operaManifest()`; table below | Met |
-| No ads in content scripts | Content scripts inject no advertising. The panel shows sponsored offers; the page script hides ad slots and counts them | `src/content/ad-guard.js`, `src/partners/sponsor-offers.js` | Met |
-| Must not change referral parameters or misappropriate traffic | No link on a page is rewritten. A tracked link is built from the operator's own template only when the shopper taps Activate | `src/partners/cashback-network.js`; no `href =` write in `src/content/` | Met |
+| No unused files | `tools/` and `test/` are left out of the package, the Chromium panel module is written over in the Opera build then deleted, and every file left is named by another packaged file | `tools/build.mjs`; `test/opera-package.test.mjs`, `test/manifest-compliance.test.mjs` | Met |
+| No redundant permissions | Each permission below is used by a named file; `sidePanel` is dropped from the Opera build; there is no standing access to every site | `tools/build.mjs` `operaManifest()`; `test/manifest-compliance.test.mjs`; table below | Met |
+| No ads in content scripts | Content scripts inject no advertising. The panel shows sponsored offers; the shop script hides ad slots and counts them | `src/content/ad-guard.js`, `src/partners/sponsor-offers.js` | Met |
+| Must not change referral parameters or misappropriate traffic | No link on a page is rewritten. A tracked link is built from the operator's own template only when the shopper taps Activate. Ad value is an estimate the operator pays, never an advertiser's money | `src/partners/cashback-network.js`; no `href =` write in `src/content/`; terms §6 | Met |
 | Must not collect private information without authorisation | The panel does nothing until the shopper ticks an empty box and agrees to the terms; the tick, its version and its date are stored | `src/lib/terms.js`, `extension/sidepanel.html`, `extension/terms.html` §1 | Met |
-| Must not send private data to an external store through XHR | Outbound calls go only to addresses the operator or shopper configured, HTTPS only, and only for the feature that was used | `src/partners/*`, `guard.endpoint()` in `src/lib/guard.js`, `test/security.test.mjs` | Met |
-| Code must not be obfuscated or minified | Plain ES modules, comments included, no build step beyond the manifest | `dist/opera` is a copy of `extension/` | Met |
-| No obvious bugs | 50 Node tests cover the trust boundary, accounts, wallet, age check and the package; catalog check passes | `cd extension && node --test test/*.test.mjs` → 50 pass; `node tools/check-catalog.mjs` → agree | Met in Node; see "Not verified here" |
-| Icons similar in style, not words on a colour | Five PNG sizes from one mark | `extension/icons/` | Met |
+| Must not send private data to an external store through XHR | Outbound calls go only to addresses the operator or shopper configured, over HTTPS or to a loopback listener, and only for the feature that was used | `src/partners/*`, `guard.endpoint()` in `src/lib/guard.js`, `test/security.test.mjs` | Met |
+| Code must not be obfuscated or minified | Plain ES modules and classic scripts, comments included, no build step beyond the manifest; asserted with no line over 500 characters and no `eval` | `dist/opera` is a copy of `extension/`; `test/manifest-compliance.test.mjs` | Met |
+| No obvious bugs | 59 Node tests cover the trust boundary, accounts, wallet, age check, the packaged manifest and the package itself; catalog check passes | `cd extension && node --test test/*.test.mjs` → 59 pass; `node tools/check-catalog.mjs` → agree | Met in Node; see "Not verified here" |
+| Icons similar in style, not words on a colour | Five PNG sizes from one mark (16/32/48/96/128) | `extension/icons/`; sizes asserted in `test/manifest-compliance.test.mjs` | Met |
 | Testing on Windows, Mac and Linux | — | — | **Operator** |
 | Screenshots 612×408, white background, default UI | — | — | **Operator** |
 | Support page relevant to the extension | — | — | **Operator** |
@@ -59,13 +74,17 @@ proves it. Two things have to be true before upload and only a person can confir
 | `scripting` | Register the page script for a shop the shopper chose to add, and inject it into the frames of a shop page (carts live in iframes) | `src/background/service-worker.js` |
 | `declarativeNetRequest` | Stop requests to advertising and tracker domains for the ad-value feature | `rules/ads.json` |
 | `sidePanel` (Chromium only) | Puts the panel in the Chromium side panel; **not** in the Opera package | removed by `tools/build.mjs` |
-| Host `*://*/*` | Recognise the shop the shopper opened, read the codes and prices that page publishes, fill the store's own promo field, hide empty ad slots | `manifest.json` `content_scripts`, `host_permissions` |
+| Host access via `content_scripts` | The 787 shop host patterns in the catalog: recognise the shop the shopper opened, read the codes and prices that page publishes, fill the store's own promo field, hide and count empty ad slots | `manifest.json` `content_scripts` (one entry, five files); kept in step with `src/lib/stores.js` by `tools/check-catalog.mjs` |
+| `optional_host_permissions` `*://*/*` | Granted **one origin at a time**, only on a click: a shop the shopper adds themselves, or a partner endpoint the operator saves (feed, payout proxy, sponsor service, age relay) | `sidepanel.js` `checkSite()`, `options.js` `ensureHost()` |
 | Host `https://api.keepa.com/*` | Optional 90-day price low, only when a product API key is entered | `src/partners/price-history.js` |
 
-The broad host access is requested because these features cannot work without it — not because a
-store requires it, and the package says so in the panel and in the terms (§5). If a reviewer asks
-whether the extension could ship without it, the honest answer is: only by dropping offer
-detection and code autofill on shops it does not already know, which is the product.
+There is no standing access to every website. Page scripts run only on the merchant domains the
+catalog lists, and anything outside it is read only after the browser asks the shopper for that one
+origin, which is why the panel's add-a-shop button is a click and not a background read. The
+package says the same thing in the panel and in terms §5. Blocking advertising requests is the one
+thing that acts beyond those pages, and it is a network rule, disclosed as such in terms §5: it
+stops requests to a published list of advertising and tracker domains, reads no page, and stops
+entirely when the switch is off.
 
 ## Findings
 
@@ -74,18 +93,23 @@ detection and code autofill on shops it does not already know, which is the prod
 Opera's criteria list "Additional bundling of shopping assistants" as a prohibited behaviour
 example, so a moderator will look at everything the panel does and ask whether it is one product or
 several. Coupons, cashback, price history and sponsored offers are all the same job — saving money
-in the store the shopper is already in. The one capability that sits outside that job is a page
-ad blocker, which the extension keeps on by default because the value it blocks is credited to the
+in the store the shopper is already in. The one capability that sits outside that job is an ad
+blocker, which the extension keeps on by default because the value it blocks is credited to the
 shopper's wallet.
 
 What the package does about it:
 
-- the ad switch is one switch in the settings, and turning it off stops blocking entirely;
+- the ad switch is one switch in the settings, and turning it off now stops everything: the network
+  ruleset stops blocking and the page script stops hiding and counting (`src/content/ad-guard.js`
+  reads the switch before its first pass);
+- the ad-slot script runs only on the shops in the catalog, with the shop script — the package no
+  longer runs a script on every site, so this is not a general-purpose page blocker;
 - the panel's first screen and the terms (§6) describe it as part of how the product is paid for,
   not as a separate utility;
 - the page script only hides ad slots and counts them; it injects nothing and touches nothing else
   on the page;
-- the listing description names it, so the submission form matches the behaviour.
+- the summary says ad slots are hidden in the shops it covers, so the submission form and the
+  manifest describe the same behaviour.
 
 This is a judgement call for Opera, not something the code can settle. If the package is rejected on
 this point, the smallest honest change is to ship the Opera build with the switch off until the
@@ -144,27 +168,35 @@ Entered in the submission form, so the form and the package describe the same pr
 
 - **Name:** Luma Pay Shopping Agent
 - **Summary:** Luma Pay Shopping Agent finds coupon codes, cashback offers and price history while
-  you shop, blocks ad slots and credits their value to your wallet, and never reads card details.
+  you shop, and hides ad slots in the shops it covers. It never reads your card details.
 - **Description:** Luma Pay Shopping Agent adds a panel to your browser. Open a shop and the panel
   shows the codes that shop publishes, cashback rates from cashback programmes, and how the price
   has moved. You choose a code and the panel types it into the store's own promo field and tells you
-  whether the store accepted it — it never checks out or pays for anything. With ad blocking on, the
-  panel stops advertising requests, hides the empty slots, and credits an estimated share of their
-  value to your wallet. The panel explains what it needs site access for, and asks you to agree to
-  its terms, before it does anything. Accounts, codes, prices and balances are stored in this
-  browser profile; card numbers are never read.
+  whether the store accepted it — it never checks out or pays for anything. In the shops it covers,
+  with ad blocking on, it also stops requests to advertising and tracker domains, hides the empty
+  slots they leave behind, and shows what that space was worth in your wallet; switching ad blocking
+  off stops all of it. The panel explains what it needs site access for — the shops in its catalog,
+  and one site at a time when you add a shop yourself — and asks you to agree to its terms before it
+  does anything. Accounts, codes, prices and balances are stored in this browser profile; card
+  numbers are never read.
 - **Category:** Shopping
 
 ## Submission checklist
 
 - [ ] `cd extension && node tools/build.mjs --target opera` on the commit being submitted
-- [ ] `cd extension && node --test test/*.test.mjs` — all pass
-- [ ] `cd extension && node tools/check-catalog.mjs` — catalog and manifest agree
+- [ ] `cd extension && node --test test/*.test.mjs` — all 59 pass
+- [ ] `cd extension && node tools/check-catalog.mjs` — catalog and manifest agree, and it reports no
+      content script outside the catalog and no all-sites host permission
 - [ ] Load `dist/opera` unpacked in Opera and confirm the panel opens from the sidebar rail and from
       the toolbar button, and that the first screen is the terms card with an empty tick box
 - [ ] Tick, accept, create an account, open a shop, and confirm codes are found and the ad-value card
       fills in
-- [ ] Turn ad blocking off in the settings and confirm blocking stops
+- [ ] Open a page that is not a covered shop and confirm `opera://extensions` shows no access to it
+- [ ] Use **Check & add this site** on a shop outside the catalog and confirm the browser asks for
+      that one site only
+- [ ] Turn ad blocking off in the settings, reload a shop, and confirm neither blocking nor counting
+      continues (the ad-value card says it is off)
+- [ ] In Settings, save a partner endpoint and confirm the browser asks for that host only
 - [ ] Run the face scan once (or cancel it): the camera opens only after the tick box, and the
       consent facts on screen match `extension/terms.html` §11
 - [ ] Screenshots at 612×408, white background: one of the panel in use, one showing where the

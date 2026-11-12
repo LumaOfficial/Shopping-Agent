@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Luma Pay Shopping Agent",
   "version": "0.5.0",
-  "description": "Coupons, cashback and price history while you shop. Blocks ad slots and credits their value. Never reads card details.",
+  "description": "Luma Pay Shopping Agent finds coupons, cashback and price history while you shop, and hides ad slots in the shops it covers.",
   "icons": {
     "16": "icons/luma-pay-16.png",
     "32": "icons/luma-pay-32.png",
@@ -11,7 +11,7 @@
   },
   "minimum_chrome_version": "116",
   "content_security_policy": {
-    "extension_pages": "default-src 'self'; script-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; media-src 'self' data: blob:; connect-src *"
+    "extension_pages": "default-src 'self'; script-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; media-src 'self' data: blob:; connect-src 'self' https: http://127.0.0.1:* http://localhost:*"
   },
   "permissions": [
     "storage",
@@ -21,7 +21,9 @@
     "declarativeNetRequest"
   ],
   "host_permissions": [
-    "https://api.keepa.com/*",
+    "https://api.keepa.com/*"
+  ],
+  "optional_host_permissions": [
     "*://*/*"
   ],
   "declarative_net_request": {
@@ -59,12 +61,6 @@
   },
   "options_page": "options.html",
   "content_scripts": [
-    {
-      "matches": ["*://*/*"],
-      "js": ["src/content/ad-guard.js"],
-      "run_at": "document_idle",
-      "all_frames": false
-    },
     {
       "matches": [
         "*://*.1password.com/*",
@@ -856,6 +852,7 @@
         "*://*.zumiez.com/*"
       ],
       "js": [
+        "src/content/ad-guard.js",
         "src/lib/compat.js",
         "src/content/coupon-engine.js",
         "src/content/page-scan.js",

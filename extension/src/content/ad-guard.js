@@ -1,8 +1,9 @@
-// Cosmetic ad blocking and counting. The declarative rules in
-// rules/ads.json stop ad requests before they leave the browser; this hides the
-// empty slots those requests would have filled and counts them, which is the
-// number the panel turns into money. It only styles elements that are ad slots
-// and never reads page content.
+// Cosmetic ad blocking and counting, on the shops the extension covers. The
+// declarative rules in rules/ads.json stop ad requests before they leave the
+// browser; this hides the empty slots those requests would have filled and
+// counts them, which is the number the panel turns into money. It only styles
+// elements that are ad slots and never reads page content. The switch in
+// Settings decides whether it runs at all.
 (function (global) {
   "use strict";
 
@@ -40,6 +41,39 @@
 
   var hidden = [];
   var reported = 0;
+  // Switched off means off: the ruleset stops blocking the requests and this
+  // script leaves the page's slots alone, so nothing is hidden or counted.
+  var enabled = true;
+
+  function applySwitch(settings) {
+    enabled = !(settings && settings.enabled && settings.enabled.adBlock === false);
+  }
+
+  var started = false;
+
+  // The first pass waits for the switch, so a profile with ad blocking off has
+  // its slots left alone from the first paint rather than after one report.
+  function start() {
+    if (started) return;
+    started = true;
+    settle();
+    global.setTimeout(settle, 1200);
+    global.setTimeout(settle, 4000);
+  }
+
+  try {
+    chrome.storage.local.get("settings", function (stored) {
+      applySwitch(stored && stored.settings);
+      start();
+    });
+  } catch (_error) {
+    start();
+  }
+
+  chrome.storage.onChanged.addListener(function (changes, area) {
+    if (area !== "local" || !changes.settings) return;
+    applySwitch(changes.settings.newValue);
+  });
 
   // Hides every slot it has not seen yet and answers with the page's total, so
   // a later pass only counts the slots that arrived with lazy loading.
@@ -67,6 +101,7 @@
   // One report per page, carrying only the new count. Ads that load late are
   // reported on a later pass instead of being recounted.
   function settle() {
+    if (!enabled) return;
     var count = scan();
     if (count <= reported) return;
     var add = count - reported;
@@ -86,10 +121,6 @@
     sendResponse({ count: hidden.length });
     return undefined;
   });
-
-  settle();
-  global.setTimeout(settle, 1200);
-  global.setTimeout(settle, 4000);
 
   global.AdGuard = { count: function () { return hidden.length; }, scan: settle };
 })(window);

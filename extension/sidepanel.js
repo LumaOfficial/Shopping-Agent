@@ -765,7 +765,7 @@ async function renderAds() {
     stats.enabled === false
       ? "Ad blocking is off — turn it back on in Settings."
       : onPage === null
-        ? "Ads are blocked as you browse and counted here."
+        ? "Ad slots are hidden in the shops this panel covers."
         : onPage === 0
           ? "No ads on this page."
           : onPage + (onPage === 1 ? " ad blocked on this page." : " ads blocked on this page.");

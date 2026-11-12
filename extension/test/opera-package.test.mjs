@@ -63,8 +63,8 @@ test("the package is named Luma Pay Shopping Agent and carries its terms", async
 
   assert.equal(manifest.name, "Luma Pay Shopping Agent");
   // Opera's metadata criteria want background actions described, not just the
-  // headline feature: the ad-slot blocking is disclosed in the summary itself.
-  assert.match(manifest.description, /Blocks ad slots/);
+  // headline feature: the ad-slot hiding is disclosed in the summary itself.
+  assert.match(manifest.description, /hides ad slots/i);
 
   // The terms are a page inside the package — one link away from the panel and,
   // because the document ships, it opens with no network call at all.
