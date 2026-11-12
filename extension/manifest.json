@@ -3,6 +3,12 @@
   "name": "Shopping-Agent Savings",
   "version": "0.5.0",
   "description": "Finds coupon codes, cashback offers and price history from Partner Platforms while you shop. Never reads card details.",
+  "icons": {
+    "16": "icons/luma-pay-16.png",
+    "32": "icons/luma-pay-32.png",
+    "48": "icons/luma-pay-48.png",
+    "128": "icons/luma-pay-128.png"
+  },
   "minimum_chrome_version": "116",
   "content_security_policy": {
     "extension_pages": "default-src 'self'; script-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; media-src 'self' data: blob:; connect-src *"
@@ -32,7 +38,12 @@
     "type": "module"
   },
   "action": {
-    "default_title": "Open savings"
+    "default_title": "Open savings",
+    "default_icon": {
+      "16": "icons/luma-pay-16.png",
+      "32": "icons/luma-pay-32.png",
+      "48": "icons/luma-pay-48.png"
+    }
   },
   "commands": {
     "open-panel": {

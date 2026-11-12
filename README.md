@@ -39,6 +39,10 @@ puts the extension on the sidebar rail:
 `build.mjs` also drops `minimum_chrome_version` from `dist/chromium`, since the
 Edge and Opera stores flag keys they know nothing about.
 
+Both packages declare the Luma icons (`icons/`), so the toolbar, the extensions
+page and Opera's sidebar rail show the product mark instead of a generic puzzle
+piece.
+
 Opera's sidebar API (`opr.sidebarAction`) can set a panel's title, icon and page
 but cannot open or close the sidebar, so the toolbar button and `Alt+Shift+S`
 open the panel in a small window. The panel also lives on Opera's sidebar rail —
