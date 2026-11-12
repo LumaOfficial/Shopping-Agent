@@ -10,7 +10,7 @@ import { loadWorker } from "./fake-chrome.mjs";
 import { constantTimeEquals, endpoint, intValue, textValue, webUrl } from "../src/lib/guard.js";
 import { sanitizeSettings } from "../src/lib/settings.js";
 import { currentAccount, signIn, signUp } from "../src/lib/accounts.js";
-import { MAX_ADS_PER_DAY, MAX_ADS_PER_TAB } from "../src/lib/ad-value.js";
+import { MAX_ADS_PER_DAY, MAX_ADS_PER_TAB, MAX_UNITS_PER_SLOT, unitsOfSlot } from "../src/lib/ad-value.js";
 import { TERMS_VERSION } from "../src/lib/terms.js";
 import { normalizeOffer as normalizeSponsorOffer } from "../src/partners/sponsor-offers.js";
 
@@ -26,6 +26,12 @@ const PERSON = {
   password: "guardpass123",
 };
 
+// What a content script now sends: one entry per slot it hid, with the shape it
+// had on screen. A standard rectangle is worth one unit at the base rate.
+function slots(count, shape) {
+  return Array.from({ length: count }, () => Object.assign({ width: 300, height: 250 }, shape));
+}
+
 async function boot(t, seed) {
   const fake = await loadWorker(Object.assign({}, AGREED, seed));
   t.after(() => {
@@ -38,7 +44,7 @@ test("nothing is credited before the terms are agreed", async (t) => {
   const fake = await boot(t, { terms: undefined });
   const page = { id: fake.chrome.runtime.id, tab: { id: 21 }, url: "https://shop.test/" };
 
-  const reply = await fake.send({ type: "ads:report", count: 4 }, page);
+  const reply = await fake.send({ type: "ads:report", slots: slots(4) }, page);
   assert.equal(reply.error, "refused");
   assert.equal(fake.store.ads, undefined, "nothing was credited");
 });
@@ -79,7 +85,7 @@ test("a content script may report ads and nothing else", async (t) => {
   const cleared = await fake.send({ type: "data:clear", confirm: true }, page);
   assert.equal(cleared.error, "refused");
 
-  const reported = await fake.send({ type: "ads:report", count: 4 }, page);
+  const reported = await fake.send({ type: "ads:report", slots: slots(4) }, page);
   assert.equal(typeof reported.total, "number");
   assert.equal(reported.total, 4);
 
@@ -172,14 +178,19 @@ test("a page cannot inflate the ad figure it is paid on", async (t) => {
   const fake = await boot(t);
   const page = { id: fake.chrome.runtime.id, tab: { id: 3 }, url: "https://shop.test/" };
 
-  const huge = await fake.send({ type: "ads:report", count: 100000 }, page);
-  assert.match(String(huge.error), /not a number/i);
+  const huge = await fake.send({ type: "ads:report", slots: slots(100000) }, page);
+  assert.match(String(huge.error), /more slots/i);
 
-  const negative = await fake.send({ type: "ads:report", count: -4 }, page);
-  assert.match(String(negative.error), /not a number/i);
+  const junk = await fake.send({ type: "ads:report", slots: ["nope", 12, null, {}] }, page);
+  assert.equal(junk.error, undefined, "a slot with no shape is still a slot");
+  assert.equal(junk.total, 1, "only the one object counted");
 
-  const fine = await fake.send({ type: "ads:report", count: 5 }, page);
-  assert.equal(fine.total, 5);
+  const none = await fake.send({ type: "ads:report", slots: ["nope", 12, null] }, page);
+  assert.match(String(none.error), /no slots/i);
+
+  const fine = await fake.send({ type: "ads:report", slots: slots(5) }, page);
+  assert.equal(fine.total, 6, "five more slots on top of the one");
+  assert.equal(fine.value, 3, "six slots at the default rate still read a few cents");
 });
 
 test("a page address has to be a web address", async (t) => {
@@ -223,7 +234,7 @@ test("the stored account holds a salted hash, never the password", async (t) => 
 test("a content script message with no tab is refused", async (t) => {
   const fake = await boot(t);
   const claimed = { id: fake.chrome.runtime.id, url: "https://shop.test/" };
-  const reply = await fake.send({ type: "ads:report", count: 5 }, claimed);
+  const reply = await fake.send({ type: "ads:report", slots: slots(5) }, claimed);
   assert.equal(reply.error, "refused");
   assert.equal(fake.store.ads, undefined, "nothing was credited");
 });
@@ -235,14 +246,14 @@ test("a page cannot mint ad value past the ceilings", async (t) => {
 
   let reply = null;
   for (let attempt = 0; attempt < 5; attempt += 1) {
-    reply = await fake.send({ type: "ads:report", count: 200 }, first);
+    reply = await fake.send({ type: "ads:report", slots: slots(200) }, first);
   }
   assert.equal(reply.total, MAX_ADS_PER_TAB, "one tab is capped for the session");
 
   // Four more tabs, each still asking for more than it may add.
   for (let tab = 8; tab < 12; tab += 1) {
     for (let attempt = 0; attempt < 5; attempt += 1) {
-      reply = await fake.send({ type: "ads:report", count: 200 }, page(tab));
+      reply = await fake.send({ type: "ads:report", slots: slots(200) }, page(tab));
     }
   }
   assert.equal(reply.total, MAX_ADS_PER_DAY, "the day stops at its ceiling");
@@ -251,9 +262,44 @@ test("a page cannot mint ad value past the ceilings", async (t) => {
   const key = Object.keys(fake.store).find((name) => /adBlock$/.test(name));
   assert.equal(typeof key, "string");
   fake.store[key] = Object.assign({}, fake.store[key], { day: "1999-1-1", dayCount: 9000 });
-  reply = await fake.send({ type: "ads:report", count: 50 }, page(99));
+  reply = await fake.send({ type: "ads:report", slots: slots(50) }, page(99));
   assert.equal(reply.today, 50);
   assert.equal(reply.total, MAX_ADS_PER_DAY + 50);
+});
+
+test("one slot cannot claim to be worth more than the ceiling", async (t) => {
+  const fake = await boot(t);
+  const page = { id: fake.chrome.runtime.id, tab: { id: 41 }, url: "https://shop.test/" };
+
+  // A slot that says it is a full-screen, hour-long video is worth the ceiling
+  // and no more, whatever the page claims.
+  const claimed = await fake.send(
+    { type: "ads:report", slots: slots(5, { width: 5000, height: 5000, video: true, seconds: 3600 }) },
+    page
+  );
+  assert.equal(claimed.total, 5);
+  // The largest and longest slot the formula can produce is two units, well under
+  // the ceiling, so five of them are worth 6 cents at the default pack rate.
+  assert.ok(unitsOfSlot({ width: 5000, height: 5000, video: true, seconds: 3600 }) <= MAX_UNITS_PER_SLOT);
+  assert.equal(claimed.value, 6);
+});
+
+test("the ad rate is the operator's, and the default is three cents per five", async (t) => {
+  const fake = await boot(t);
+  const page = { id: fake.chrome.runtime.id, tab: { id: 51 }, url: "https://shop.test/" };
+  const settingsPage = { id: fake.chrome.runtime.id, url: fake.chrome.runtime.getURL("options.html") };
+
+  const reported = await fake.send({ type: "ads:report", slots: slots(5) }, page);
+  assert.equal(reported.value, 3, "five plain slots are worth the default pack");
+  assert.match(reported.rateLabel, /\$0\.03 per 5 ads/);
+
+  const raised = await fake.send({ type: "settings:set", settings: { adRateCents: 25 } }, settingsPage);
+  assert.equal(raised.settings.adRateCents, 25);
+  const stats = await fake.send({ type: "ads:stats" }, settingsPage);
+  assert.equal(stats.value, 25, "the same five slots follow the rate that is set");
+
+  const impossible = await fake.send({ type: "settings:set", settings: { adRateCents: 100000 } }, settingsPage);
+  assert.equal(impossible.settings.adRateCents, 3, "an impossible rate falls back to the default");
 });
 
 test("the panel is handed settings without credentials", async (t) => {

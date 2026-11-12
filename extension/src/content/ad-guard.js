@@ -40,6 +40,9 @@
   ];
 
   var hidden = [];
+  // One measurement per hidden slot, in the order they were hidden, so a later
+  // pass reports only the slots that arrived with lazy loading.
+  var measured = [];
   var reported = 0;
   // Switched off means off: the ruleset stops blocking the requests and this
   // script leaves the page's slots alone, so nothing is hidden or counted.
@@ -101,6 +104,36 @@
     if (changes.terms) gate();
   });
 
+  // What the slot is worth to an advertiser: its rendered area reads the format,
+  // and a video reads longer or shorter. The panel decides the rate; this only
+  // says what kind of slot it hid. Nothing on the page is read.
+  function measure(el) {
+    var width = 0;
+    var height = 0;
+    try {
+      var rect = el.getBoundingClientRect();
+      width = Math.round(rect.width || 0);
+      height = Math.round(rect.height || 0);
+    } catch (_error) {
+      // A frame that cannot be measured is worth the smallest package.
+    }
+    var video = null;
+    try {
+      video = el.tagName === "VIDEO" ? el : el.querySelector && el.querySelector("video");
+    } catch (_error) {
+      video = null;
+    }
+    var seconds = 0;
+    if (video) {
+      try {
+        if (isFinite(video.duration)) seconds = Math.round(video.duration);
+      } catch (_error) {
+        seconds = 0;
+      }
+    }
+    return { width: width, height: height, video: Boolean(video), seconds: seconds };
+  }
+
   // Hides every slot it has not seen yet and answers with the page's total, so
   // a later pass only counts the slots that arrived with lazy loading.
   function scan() {
@@ -119,21 +152,22 @@
         el.setAttribute("data-savings-ad", "hidden");
         el.style.setProperty("display", "none", "important");
         hidden.push(el);
+        measured.push(measure(el));
       }
     }
     return hidden.length;
   }
 
-  // One report per page, carrying only the new count. Ads that load late are
+  // One report per page, carrying only the new slots. Ads that load late are
   // reported on a later pass instead of being recounted.
   function settle() {
     if (!enabled || !agreed) return;
     var count = scan();
     if (count <= reported) return;
-    var add = count - reported;
+    var fresh = measured.slice(reported);
     reported = count;
     try {
-      chrome.runtime.sendMessage({ type: "ads:report", count: add }, function () {
+      chrome.runtime.sendMessage({ type: "ads:report", slots: fresh }, function () {
         // The running total stays in the worker; a closed frame is not an error.
         if (chrome.runtime.lastError) return;
       });

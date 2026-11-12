@@ -433,6 +433,22 @@
           <p class="hint">Cashback below this amount stays in the wallet.</p>
         </div>
 
+        <h2>Ad value</h2>
+        <p class="muted">
+          What the ads the blocker stopped were worth. The rate is set here rather than in the code, so
+          it can move with the programmes that pay for the impressions. A slot is credited in ad units
+          rather than as a flat count: a small strip counts for less than a large format, and a long
+          video for more, so the same five slots can be worth a little over or under the pack rate.
+        </p>
+        <div class="field">
+          <label for="ad-rate">Value of five blocked ads (US cents)</label>
+          <input id="ad-rate" type="number" min="1" max="500" step="1" placeholder="3" />
+          <p class="hint">
+            About $0.03 per five ads at the default of 3. Changing it only affects credits recorded
+            after the change; a balance already in the wallet keeps the rate it was credited at.
+          </p>
+        </div>
+
         <h2>Sponsored offers</h2>
         <p class="muted">
           Shoppers can earn a small amount for visiting an advertiser, paid into the same cashback

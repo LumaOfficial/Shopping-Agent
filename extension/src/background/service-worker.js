@@ -41,7 +41,16 @@ import {
 import { decideSite } from "../lib/site-add.js";
 import { mergeCodes, cleanCode, isExpired } from "../lib/codes.js";
 import { readConsent } from "../lib/terms.js";
-import { creditAds, normalizeRecord, summaryOf, MAX_ADS_PER_TAB } from "../lib/ad-value.js";
+import {
+  creditAds,
+  normalizeRecord,
+  rateLabel,
+  rateOf,
+  summaryOf,
+  unitsFor,
+  MAX_ADS_PER_REPORT,
+  MAX_ADS_PER_TAB,
+} from "../lib/ad-value.js";
 import { scopedKey, scopePrefix } from "../lib/accounts.js";
 import {
   BOOST_RATE,
@@ -489,7 +498,11 @@ async function readAdRecord() {
 async function adsSummary() {
   const settings = await readSettings();
   const record = await readAdRecord();
-  return Object.assign(summaryOf(record), { enabled: settings.enabled.adBlock !== false });
+  const rate = rateOf(settings);
+  return Object.assign(summaryOf(record, undefined, rate), {
+    enabled: settings.enabled.adBlock !== false,
+    rateLabel: rateLabel(rate),
+  });
 }
 
 // What each tab has been credited so far this session. The day's ceiling in
@@ -497,9 +510,9 @@ async function adsSummary() {
 // reaching that ceiling on its own by claiming a new load every second.
 const creditedByTab = new Map();
 
-async function reportAds(count, sender) {
-  // A count is only worth something when a real tab's content script reported
-  // it; with no tab there is nothing to credit.
+async function reportAds(slots, sender) {
+  // Slots are only worth something when a real tab's content script reported
+  // them; with no tab there is nothing to credit.
   const tabId = sender && sender.tab && typeof sender.tab.id === "number" ? sender.tab.id : null;
   if (tabId === null) return { error: "refused" };
   // Nothing is credited before the shopper has agreed to the terms, whatever a
@@ -509,7 +522,7 @@ async function reportAds(count, sender) {
   const room = MAX_ADS_PER_TAB - used;
   if (room <= 0) return adsSummary();
   const record = await readAdRecord();
-  const credit = creditAds(record, Math.min(count, room), Date.now());
+  const credit = creditAds(record, Math.min(slots.length, room), unitsFor(slots), Date.now());
   if (credit.granted > 0) {
     creditedByTab.set(tabId, used + credit.granted);
     await writeScoped("adBlock", credit.record);
@@ -1028,9 +1041,21 @@ function payloadProblem(type, message) {
       // One payout attempt at a time: a double click issues one card, not two.
       return allowance("cashout", 1, 15000) ? "" : "A cash out is already in flight.";
     case "ads:report": {
-      const count = intValue(message.count, 1, 200);
-      if (count === null) return "That ad count is not a number.";
-      message.count = count;
+      // A report is the slots a page hid, each with the shape it had on screen.
+      // Anything else on the slot is dropped, so only these four fields reach
+      // the record.
+      if (!Array.isArray(message.slots)) return "That ad report carried no slots.";
+      if (message.slots.length > MAX_ADS_PER_REPORT) {
+        return "That ad report carried more slots than a page can hold.";
+      }
+      const clean = message.slots.filter(isPlainObject).map((slot) => ({
+        width: intValue(slot.width, 0, 5000) || 0,
+        height: intValue(slot.height, 0, 5000) || 0,
+        video: slot.video === true,
+        seconds: intValue(slot.seconds, 0, 3600) || 0,
+      }));
+      if (!clean.length) return "That ad report carried no slots.";
+      message.slots = clean;
       return allowance("ads", 40, 60000) ? "" : "Too many ad reports just now.";
     }
     case "settings:set":
@@ -1121,7 +1146,7 @@ async function handle(message, sender) {
     case "price:get":
       return getPrice(message.key);
     case "ads:report":
-      return reportAds(message.count, sender);
+      return reportAds(message.slots, sender);
     case "ads:stats":
       return adsSummary();
     case "site:detect":

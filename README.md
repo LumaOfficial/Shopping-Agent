@@ -297,9 +297,14 @@ stay true for months, so nothing depends on someone editing coupons each morning
 - **Ad value** — the extension blocks ad and tracker requests with the
   declarative rules in `rules/ads.json` and hides the empty ad slots on the shops
   it covers, then shows what those impressions were worth instead of a coin
-  balance. The
-  rate is one display impression, **$0.03 per 5 ads** (`src/lib/ad-value.js`), so
-  five blocked ads read `$0.03`. The panel's **Ad value** card shows the running
+  balance. The default rate is **$0.03 per 5 ads** (`src/lib/ad-value.js`), and
+  **Settings → Developer → Ad value** moves it anywhere from 1 to 500 cents per
+  pack, because the rate is our call and follows what the programmes behind the
+  impressions pay. A report arrives as slots rather than a flat count: each slot
+  is credited in `ad-value.js` units by the format it rendered at (a strip banner
+  is worth less than a 300×250, a large format more) and by length when it is a
+  video, so five slots can come to a little over or under the pack rate. The
+  panel's **Ad value** card shows the running
   value, the ads blocked today and all time, and the ads blocked on the page the
   shopper is on. Nothing is paid out by this figure — it is the advertising value
   kept off the page, and the wallet still holds only cashback the networks

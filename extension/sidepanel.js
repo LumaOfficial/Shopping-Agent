@@ -2,7 +2,6 @@ import { STORES, storeCount } from "./src/lib/stores.js";
 import { filterStores, storeCategories, storeHost, storeSite } from "./src/lib/store-directory.js";
 import { mergeCodes, SOURCE_LABEL, daysLeft, endingSoon } from "./src/lib/codes.js";
 import { money, humanAge } from "./src/lib/format.js";
-import { rateLabel } from "./src/lib/ad-value.js";
 import { PAGE_SOURCE_NOTE } from "./src/lib/copy.js";
 import { browserName } from "./src/lib/browser.js";
 import { HOLD_DAYS } from "./src/partners/cashback-ledger.js";
@@ -885,7 +884,9 @@ async function renderAds() {
           ? "No ads on this page."
           : onPage + (onPage === 1 ? " ad blocked on this page." : " ads blocked on this page.");
   byId("ads-rate").textContent =
-    "Valued at " + rateLabel() + " — what those impressions would have cost the advertiser.";
+    "Valued at " +
+    (stats.rateLabel || "$0.03 per 5 ads") +
+    " — larger and longer slots count for more, and this is what those impressions were worth.";
 }
 
 function renderPrice(tracked, keepa) {

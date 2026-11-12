@@ -81,6 +81,7 @@ function fill(settings) {
   byId("sponsor-url").value = settings.sponsorUrl;
   byId("sponsor-key").value = settings.sponsorKey;
   byId("payout-minimum").value = settings.payoutMinimum ? settings.payoutMinimum / 100 : "";
+  byId("ad-rate").value = settings.adRateCents;
   byId("price-key").value = settings.priceHistoryKey;
   byId("age-url").value = settings.ageCheckUrl;
   byId("age-token").value = settings.ageCheckToken;
@@ -122,6 +123,7 @@ function collect() {
     payoutUtid: byId("payout-utid").value.trim(),
     payoutKey: byId("payout-key").value.trim(),
     payoutMinimum: toMinor(byId("payout-minimum").value, 500),
+    adRateCents: Number(byId("ad-rate").value) || 3,
     sponsorUrl: byId("sponsor-url").value.trim(),
     sponsorKey: byId("sponsor-key").value.trim(),
     priceHistoryKey: byId("price-key").value.trim(),

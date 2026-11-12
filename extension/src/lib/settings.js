@@ -6,6 +6,7 @@
 // numbers inside a range. A stored object that somehow carries extra keys — a
 // tampered profile, an edited import — loses them on the next read.
 import { endpoint, hostKey, intValue, isPlainObject, textValue } from "./guard.js";
+import { MAX_CENTS_PER_PACK, MIN_CENTS_PER_PACK } from "./ad-value.js";
 
 export const DEFAULTS = {
   feedUrl: "",
@@ -40,6 +41,10 @@ export const DEFAULTS = {
   backupToken: "",
   // Keep the savings list and any connected feed current on a schedule.
   autoRefresh: true,
+  // What five blocked ad impressions are worth to this account, in cents. The
+  // operator sets it here rather than in code, so the figure can move with the
+  // programmes that pay for the impressions.
+  adRateCents: 3,
   partnerMembers: "",
   enabledSites: [],
   enabled: {
@@ -124,6 +129,11 @@ export function sanitizeSettings(raw) {
     }
     if (key === "autoRefresh") {
       settings.autoRefresh = typeof input.autoRefresh === "boolean" ? input.autoRefresh : DEFAULTS.autoRefresh;
+      return;
+    }
+    if (key === "adRateCents") {
+      const cents = intValue(input.adRateCents, MIN_CENTS_PER_PACK, MAX_CENTS_PER_PACK);
+      settings.adRateCents = cents === null ? DEFAULTS.adRateCents : cents;
       return;
     }
     if (ENDPOINTS.indexOf(key) !== -1) {
