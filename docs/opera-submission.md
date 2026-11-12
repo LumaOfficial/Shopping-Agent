@@ -202,7 +202,8 @@ Entered in the submission form, so the form and the package describe the same pr
 - [ ] Screenshots at 612×408, white background: one of the panel in use, one showing where the
       extension sits in the browser
 - [ ] Support page published, relevant to the extension, and reachable
-- [ ] Privacy policy published and consistent with `extension/terms.html` §13
+- [ ] Privacy policy published and consistent with `extension/terms.html` §13 — draft in
+      [`docs/privacy-policy.md`](privacy-policy.md), still needs a public URL
 - [ ] Name, summary and description entered exactly as "Listing copy" above
 - [ ] No "Opera" in the title, the listing or the icons
 
