@@ -182,8 +182,11 @@ function renderStoreList() {
   const stores = filterStores(state.storeQuery, state.storeCategory);
   list.textContent = "";
   byId("store-empty").hidden = stores.length > 0;
-  stores.forEach((store) => {
+  stores.forEach((store, index) => {
     const item = document.createElement("li");
+    // Rows settle in a beat apart; the cap keeps a long list from rippling for
+    // seconds when the directory first opens.
+    item.style.setProperty("--i", String(Math.min(index, 8)));
 
     const open = document.createElement("button");
     open.className = "store-link";

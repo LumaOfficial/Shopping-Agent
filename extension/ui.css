@@ -16,6 +16,8 @@
   --amber: #fbbf24;
   --radius: 18px;
   --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  /* A calmer deceleration for arrivals: quick off the mark, then a long settle. */
+  --ease-soft: cubic-bezier(0.22, 0.61, 0.36, 1);
 }
 
 * {
@@ -873,7 +875,7 @@ body.sidepanel .card {
   padding: 28px 30px;
   margin-top: 26px;
   border: 1px solid #ece7fb;
-  animation: rise 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  animation: softIn 0.85s var(--ease-soft) both;
 }
 
 body.sidepanel .c1 { animation-delay: 0.2s; }
@@ -1442,6 +1444,8 @@ body.sidepanel .store-list li {
   gap: 12px;
   padding: 9px 6px;
   border-radius: 12px;
+  animation: rowIn 0.45s var(--ease-soft) both;
+  animation-delay: calc(var(--i, 0) * 22ms);
 }
 
 body.sidepanel .store-list li:hover {
@@ -1504,7 +1508,7 @@ body.sidepanel .pick {
   font-family: inherit;
   color: #2a2440;
   cursor: pointer;
-  animation: rise 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  animation: softIn 0.6s var(--ease-soft) both;
   transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
 }
 
@@ -1719,7 +1723,7 @@ body.sidepanel .show-stage {
     linear-gradient(180deg, #171130 0%, #0b0918 100%);
   border: 1px solid rgba(255, 255, 255, 0.1);
   box-shadow: 0 40px 100px rgba(5, 3, 16, 0.62);
-  animation: rise 0.5s var(--ease) both;
+  animation: softIn 0.7s var(--ease-soft) both;
 }
 
 body.sidepanel .show-stage::after {
@@ -1759,7 +1763,8 @@ body.sidepanel .show-scene {
   z-index: 0;
   opacity: 0;
   transform: scale(0.94);
-  transition: opacity 0.6s var(--ease), transform 0.9s var(--ease), filter 0.6s var(--ease);
+  filter: blur(14px);
+  transition: opacity 0.75s var(--ease-soft), transform 1.1s var(--ease-soft), filter 0.8s var(--ease-soft);
   pointer-events: none;
 }
 
@@ -1932,7 +1937,7 @@ body.sidepanel .boot-mark {
   width: 76%;
   height: 76%;
   object-fit: contain;
-  animation: bootLit 0.4s var(--ease) both;
+  animation: bootLit 0.5s var(--ease-soft) both;
 }
 
 /* Scene 1 — the orbit */
@@ -2060,7 +2065,7 @@ body.sidepanel .show-mosaic-grid .show-tile {
   height: auto;
   aspect-ratio: 1;
   border-radius: 22%;
-  animation: showPop 0.55s var(--ease) both;
+  animation: showPop 0.7s var(--ease-soft) both;
 }
 
 /* Copy, steps and progress */
@@ -2210,22 +2215,26 @@ body.sidepanel .show-close:hover:not(:disabled) {
 @keyframes showPop {
   from {
     opacity: 0;
-    transform: scale(0.4) rotate(-12deg);
+    transform: scale(0.68) rotate(-5deg);
+    filter: blur(6px);
   }
   to {
     opacity: 1;
     transform: none;
+    filter: none;
   }
 }
 
 @keyframes bootLit {
   from {
     opacity: 0;
-    transform: scale(0.3);
+    transform: scale(0.55);
+    filter: blur(4px);
   }
   to {
     opacity: 1;
     transform: none;
+    filter: none;
   }
 }
 
@@ -2723,6 +2732,33 @@ body.sidepanel .foot {
   from {
     opacity: 0;
     transform: translateY(22px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* A card or tile settles in: it rises a little, comes up to size and sharpens
+   out of a soft blur, so the arrival reads as one gentle movement. */
+@keyframes softIn {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.98);
+    filter: blur(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+    filter: none;
+  }
+}
+
+/* A directory row only needs a whisper of movement above the fold. */
+@keyframes rowIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
   }
   to {
     opacity: 1;
