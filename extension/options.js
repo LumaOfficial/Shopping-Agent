@@ -16,8 +16,17 @@ import {
   writeVault,
 } from "./src/lib/backup.js";
 import { groupRecoveryKey, normalizeRecoveryKey } from "./src/lib/vault.js";
+import { STORES } from "./src/lib/stores.js";
+import { goalProgress, readActivity, streak, todayTotals } from "./src/lib/goals.js";
+import { readWatch } from "./src/lib/watchlist.js";
+import { bestStore, monthEarned, summaryText, toCsv, topCategory } from "./src/lib/insights.js";
 
 const byId = (id) => document.getElementById(id);
+
+function categoryOf(storeId) {
+  const found = STORES.find((store) => store.id === storeId);
+  return found ? found.category : null;
+}
 
 // Settings come in three levels so a shopper who only wants to save money never
 // has to read a feed or payout field. Simple is the default; the chosen level is
@@ -518,26 +527,61 @@ byId("test-source").addEventListener("click", async () => {
   button.textContent = "Test connection";
 });
 
+// A line of feedback that clears itself, so the buttons stay put underneath.
+function flash(id, message) {
+  const box = byId(id);
+  box.textContent = message;
+  box.hidden = false;
+  setTimeout(() => {
+    box.hidden = true;
+  }, 2400);
+}
+
 byId("export-data").addEventListener("click", async () => {
-  const status = byId("data-status");
   const dump = await chrome.runtime.sendMessage({ type: "data:export" }).catch(() => null);
   if (!dump) {
-    status.textContent = "Export failed.";
-    status.hidden = false;
+    flash("data-status", "Export failed.");
     return;
   }
-  const blob = new Blob([JSON.stringify(dump, null, 2)], { type: "application/json" });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = "savings-backup.json";
-  link.click();
-  setTimeout(() => URL.revokeObjectURL(url), 2000);
-  status.textContent = "Exported";
-  status.hidden = false;
-  setTimeout(() => {
-    status.hidden = true;
-  }, 2400);
+  saveFile(JSON.stringify(dump, null, 2), "savings-backup.json", "application/json");
+  flash("data-status", "Exported");
+});
+
+// The panel's two take-away formats, so a shopper who stays in the settings page
+// can still get their earnings out without opening the panel.
+byId("export-csv").addEventListener("click", async () => {
+  const wallet = await chrome.runtime.sendMessage({ type: "cashback:wallet" }).catch(() => null);
+  const entries = wallet && Array.isArray(wallet.entries) ? wallet.entries : [];
+  if (!entries.length) {
+    flash("export-status", "Nothing in the wallet to export yet.");
+    return;
+  }
+  saveFile(toCsv(entries), "luma-savings.csv", "text/csv");
+  flash("export-status", "CSV saved to your downloads.");
+});
+
+byId("copy-summary").addEventListener("click", async () => {
+  const [wallet, activity, watch] = await Promise.all([
+    chrome.runtime.sendMessage({ type: "cashback:wallet" }).catch(() => null),
+    readActivity(),
+    readWatch(),
+  ]);
+  const entries = wallet && Array.isArray(wallet.entries) ? wallet.entries : [];
+  const text = summaryText({
+    goal: goalProgress(activity),
+    month: monthEarned(entries),
+    today: todayTotals(activity).saved,
+    streak: streak(activity),
+    best: bestStore(entries),
+    category: topCategory(entries, categoryOf),
+    watch: watch.items.length,
+  });
+  try {
+    await navigator.clipboard.writeText(text);
+    flash("export-status", "Summary copied.");
+  } catch (_error) {
+    flash("export-status", "This browser blocked the clipboard — select the figures above instead.");
+  }
 });
 
 byId("clear-data").addEventListener("click", async () => {
@@ -607,8 +651,8 @@ function dayStamp() {
   return new Date().toISOString().slice(0, 10);
 }
 
-function saveFile(text, name) {
-  const blob = new Blob([text], { type: "text/plain" });
+function saveFile(text, name, type) {
+  const blob = new Blob([text], { type: type || "text/plain" });
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
