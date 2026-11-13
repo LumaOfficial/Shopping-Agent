@@ -7,7 +7,7 @@ import "../lib/compat.js";
 import { installPanelSurface, openPanel } from "../lib/panel-surface.js";
 import { resolveStore, hostsOf } from "../lib/stores.js";
 import { partnerSummary } from "../lib/copy.js";
-import { getOffers, feedEndpoint, feedHeaders, sourceLabel } from "../partners/offers-feed.js";
+import { getOffers, feedEndpoint, feedHeaders, readFeed, sourceLabel } from "../partners/offers-feed.js";
 import { CATALOG_UPDATED, catalogOffers, catalogStatus, normalizeCatalog } from "../lib/catalog.js";
 import { buildCashbackLink } from "../partners/cashback-network.js";
 import { getPriceHistory } from "../partners/price-history.js";
@@ -172,6 +172,23 @@ function offersFor(storeId, catalog) {
   return live.filter((offer) => offer && offer.store === storeId);
 }
 
+// A connected source may publish storewide offers as well as codes. They sit
+// beside the savings list, deduplicated by link (or title), so the same row is
+// never drawn twice and each row keeps the source it came from.
+function mergeOffers(catalogRows, feedRows) {
+  const seen = new Set();
+  return catalogRows
+    .map((offer) => Object.assign({ source: "catalog" }, offer))
+    .concat((Array.isArray(feedRows) ? feedRows : []).map((offer) => Object.assign({ source: "feed" }, offer)))
+    .filter((offer) => {
+      if (!offer || !offer.title) return false;
+      const key = offer.url || offer.title;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+}
+
 async function catalogReport(settings) {
   const catalog = await activeCatalog(settings);
   return {
@@ -312,7 +329,7 @@ async function resolveSite(url, options) {
   const catalog = settings.enabled.coupons
     ? await activeCatalog(settings, options && options.refresh)
     : null;
-  const offers = catalog ? offersFor(store.id, catalog) : [];
+  const offers = mergeOffers(catalog ? offersFor(store.id, catalog) : [], feed.offers);
 
   const codes = mergeCodes(
     (verified[store.id] || []).map((entry) => Object.assign({}, entry, { source: "verified" })),
@@ -588,9 +605,14 @@ async function testSource() {
       ? Object.keys(payload.stores).length
       : Array.isArray(payload)
         ? payload.length
-        : payload && (payload.coupons || payload.cashback)
+        : payload && (payload.coupons || payload.cashback || payload.deals || payload.results || payload.content)
           ? 1
           : 0;
+
+    // What the source actually yields for a store the panel covers, read with
+    // the same code the panel uses, so the test cannot report more than shows.
+    const read = readFeed(payload, "target");
+    const found = read.coupons.length + read.offers.length;
 
     feedCache.clear();
     return {
@@ -598,10 +620,44 @@ async function testSource() {
       storeCount: stores,
       message:
         "Connected — " +
-        (stores ? stores + " store offers available." : "the source answered, but no store offers were found."),
+        (found
+          ? found + " codes and offers ready for the stores it covers."
+          : stores
+            ? "the source answered, but it has no entry for a covered store."
+            : "the source answered, but no store offers were found."),
     };
   } catch (error) {
     return { ok: false, message: "Could not reach the source: " + String((error && error.message) || error) };
+  }
+}
+
+// Validates the product API key with the provider's own token endpoint, so a
+// pasted key is either proven to work or named as rejected before it is trusted
+// with a product lookup.
+async function testPriceKey() {
+  const settings = await readSettings();
+  const key = String(settings.priceHistoryKey || "").trim();
+  if (!key) {
+    return { ok: false, message: "No product API key saved yet. Paste your Keepa key above and save." };
+  }
+  const endpoint = new URL("https://api.keepa.com/token");
+  endpoint.searchParams.set("key", key);
+  try {
+    const response = await fetch(endpoint, { headers: { accept: "application/json" } });
+    if (response.status === 401 || response.status === 403) {
+      return { ok: false, message: "The provider rejected that key (HTTP " + response.status + ")." };
+    }
+    if (!response.ok) return { ok: false, message: "The provider answered HTTP " + response.status + "." };
+    const payload = await response.json();
+    const left = payload && typeof payload.tokensLeft === "number" ? payload.tokensLeft : null;
+    return {
+      ok: true,
+      message:
+        "Connected — " +
+        (left === null ? "the key is valid." : left.toLocaleString("en-US") + " tokens left this month."),
+    };
+  } catch (error) {
+    return { ok: false, message: "Could not reach the provider: " + String((error && error.message) || error) };
   }
 }
 
@@ -1231,6 +1287,8 @@ async function handle(message, sender) {
     }
     case "source:test":
       return testSource();
+    case "price:test":
+      return testPriceKey();
     case "catalog:status":
       return catalogReport(await readSettings());
     case "catalog:refresh":

@@ -740,7 +740,7 @@ user from themselves.
 | `src/lib/copy.js` | All "Partner Platforms" wording |
 | `src/lib/browser.js` | Which browser is running, for the autofill wording |
 | `src/lib/compat.js` | Points `chrome` at `browser` where only that is promise-based |
-| `src/partners/offers-feed.js` | Authorized offer feed → normalized codes |
+| `src/partners/offers-feed.js` | Authorized offer feed → normalized codes and storewide offers |
 | `src/partners/cashback-network.js` | Tracked deep-link builder |
 | `src/partners/cashback-ledger.js` | Cashback wallet: pending → cashable → paid, in minor units |
 | `src/partners/cashback-payout.js` | Virtual Visa order — generic from Simple, Tango Card through your proxy from Developer |
@@ -791,6 +791,18 @@ The wallet in the panel no longer needs it to cash out.
   also accepted, and a coupon list may be published as `coupons`, `codes` or
   `offers` — a feed may also answer with just this store's coupons. Leave it
   blank and the panel works from the page alone.
+
+  The same entry may publish storewide offers under `deals` (or `storeOffers`),
+  and they join the panel's savings list beside the bundled or published catalog:
+  ```json
+  { "deals": [{ "kind": "deal", "title": "Weekly sale", "detail": "Up to 70% off",
+                "url": "https://…" }] }
+  ```
+  A `kind` is `coupon`, `member`, `outlet`, `deal` or `service`; only an `https`
+  link survives, and a row is deduplicated against the catalog by link or title.
+  An Oxylabs Web Scraper API answer (`results[].content`, a JSON string) is
+  unwrapped before parsing, so an existing account can be used without a
+  separate formatting proxy.
 - **Authentication** — `Bearer token`, or `Basic` (username + password, the form
   Oxylabs uses). Credentials stay in `chrome.storage.local` on the device and are
   sent only to the configured host, which is why saving asks for optional host
@@ -805,6 +817,9 @@ The wallet in the panel no longer needs it to cash out.
   `https://click.example-network.com/deeplink?id={siteId}&murl={url}`. With no
   template the Activate button says "Not configured" instead of pretending.
 - **Product API key** — optional; adds the 90-day low from the documented API.
+  **Test the price key** checks it against the provider's own token endpoint and
+  reports how many tokens are left, so a pasted key is proven before a product
+  lookup depends on it. With no key the test says so instead of pretending.
 - **Payout proxy endpoint** — your hosted proxy in front of Tango Card's
   `POST /raas/v2/orders`. The extension sends it a Tango Card order body with the
   proxy token:

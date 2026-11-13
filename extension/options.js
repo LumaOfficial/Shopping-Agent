@@ -543,6 +543,31 @@ byId("test-source").addEventListener("click", async () => {
   button.textContent = "Test connection";
 });
 
+byId("test-price").addEventListener("click", async () => {
+  const button = byId("test-price");
+  const result = byId("price-result");
+  button.disabled = true;
+  button.textContent = "Testing…";
+  result.hidden = false;
+  result.className = "test-line wait";
+  result.textContent = "Checking the key with the provider…";
+
+  const outcome = await save();
+  if (!outcome.ok) {
+    result.className = "test-line bad";
+    result.textContent = outcome.message;
+    button.disabled = false;
+    button.textContent = "Test the price key";
+    return;
+  }
+
+  const reply = await chrome.runtime.sendMessage({ type: "price:test" }).catch(() => null);
+  result.className = "test-line " + (reply && reply.ok ? "ok" : "bad");
+  result.textContent = (reply && reply.message) || "No answer from the extension worker.";
+  button.disabled = false;
+  button.textContent = "Test the price key";
+});
+
 // A line of feedback that clears itself, so the buttons stay put underneath.
 function flash(id, message) {
   const box = byId(id);
