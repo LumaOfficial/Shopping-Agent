@@ -284,8 +284,10 @@ opens an address it has not checked.
   that store whose price clears the offer, so the shopper is shown the product
   that qualifies rather than the fine print behind it. The card leads with the
   product and its price; a saving appears beside it only where the store
-  publishes the rate. *Shuffle* turns the feed over, and *Shop it at …* opens the
-  store's own search for that product.
+  publishes the rate. The rail turns itself over every few seconds — held while
+  a card is hovered or focused, still under a reduced-motion preference — and
+  *Shuffle* turns it immediately. *Shop it at …* opens the store's own search
+  for that product.
 - **Animate** — a cinematic trailer of the 50 best-known storefronts, cut like a
   film: letterbox bars, grain and a light leak over a pre-roll slate that counts
   the marks in as they cache and decode. Then the title cards: an orbit pushing
@@ -725,7 +727,7 @@ user from themselves.
 | `src/lib/panel-extras.js` | Popular-store rail and category tiles, both from the catalog |
 | `src/lib/panel-jumps.js` | The jump row: panel sections, store categories, the price movers and headlines views, and the *All shortcuts* sheet |
 | `src/lib/deals.js` | Partner offers, the popular products they pair with, the pairing rules, and the card's copy |
-| `src/lib/deals-panel.js` | The *Deals for you* rail: four cards at a time from that feed, shuffled |
+| `src/lib/deals-panel.js` | The *Deals for you* rail: four cards at a time from that feed, turning over on its own |
 | `tools/emulate-platforms.mjs` | Runs the shipped code under Windows, macOS, Linux and ChromeOS signals and prints a pass/fail table |
 | `src/lib/logo-show.js` | The *Animate* trailer: cache, decode, build, then orbit → wall → tagline → wordmark |
 | `src/lib/brand-marks.js` | The popular storefronts the trailer leads with, and their brand inks |
