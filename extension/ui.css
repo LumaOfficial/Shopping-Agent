@@ -668,6 +668,295 @@ body.sidepanel .shortcuts .sc[aria-pressed="true"] svg {
   color: #fff;
 }
 
+/* The jump row: navigation rather than actions, so its chips sit smaller and
+   lighter than the quick actions above them, and a dot stands in for an icon. */
+body.sidepanel .shortcuts.jumps {
+  margin-top: 10px;
+  gap: 6px;
+}
+
+body.sidepanel .shortcuts.jumps .sc {
+  gap: 6px;
+  padding: 7px 12px;
+  font-size: 11.5px;
+  font-weight: 500;
+  background: #faf8ff;
+  border-color: #e8e2fa;
+  color: #5b5380;
+}
+
+body.sidepanel .shortcuts.jumps .sc::before {
+  content: "";
+  flex: none;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #bcb0ee;
+}
+
+body.sidepanel .shortcuts.jumps .sc-view::before {
+  background: #7c6bf5;
+}
+
+body.sidepanel .shortcuts.jumps .sc-cat::before {
+  background: #e0a45a;
+}
+
+body.sidepanel .shortcuts.jumps .sc-more {
+  padding-left: 14px;
+  background: #7c6bf5;
+  border-color: #7c6bf5;
+  color: #fff;
+}
+
+body.sidepanel .shortcuts.jumps .sc-more::before {
+  display: none;
+}
+
+body.sidepanel .shortcuts.jumps .sc-more:hover {
+  background: #6a58ea;
+  border-color: #6a58ea;
+  color: #fff;
+}
+
+/* ---------- The quick-view sheet ---------- */
+
+/* The row's small views (price movers, headlines) and its *More* shortcut open
+   here: one sheet at the foot of the panel, one list inside it. */
+body.sidepanel .quick-view {
+  position: fixed;
+  inset: 0;
+  z-index: 32;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: rgba(9, 7, 20, 0.58);
+  backdrop-filter: blur(10px);
+  animation: qvFade 0.22s ease both;
+}
+
+body.sidepanel .quick-view[hidden] {
+  display: none;
+}
+
+body.sidepanel.quick-view-open {
+  overflow: hidden;
+}
+
+body.sidepanel .qv-sheet {
+  width: min(100%, 600px);
+  max-height: 84%;
+  overflow-y: auto;
+  padding: 20px 18px 24px;
+  border-radius: 26px 26px 0 0;
+  background: linear-gradient(180deg, #ffffff, #fdfbff);
+  box-shadow: 0 -22px 60px rgba(24, 14, 60, 0.3);
+  animation: qvRise 0.32s var(--ease-soft) both;
+}
+
+body.sidepanel .qv-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+body.sidepanel .qv-head .lbl {
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #9a92bd;
+}
+
+body.sidepanel .qv-head h2 {
+  margin: 5px 0 0;
+  font-size: 19px;
+  letter-spacing: -0.02em;
+  color: #2a2440;
+}
+
+body.sidepanel .qv-close {
+  flex: none;
+}
+
+body.sidepanel #qv-note {
+  margin: 8px 0 0;
+}
+
+body.sidepanel .qv-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+body.sidepanel .qv-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 16px;
+  border: 1px solid #eee8fb;
+  background: #fff;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.18s, border-color 0.18s, transform 0.15s;
+}
+
+body.sidepanel .qv-row:hover {
+  background: #f7f3ff;
+  border-color: #d9cef7;
+}
+
+body.sidepanel .qv-row:active {
+  transform: scale(0.995);
+}
+
+body.sidepanel .qv-row:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 4px rgba(124, 107, 245, 0.16);
+}
+
+body.sidepanel .qv-main {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+body.sidepanel .qv-main strong {
+  display: -webkit-box;
+  overflow: hidden;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.35;
+  color: #2a2440;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+body.sidepanel .qv-main small {
+  font-size: 11px;
+  color: #7c74a0;
+}
+
+body.sidepanel .qv-tag {
+  font-size: 9.5px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #9a92bd;
+}
+
+body.sidepanel .qv-side {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 3px;
+}
+
+body.sidepanel .qv-side b {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+body.sidepanel .qv-side b.up {
+  color: #12a150;
+}
+
+body.sidepanel .qv-side b.down {
+  color: #e0524f;
+}
+
+body.sidepanel .qv-side b.flat {
+  font-weight: 500;
+  color: #8e86b0;
+}
+
+body.sidepanel .qv-side em {
+  font-size: 11.5px;
+  font-style: normal;
+  color: #5b5380;
+}
+
+body.sidepanel .qv-empty {
+  margin: 0;
+  padding: 18px 4px;
+  font-size: 12.5px;
+  color: #7c74a0;
+}
+
+body.sidepanel .qv-group + .qv-group {
+  margin-top: 16px;
+}
+
+body.sidepanel .qv-group .lbl {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #9a92bd;
+}
+
+body.sidepanel .qv-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+body.sidepanel .qv-chips .sc {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 13px;
+  border-radius: 999px;
+  border: 1px solid #e8e2fa;
+  background: #faf8ff;
+  color: #5b5380;
+  font: inherit;
+  font-size: 11.5px;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s, color 0.2s;
+}
+
+body.sidepanel .qv-chips .sc:hover {
+  background: #f1ecff;
+  border-color: #cdc0f6;
+  color: #5b4bd6;
+}
+
+body.sidepanel .qv-chips .sc:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 4px rgba(124, 107, 245, 0.16);
+}
+
+@keyframes qvFade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes qvRise {
+  from {
+    transform: translateY(16px);
+    opacity: 0.4;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+
 /* ---------- Account ---------- */
 
 /* Locked, the panel is the terms card or the account card and nothing else. */

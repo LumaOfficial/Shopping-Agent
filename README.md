@@ -409,7 +409,14 @@ opens an address it has not checked.
     searches** the directory was used for (`src/lib/bookmarks.js`);
   - **keyboard shortcuts** — `/` opens the directory, `g` opens the monthly goal
     on Settings, `w` watches the product on the page, `p` pins the store, `?`
-    lists them, `Esc` clears (`src/lib/shortcuts.js`).
+    lists them, `Esc` clears (`src/lib/shortcuts.js`);
+  - **the jump row** under those actions — every view one tap away: the panel's
+    own sections, the eight fullest store categories (each opens the directory
+    filtered to that aisle), and two small views of its own: **price movers**
+    (the watch list read like a ticker, cheapest-first by how far it has moved)
+    and **headlines** (the deals feed read like a news list). *More* opens a
+    sheet with every section, every category and the settings pages
+    (`src/lib/panel-jumps.js`).
 - **Codes that end soon** — a code with an end date inside seven days is counted
   above the list and sorted first, so the one that runs out Friday is tried
   before one that does not (`daysLeft()` / `endingSoon()` in `src/lib/codes.js`).
@@ -716,6 +723,7 @@ user from themselves.
 | `src/lib/tutorial.js` | The tour's copy, including the desktop-specific last step |
 | `src/lib/tour-panel.js` | The tour card: steps, resume, replay, progress in device storage |
 | `src/lib/panel-extras.js` | Popular-store rail and category tiles, both from the catalog |
+| `src/lib/panel-jumps.js` | The jump row: panel sections, store categories, the price movers and headlines views, and the *All shortcuts* sheet |
 | `src/lib/deals.js` | Partner offers, the popular products they pair with, the pairing rules, and the card's copy |
 | `src/lib/deals-panel.js` | The *Deals for you* rail: four cards at a time from that feed, shuffled |
 | `tools/emulate-platforms.mjs` | Runs the shipped code under Windows, macOS, Linux and ChromeOS signals and prints a pass/fail table |

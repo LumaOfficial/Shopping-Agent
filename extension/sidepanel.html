@@ -230,6 +230,11 @@
           </button>
         </nav>
 
+        <!-- Every view a tap away: the panel's sections, the store categories,
+             two small views of their own (price movers, headlines) and the sheet
+             with everything else. Filled in by panel-jumps.js from the catalog. -->
+        <nav class="shortcuts jumps" id="jumps" aria-label="Jump to a view"></nav>
+
         <div class="status" id="shortcut-status" role="status" aria-live="polite" hidden></div>
         <div class="shortcut-hint" id="shortcut-hint" hidden></div>
         <p class="muted tiny" id="savings-block" hidden><span id="saved-note"></span></p>
@@ -705,6 +710,21 @@
         <path d="M6 11l6-6 6 6" />
       </svg>
     </button>
+
+    <!-- The sheet behind the row's small views and its *More* shortcut. -->
+    <div class="quick-view" id="quick-view" hidden>
+      <div class="qv-sheet" role="dialog" aria-modal="true" aria-labelledby="qv-title">
+        <div class="qv-head">
+          <div>
+            <span class="lbl" id="qv-kicker">Quick view</span>
+            <h2 id="qv-title">Price movers</h2>
+          </div>
+          <button class="mini qv-close" id="qv-close" type="button">Close</button>
+        </div>
+        <p class="muted tiny" id="qv-note" hidden></p>
+        <div class="qv-body" id="qv-body"></div>
+      </div>
+    </div>
 
     <div class="logo-show" id="logo-show" hidden data-beat="prep">
       <div class="show-stage" role="dialog" aria-modal="true" aria-label="Every store Luma Pay works on">

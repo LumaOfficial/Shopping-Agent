@@ -23,6 +23,7 @@ import { acceptTerms, readConsent, termsUrl } from "./src/lib/terms.js";
 import { TOUR_KEY, readTour } from "./src/lib/tutorial.js";
 import { startTour } from "./src/lib/tour-panel.js";
 import { startPanelShortcuts } from "./src/lib/panel-shortcuts.js";
+import { startPanelJumps } from "./src/lib/panel-jumps.js";
 import { absorbWallet, noteAttempt } from "./src/lib/savings.js";
 
 const byId = (id) => document.getElementById(id);
@@ -1941,6 +1942,18 @@ applyBrowserCopy();
 // product, pin this store, open the directory — and applies the comfort settings
 // chosen in Settings. The goal, the watch list and the notes are edited there.
 const shortcuts = startPanelShortcuts({ openSearch: () => openStoreDirectory("All") });
+
+// The jump row underneath it: every view in the panel, the store categories, and
+// the two small views (price movers, headlines) it opens in the sheet.
+startPanelJumps({
+  openStores: () => openStoreDirectory("All"),
+  openCategory: (name) => openStoreDirectory(name),
+  shop: (url) => {
+    const safe = webUrl(url);
+    if (safe) chrome.tabs.create({ url: safe });
+  },
+  openPage: (path) => chrome.tabs.create({ url: chrome.runtime.getURL(path) }),
+});
 
 // The face age check card owns its own consent and capture; the panel only tells
 // it who is signed in, and refreshes the wallet once a verdict lands.
