@@ -297,7 +297,8 @@ opens an address it has not checked.
   mid-scene. `prefers-reduced-motion` skips straight to the closing card.
 - **Coupon apply** — the side panel sends the code to the content script, which
   finds the promo field (searching open shadow roots too, and skipping search,
-  zip, gift-card and card fields), types it with native setters and real
+  zip and card fields; a combined "Discount code or gift card" box counts, a
+  gift-card-only box does not), types it with native setters and real
   input/change events, clicks the store's own Apply button (or presses Enter),
   then decides from the page: a drop in the order total, a new discount line, or
   the store's own success text means applied; the store's error text means
@@ -455,8 +456,8 @@ service worker reads the page's own evidence:
 | Evidence | Where it comes from |
 | --- | --- |
 | Store markup | `schema.org` JSON-LD with a store type (`Store`, `OnlineStore`, …) |
-| Product markup | JSON-LD `Product` with an `Offer`, or an Add-to-cart control next to a cart |
-| Shop platform | Shopify, WooCommerce, BigCommerce, Magento, PrestaShop, Squarespace, Shopware |
+| Product markup | JSON-LD `Product` with an `Offer`, `schema.org/Product` microdata with a price, or an Open Graph product page with a product price |
+| Shop platform | Shopify, WooCommerce, BigCommerce, Magento, PrestaShop, Squarespace, Shopware, Wix, Salesforce Commerce |
 | Cart / checkout | a visible link to the page's own cart or checkout |
 
 Store markup, a shop platform, a product with a real offer, or a working

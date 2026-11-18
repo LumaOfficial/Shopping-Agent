@@ -14,6 +14,8 @@ const PLATFORM_LABELS = {
   prestashop: "PrestaShop",
   squarespace: "Squarespace",
   shopware: "Shopware",
+  wix: "Wix",
+  salesforce: "Salesforce Commerce",
 };
 
 export function platformLabel(id) {

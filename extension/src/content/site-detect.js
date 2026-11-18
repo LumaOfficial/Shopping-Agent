@@ -41,8 +41,25 @@
         var body = document.body;
         return (
           Boolean(body && /\bwoocommerce\b/.test(body.className || "")) ||
-          Boolean(document.querySelector('script[src*="woocommerce"], link[href*="woocommerce"]'))
+          Boolean(document.querySelector('script[src*="woocommerce"], link[href*="woocommerce"]')) ||
+          /woocommerce/i.test(meta('meta[name="generator"]'))
         );
+      },
+    },
+    {
+      id: "wix",
+      test: function () {
+        return Boolean(
+          document.querySelector('script[src*="wixstatic.com"], script[src*="wix.com"], meta[name="generator"][content*="Wix" i]')
+        ) || Boolean(global.wixBiSession);
+      },
+    },
+    {
+      id: "salesforce",
+      test: function () {
+        return Boolean(
+          document.querySelector('script[src*="demandware"], script[src*="/on/demandware.store/"]')
+        ) || /demandware|salesforce/i.test(meta('meta[name="generator"]'));
       },
     },
     {
@@ -191,7 +208,15 @@
     var list = nodes();
     var store = firstOfType(list, STORE_TYPES);
     var product = firstOfType(list, PRODUCT_TYPES);
-    var offer = (product && product.offers) || firstOfType(list, OFFER_TYPES);
+    // A shop does not need JSON-LD to declare a product: microdata, the Open
+    // Graph product type and a product price meta tag are the same evidence.
+    var microdata = document.querySelector('[itemtype*="schema.org/Product" i]');
+    var ogType = meta('meta[property="og:type"]').toLowerCase();
+    var priceNode = document.querySelector('[itemprop="price"]');
+    var priceMeta =
+      meta('meta[property="product:price:amount"]') ||
+      (priceNode ? clean(priceNode.getAttribute("content") || priceNode.textContent) : "");
+    var offer = (product && product.offers) || firstOfType(list, OFFER_TYPES) || priceMeta || null;
     var name = nameOf(store) || meta('meta[property="og:site_name"]') || meta('meta[name="application-name"]') || titleName();
 
     return {
@@ -201,10 +226,10 @@
       platform: platform(),
       structured: {
         store: Boolean(store),
-        product: Boolean(product),
+        product: Boolean(product) || Boolean(microdata) || /product/i.test(ogType),
         offer: Boolean(offer),
       },
-      ogType: meta('meta[property="og:type"]').toLowerCase(),
+      ogType: ogType,
       cart: hasLink(CART_RE),
       checkout: hasLink(CHECKOUT_RE),
       addToCart: hasAddToCart(),

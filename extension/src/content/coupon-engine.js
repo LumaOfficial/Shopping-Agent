@@ -6,10 +6,16 @@
 (function (global) {
   "use strict";
 
-  // Coupon-ish field wording. Deliberately excludes "gift card": that field is
-  // for a serial number, not a promo code.
+  // Coupon-ish field wording. A field that also takes a gift card is not
+  // disqualified: carts commonly label one box "Discount code or gift card", and
+  // that is still where a promo code goes. A gift-card-only box is rejected.
   var FIELD_RE = /(coupon|promo|promotion|voucher|discount|offer\s*code|source\s*code|redeem)/i;
-  var NEVER_RE = /(search|query|gift\s*card|giftcard|zip|postal|email|password|card\s*number|cardnumber|cvv)/i;
+  // "Enter code", "Have a code?" — the generic wording some carts use. It is a
+  // weaker signal than a coupon word, so it only counts when nothing else rules
+  // the field out.
+  var CODE_WORD_RE = /\bcodes?\b/i;
+  var GIFT_CARD_RE = /gift\s*card|giftcard/i;
+  var NEVER_RE = /(search|query|zip|postal|email|password|card\s*number|cardnumber|cvv|country|\barea\b|\bdial\b|tracking)/i;
   var APPLY_RE = /^(apply|redeem|submit|use\s*code|add\s*code|apply\s*code|apply\s*coupon|use\s*coupon|go)$/i;
   var ERROR_RE = /(invalid|not\s+valid|isn'?t\s+valid|expired|no\s+longer|didn'?t\s+work|could\s+not\s+be\s+applied|cannot\s+be\s+applied|not\s+recognized|not\s+applicable|use\s+a\s+different|minimum|does\s+not\s+apply|unable\s+to\s+apply|enter\s+a\s+valid)/i;
   var SUCCESS_RE = /(applied|you\s+saved|you\s+save|congratulations|discount\s+of|code\s+accepted|has\s+been\s+added|promo\s+code\s+added|success)/i;
@@ -91,9 +97,11 @@
   function scoreField(el) {
     var meta = describe(el);
     if (NEVER_RE.test(meta)) return 0;
-    if (!FIELD_RE.test(meta)) return 0;
+    var couponish = FIELD_RE.test(meta);
+    if (!couponish && !CODE_WORD_RE.test(meta)) return 0;
+    if (GIFT_CARD_RE.test(meta) && !couponish) return 0;
     var score = 1;
-    if (/(coupon|promo|voucher)/i.test(meta)) score += 2;
+    if (/(coupon|promo|voucher|discount)/i.test(meta)) score += 2;
     if (el.tagName === "INPUT") score += 1;
     return score;
   }

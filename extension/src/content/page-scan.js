@@ -404,7 +404,10 @@
   }
 
   function toCents(value) {
-    var number = typeof value === "number" ? value : parseFloat(String(value || "").replace(/[^0-9.]/g, ""));
+    var text = String(value == null ? "" : value);
+    // "From $10 – $20" is a range, not the price of the product on screen.
+    if (/\d\s*[-\u2013\u2014]\s*[$€£¥₹]?\s*\d/.test(text)) return null;
+    var number = typeof value === "number" ? value : parseFloat(text.replace(/[^0-9.]/g, ""));
     if (!isFinite(number) || number <= 0 || number > 1000000) return null;
     return Math.round(number * 100);
   }
@@ -475,7 +478,11 @@
     '[itemprop="price"]',
     '[data-testid="product-price"]',
     '[data-testid="price-value"]',
+    '[data-testid="price"]',
+    '[data-testid*="product-price" i]',
+    '[data-testid*="price-value" i]',
     '[data-automation="product-price"]',
+    '[data-qa*="price" i]',
     "#corePrice_feature_div .a-offscreen",
     "#corePriceDisplay_desktop_feature_div .a-offscreen",
     "#priceblock_ourprice",
@@ -536,7 +543,11 @@
     if (metaContent("product:price:amount")) return true;
     if (jsonLdProduct()) return true;
     if (document.querySelector('[itemtype*="schema.org/Product" i]')) return true;
-    return /\/(dp|gp\/product|ip|p|pd|product|products|item|items|sku)\/[^/]+/i.test(location.pathname);
+    // Microdata price markup is a product page even without a Product wrapper.
+    if (document.querySelector('[itemprop="price"]')) return true;
+    if (/\/(dp|gp\/product|ip|p|pd|product|products|item|items|sku|buy)\/[^/]+/i.test(location.pathname)) return true;
+    // Catalogues that carry the product id in the query rather than the path.
+    return /[?&](sku|pid|product_?id|variant|item_?id)=/i.test(location.search);
   }
 
   function readProduct() {
