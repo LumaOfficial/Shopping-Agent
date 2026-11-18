@@ -66,6 +66,7 @@ function renderSimpleWallet(stats) {
 function fill(settings) {
   byId("catalog-url").value = settings.catalogUrl;
   byId("toggle-refresh").checked = settings.autoRefresh !== false;
+  byId("toggle-autopilot").checked = settings.autopilot !== false;
   byId("feed-url").value = settings.feedUrl;
   byId("feed-auth").value = settings.feedAuth;
   byId("feed-user").value = settings.feedUser;
@@ -110,6 +111,7 @@ function collect() {
   return {
     catalogUrl: byId("catalog-url").value.trim(),
     autoRefresh: byId("toggle-refresh").checked,
+    autopilot: byId("toggle-autopilot").checked,
     feedUrl: byId("feed-url").value.trim(),
     feedAuth: byId("feed-auth").value === "basic" ? "basic" : "bearer",
     feedUser: byId("feed-user").value.trim(),

@@ -446,6 +446,20 @@ const ROWS = [
   ["joann", "p-fabric-joann", "Cotton fabric, two yards", "home", 1598, 42, "cotton fabric", "Coupon page", "The store posts its current discount coupons on its own offers page."],
   ["hobbylobby", "p-frame-hobbylobby", "Picture frame", "home", 1499, 42, "picture frame", "Clearance", "Retired items are marked down in the clearance section."],
   ["blick", "p-paint-blick", "Acrylic paint set", "home", 2499, 42, "acrylic paint set", "Sale", "Selected art supplies sit at a reduced price."],
+
+  // ---- shops added with the wider catalog -------------------------------
+  ["peloton", "p-bike-peloton", "Peloton Bike+ (refurbished)", "fitness", 249500, 72, "Peloton Bike Plus", "Certified refurbished", "Refurbished bikes are inspected and sold with the store's own warranty."],
+  ["rimowa", "p-cabin-rimowa", "Rimowa Original Cabin", "fashion", 145000, 68, "Rimowa Original Cabin", "Last pieces", "Discontinued colours are listed below the current range."],
+  ["thuma", "p-bed-thuma", "Thuma The Bed (Queen)", "home", 159500, 64, "Thuma The Bed", "Bundle pricing", "A bed and its pillows bought together cost less than separately."],
+  ["joybird", "p-sofa-joybird", "Joybird Briar sofa", "home", 189900, 58, "Joybird Briar sofa", "Sale section", "Seasonal markdowns price made-to-order sofas below their usual price."],
+  ["onrunning", "p-cloud5-on", "On Cloud 5", "fashion", 14999, 78, "On Cloud 5", "Last-season shoes", "Previous colourways are listed below the current price."],
+  ["veja", "p-campo-veja", "VEJA Campo trainers", "fashion", 17500, 66, "VEJA Campo", "Sale", "Seasonal markdowns reduce selected trainers below their usual price."],
+  ["bluemercury", "p-cream-bluemercury", "Augustinus Bader The Cream", "beauty", 29000, 62, "Augustinus Bader The Cream", "BlueRewards", "Points on this order spend on a later one, and a birthday reward lands on the account."],
+  ["bookoutlet", "p-books-bookoutlet", "Fiction bundle, five books", "books", 2500, 60, "book bundle", "Bargain books", "Overstock and remainders are priced below their cover price."],
+  ["displate", "p-poster-displate", "Displate metal poster, medium", "home", 4900, 65, "metal poster", "Multi-buy pricing", "A second and third poster are priced below the first."],
+  ["fanatics", "p-jersey-fanatics", "NFL team jersey", "fashion", 10999, 70, "NFL jersey", "Sitewide sale", "Seasonal markdowns run across team and league kit."],
+  ["casetify", "p-case-casetify", "CASETiFY Impact case", "electronics", 6200, 64, "Impact case", "Multi-buy pricing", "A second case is priced below the first during the store's events."],
+  ["chegg", "p-textbook-chegg", "Used textbook, one term", "books", 4500, 55, "used textbook", "Used textbooks", "Used copies are listed below the price of a new copy."],
 ];
 
 

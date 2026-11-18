@@ -16,8 +16,8 @@ import { money } from "./format.js";
 import { hostsOf, storeById } from "./stores.js";
 import { EXTRA_DEALS, EXTRA_PRODUCTS } from "./deals-partners.js";
 
-export const DEALS_VERSION = 3;
-export const DEALS_UPDATED = "2026-11-12";
+export const DEALS_VERSION = 4;
+export const DEALS_UPDATED = "2026-11-18";
 
 const deal = (id, store, label, category, note, extra) =>
   Object.assign({ id, store, label, category, note, minSpend: 0, percent: null, ends: null }, extra);

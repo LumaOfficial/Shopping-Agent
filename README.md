@@ -131,7 +131,9 @@ partner endpoint the operator saves. `host_permissions` holds only the product
 API. Blocking advertising requests is the one thing that acts beyond those pages,
 it is a network rule that reads no page, and terms §5 discloses it. The `alarms`
 permission exists only for the hourly savings-list pass: it reads no page, holds
-no data, and stops when automatic refresh is switched off.
+no data, and stops when automatic refresh is switched off. The autopilot reads
+the tabs the shopper already opened through the same content script, so it needs
+no permission of its own and stops when its switch is turned off.
 
 Agreement is a deliberate act:
 
@@ -218,6 +220,33 @@ stay true for months, so nothing depends on someone editing coupons each morning
   now`, and Settings shows which list is in use, how many rows it holds and when
   it was last read.
 
+### Autopilot, and why the panel can stay closed
+
+Saving used to need the panel open, because the panel was what read the tab. The
+pass now lives in the service worker, so a shopper who never opens the panel is
+still covered:
+
+- **The trigger.** `chrome.tabs.onUpdated` wakes the worker when a page finishes
+  loading. A covered store's product page has its price recorded for the price
+  history; a page at a cart, basket, checkout, order or payment path gets a code
+  pass. A word in a query string or a product slug is not mistaken for a cart.
+- **The pass.** The worker probes the store's own promo field through the content
+  script, takes the codes it already knows for that store — best source first,
+  expired ones and codes this store already refused left out — and enters three
+  at most, stopping the moment one is accepted. The store's answer is what is
+  recorded: an accepted code becomes `works`, a refused one is never offered
+  again. `src/lib/autopilot.js` holds those rules, and the panel reads them too.
+- **One pass, one place.** The panel asks the worker for the pass rather than
+  running its own, so a checkout is never entered twice and the status line under
+  the codes is the worker's own answer.
+- **The switch.** Settings → **Keeping up to date** carries *Save automatically
+  without opening the panel*. Off means nothing happens until a code is tapped;
+  every code stays listed either way.
+
+Because the pass reads only the store's own promo field and the page's own price,
+autopilot needs no feed, no account and no server: it is the same code the panel
+offers, entered without a tap.
+
 ### The deals feed, and why it pairs itself
 
 `src/lib/deals.js` holds the partner offers (`PARTNER_DEALS`) and a short list of
@@ -257,7 +286,7 @@ opens an address it has not checked.
   signed in, so opening the panel does not ask for the password again; signing
   out is a second, deliberate tap on the account chip.
 - **Codes only for the store you are on.** The panel resolves the tab's host
-  against a catalog of **925 stores / 942 host patterns** (including regional
+  against a catalog of **981 stores / 998 host patterns** (including regional
   Amazon, eBay and other domains). Any other page shows an empty state, plus a
   one-tap check that adds the site when the page proves it is a shop.
 - **A tour on the first run.** The panel opens with a seven-step tour — codes,
@@ -763,8 +792,8 @@ The page is split into three levels, opening on the one last used:
 
 - **Simple** — the on/off switches in plain words, the cashback balance and one
   "Get a virtual Visa" tap, plus **Keeping up to date**: the freshness line, the
-  automatic-refresh switch, *Update now* and *Replay the tour*. No endpoints,
-  tokens or identifiers. When the balance reaches the minimum the tap always
+  automatic-refresh switch, the autopilot switch, *Update now* and *Replay the
+  tour*. No endpoints, tokens or identifiers. When the balance reaches the minimum the tap always
   finishes: with a reward service connected it asks that service for a card, and
   without one it issues a preview card labelled as having no cash value.
 - **Advanced** — the optional coupon feed, the optional published savings list,
@@ -945,6 +974,11 @@ cd extension && node tools/emulate-platforms.mjs
   is offered twice, a saving appears only from a published rate, an ended offer
   drops out, the bar never appears in the card copy, and every offered product
   opens on an https address at the store it belongs to.
+- **Autopilot** (`test/autopilot.test.mjs`) — a cart, basket, checkout, order or
+  payment path counts as a checkout and a product slug or query string does not;
+  a pass takes live codes best-source-first, collapses duplicates, skips the ones
+  the store refused and stops at three; and the panel prints only the outcome the
+  store answered, with no saving it did not confirm.
 
 The terms gate has a suite in `test/terms.test.mjs`. What it confirms:
 

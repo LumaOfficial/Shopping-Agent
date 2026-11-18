@@ -41,6 +41,10 @@ export const DEFAULTS = {
   backupToken: "",
   // Keep the savings list and any connected feed current on a schedule.
   autoRefresh: true,
+  // Try the codes the extension already knows at a checkout without waiting to
+  // be asked, and record the product price as pages are read. With this off the
+  // panel still offers every code — it just waits for a tap.
+  autopilot: true,
   // What five blocked ad impressions are worth to this account, in cents. The
   // operator sets it here rather than in code, so the figure can move with the
   // programmes that pay for the impressions.
@@ -129,6 +133,10 @@ export function sanitizeSettings(raw) {
     }
     if (key === "autoRefresh") {
       settings.autoRefresh = typeof input.autoRefresh === "boolean" ? input.autoRefresh : DEFAULTS.autoRefresh;
+      return;
+    }
+    if (key === "autopilot") {
+      settings.autopilot = typeof input.autopilot === "boolean" ? input.autopilot : DEFAULTS.autopilot;
       return;
     }
     if (key === "adRateCents") {

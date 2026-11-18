@@ -40,6 +40,7 @@ import {
 } from "../lib/guard.js";
 import { decideSite } from "../lib/site-add.js";
 import { mergeCodes, cleanCode, isExpired } from "../lib/codes.js";
+import { autopilotQueue, looksLikeCheckout } from "../lib/autopilot.js";
 import { readConsent } from "../lib/terms.js";
 import {
   creditAds,
@@ -393,6 +394,99 @@ async function resolveSite(url, options) {
     },
     footer: partnerSummary(settings.partnerMembers),
   };
+}
+
+// ---- autopilot ----------------------------------------------------------
+// Saving without anyone asking. The worker watches the tabs the shopper opens,
+// and on a covered store's checkout it probes the store's own promo field,
+// enters the codes already known for that store and keeps whatever the store
+// accepted. The panel can be closed the whole time: this is the same pass it
+// used to run itself, moved where it can run on its own.
+const AUTOPILOT_RATE_LIMIT = 20;
+const AUTOPILOT_REMEMBERED = 200;
+// The outcome of the pass already run for a tab's URL, so the tab listener and
+// the panel never enter a code the store has just taken — whoever asks second
+// is handed the same answer.
+const autopilotRuns = new Map();
+
+function rememberAutopilot(key, outcome) {
+  autopilotRuns.set(key, outcome);
+  if (autopilotRuns.size > AUTOPILOT_REMEMBERED) {
+    autopilotRuns.delete(autopilotRuns.keys().next().value);
+  }
+}
+
+function sendToTab(tabId, message, options) {
+  if (typeof tabId !== "number") return Promise.resolve(null);
+  return chrome.tabs.sendMessage(tabId, message, options).catch(() => null);
+}
+
+// A store's own answer is the only thing that decides what happens next: an
+// accepted code is remembered as verified, a refused one is not offered again.
+async function runAutopilot(url, tabId) {
+  const settings = await readSettings();
+  if (settings.autopilot === false) return { status: "off" };
+  if (settings.enabled.coupons === false) return { status: "off" };
+  if (typeof tabId !== "number") return { status: "skip" };
+  const store = resolveStore(url, settings.enabledSites);
+  if (!store) return { status: "skip" };
+  if (!looksLikeCheckout(url)) return { status: "skip" };
+
+  // A page that had no field yet is looked at again next time; a page that has
+  // already been through a pass answers with what happened then.
+  const key = tabId + "|" + url;
+  const already = autopilotRuns.get(key);
+  if (already) return already;
+
+  const probe = await sendToTab(tabId, { type: "coupon:probe" });
+  if (!probe || !probe.hasField) return { status: "no-field" };
+
+  const data = await resolveSite(url);
+  const queue = autopilotQueue(data && data.codes, data && data.dead);
+  if (!queue.length) {
+    const outcome = { status: "none", tried: 0 };
+    rememberAutopilot(key, outcome);
+    return outcome;
+  }
+
+  for (const coupon of queue) {
+    const result = await sendToTab(tabId, { type: "coupon:apply", code: coupon.code });
+    if (result && result.status === "applied") {
+      await recordVerified(store.id, coupon.code, result.saving || null);
+      const outcome = {
+        status: "applied",
+        code: coupon.code,
+        message: result.message || "the store took it.",
+        tried: queue.indexOf(coupon) + 1,
+      };
+      rememberAutopilot(key, outcome);
+      return outcome;
+    }
+    if (result && result.status === "rejected") await markDead(store.id, coupon.code);
+  }
+  const outcome = { status: "rejected", tried: queue.length };
+  rememberAutopilot(key, outcome);
+  return outcome;
+}
+
+// A covered page is read once it has finished loading: the product's own price
+// is recorded for the price history, and a checkout gets the code pass. Both
+// happen whether or not the panel is open.
+async function autopilotTab(tabId, url) {
+  const settings = await readSettings();
+  if (settings.autopilot === false) return;
+  const store = resolveStore(url, settings.enabledSites);
+  if (!store) return;
+
+  if (settings.enabled.priceTracking !== false) {
+    const scan = await sendToTab(tabId, { type: "page:scan" }, { frameId: 0 });
+    if (scan && scan.product) {
+      await recordPrice(Object.assign({ storeId: store.id }, scan.product));
+    }
+  }
+
+  if (!looksLikeCheckout(url)) return;
+  await runAutopilot(url, tabId);
 }
 
 async function saveCode(storeId, input, title) {
@@ -1124,7 +1218,7 @@ async function fillSavedCard(message) {
   };
 }
 
-const NEEDS_URL = ["site:resolve", "offers:refresh", "cashback:activate", "site:remove"];
+const NEEDS_URL = ["site:resolve", "offers:refresh", "cashback:activate", "site:remove", "autopilot:run"];
 
 // The payload each handler is about to read, checked before it is read. A message
 // that fails here never touches storage.
@@ -1233,6 +1327,10 @@ async function handle(message, sender) {
       return resolveSite(message.url);
     case "offers:refresh":
       return resolveSite(message.url, { refresh: true });
+    case "autopilot:run":
+      return allowance("autopilot", AUTOPILOT_RATE_LIMIT, 60000)
+        ? runAutopilot(message.url, intValue(message.tabId, 1, 1e9))
+        : { status: "skip", error: "Too many automatic passes just now." };
     case "cashback:activate":
       return activateCashback(message.url, message.total, message.currency);
     case "cashback:wallet":
@@ -1364,6 +1462,17 @@ syncAdBlock();
 chrome.action.onClicked.addListener(function () {
   openPanel();
 });
+
+// The autopilot's trigger. Only a page that has finished loading is read, so a
+// half-rendered checkout is never probed for a field that is about to appear.
+if (chrome.tabs && chrome.tabs.onUpdated) {
+  chrome.tabs.onUpdated.addListener(function (tabId, info, tab) {
+    if (!info || info.status !== "complete") return;
+    const url = (tab && tab.url) || info.url || "";
+    if (!webUrl(url)) return;
+    autopilotTab(tabId, url).catch(function () {});
+  });
+}
 
 chrome.commands.onCommand.addListener(function (command) {
   if (command !== "open-panel") return;

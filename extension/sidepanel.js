@@ -7,6 +7,7 @@ import {
   storeSite,
 } from "./src/lib/store-directory.js";
 import { mergeCodes, SOURCE_LABEL, daysLeft, endingSoon } from "./src/lib/codes.js";
+import { autopilotMessage, looksLikeCheckout } from "./src/lib/autopilot.js";
 import { money, humanAge } from "./src/lib/format.js";
 import { PAGE_SOURCE_NOTE } from "./src/lib/copy.js";
 import { browserName } from "./src/lib/browser.js";
@@ -1011,21 +1012,11 @@ async function runApply(code, button, status) {
 
 // ---- automatic application at checkout ---------------------------------
 // At the cart and the payment step the store's own promo box is already open,
-// so the codes are typed in for the shopper instead of waiting for a tap. One
-// pass per page, three codes at most, and it stops the moment one is taken.
-const AUTO_APPLY_LIMIT = 3;
+// so the codes are typed in for the shopper instead of waiting for a tap. The
+// pass itself runs in the worker (src/lib/autopilot.js holds its rules), which
+// means it also runs while this panel is closed; here the panel only asks for
+// one pass per page and prints what the store answered.
 let autoAppliedFor = null;
-
-// The cart and checkout steps live at a path segment of their own, so a query
-// string or a product slug that happens to say "order" is not mistaken for one.
-function looksLikeCheckout(url) {
-  try {
-    const path = new URL(url).pathname.toLowerCase();
-    return /(^|\/)(cart|basket|checkout|order|payment)(\/|$)/.test(path);
-  } catch (_error) {
-    return false;
-  }
-}
 
 async function autoApplyAtCheckout(hasField, atPayment) {
   if (!state.data || !hasField) return;
@@ -1035,33 +1026,25 @@ async function autoApplyAtCheckout(hasField, atPayment) {
   autoAppliedFor = state.url;
 
   const status = byId("codes-status");
-  const queue = liveCodes().slice(0, AUTO_APPLY_LIMIT);
-  if (!queue.length) return;
-
   status.hidden = false;
   status.className = "status wait";
   status.textContent = "Entering your codes at checkout…";
 
-  try {
-    for (const coupon of queue) {
-      const result = await runApply(coupon.code, null, status);
-      if (result.status === "applied") {
-        status.className = "status ok";
-        status.textContent =
-          coupon.code + " entered at checkout — " + (result.message || "the store took it.");
-        return;
-      }
-    }
-  } catch (_error) {
-    status.className = "status wait";
-    status.textContent = "Could not enter the codes on this page — copy one and try it yourself.";
+  const result = await sendWorker({ type: "autopilot:run", url: state.url, tabId: state.tabId });
+  if (!result || result.status === "off" || result.status === "skip") {
+    // Nothing to try on this page, so the list is left exactly as it was.
+    status.hidden = true;
     return;
   }
 
-  status.className = "status wait";
-  status.textContent =
-    "Tried " + queue.length + " code" + (queue.length === 1 ? "" : "s") +
-    " at checkout — none were accepted. You can still try another below.";
+  const note = autopilotMessage(result);
+  status.className = "status " + note.tone;
+  status.textContent = note.text;
+
+  if (result.status === "applied") {
+    markVerified(result.code);
+    loadSavings();
+  }
 }
 
 async function refreshCodes() {
