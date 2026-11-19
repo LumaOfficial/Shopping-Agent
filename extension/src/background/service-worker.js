@@ -23,7 +23,7 @@ import {
   normalizeCurrency,
 } from "../partners/cashback-ledger.js";
 import { getSponsoredOffers, claimOffer, sponsorConfigured } from "../partners/sponsor-offers.js";
-import { payoutConfigured, payoutHost, detectPayoutService, requestVirtualCard, requestSimpleVisa, requestPreviewCard } from "../partners/cashback-payout.js";
+import { payoutConfigured, payoutHost, payoutMinimum, detectPayoutService, requestVirtualCard, requestSimpleVisa, requestPreviewCard } from "../partners/cashback-payout.js";
 import { readSettings, writeSettings, publicSettings } from "../lib/settings.js";
 import { VAULT_KEY, pushVault } from "../lib/backup.js";
 import { siteHost } from "../lib/site-request.js";
@@ -950,17 +950,18 @@ async function walletSummary() {
   const wallet = await readWallet();
   if (settle(wallet)) await writeWallet(wallet);
   const age = await readAge();
+  const verified = isVerified(age);
 
   const currency = walletCurrency(wallet);
   return {
     balances: balances(wallet, currency),
     currency,
-    minimum: Number(settings.payoutMinimum) || 0,
+    minimum: payoutMinimum(settings, verified),
     mode: payoutConfigured(settings) ? "service" : "unconfigured",
     payoutHost: payoutHost(settings),
     // Cash outs are gated on the age check, so the panel is told here rather
     // than deciding for itself.
-    ageVerified: isVerified(age),
+    ageVerified: verified,
     boost: BOOST_RATE,
     entries: wallet.entries.slice(0, 6).map((entry) => ({
       id: entry.id,
@@ -982,13 +983,15 @@ async function cashOut(message) {
   settle(wallet);
 
   // A face check that came back over 18 is the only thing that unlocks a payout.
-  if (!canCashOut(await readAge())) {
+  const age = await readAge();
+  if (!canCashOut(age)) {
     return { ok: false, reason: "age-unverified", wallet: await walletSummary() };
   }
 
   const currency = walletCurrency(wallet);
   const totals = balances(wallet, currency);
-  const minimum = Number(settings.payoutMinimum) || 0;
+  // A verified account can cash out any balance from three cents.
+  const minimum = payoutMinimum(settings, true);
   if (!totals.available || totals.available < minimum) {
     return { ok: false, reason: "below-minimum", wallet: await walletSummary() };
   }

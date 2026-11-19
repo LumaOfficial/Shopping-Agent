@@ -822,7 +822,8 @@ The page is split into three levels, opening on the one last used:
   automatic-refresh switch, the autopilot switch, *Update now* and *Replay the
   tour*. No endpoints, tokens or identifiers. When the balance reaches the minimum the tap always
   finishes: with a reward service connected it asks that service for a card, and
-  without one it issues a preview card labelled as having no cash value.
+  without one it issues a preview card labelled as having no cash value. An
+  account whose 18+ check has cleared can cash out any balance from $0.03.
 - **Advanced** — the optional coupon feed, the optional published savings list,
   the cashback network template, the product API key and local data
   (export / clear).
@@ -970,6 +971,8 @@ detector in `src/lib/age-local.js`. What it confirms:
   refused and leave the next earning unboosted;
 - the verdict is stored against the account, so a second account on the same
   browser earns the plain rate until it is checked itself;
+- a verified account cashes out a four-cent balance, while an unverified one
+  still needs the $5.00 Settings minimum and two cents stays below the floor;
 - the guided rotation reads a turn on the side the mirrored preview shows,
   answers a turn the wrong way with a correction, and keeps a tilt up;
 - a set of angles that never moved, and a scan that stopped halfway, are not a

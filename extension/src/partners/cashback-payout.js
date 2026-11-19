@@ -13,6 +13,15 @@
 //   { referenceOrderID, rewardName,
 //     reward: { credentials: { redemptionUrl, expirationDate }, credentialList } }
 
+// An account whose 18+ check has cleared can cash out any balance from three
+// cents. Until then the payout minimum from Settings applies.
+export const VERIFIED_MINIMUM = 3;
+
+export function payoutMinimum(settings, verified) {
+  if (verified) return VERIFIED_MINIMUM;
+  return Number(settings && settings.payoutMinimum) || 0;
+}
+
 export function payoutConfigured(settings) {
   return Boolean(
     String((settings && settings.payoutUrl) || "").trim() &&

@@ -198,7 +198,7 @@ would ask about it:
   are unchanged; only the hierarchy and the surface are.
 - **Ad counts print with thousands separators**, so a four-digit count reads as a number.
 - No permission, host, collection or copy claim changed. The rebuilt package passes the
-  **185-test suite**, `tools/check-catalog.mjs` and the 7-desktop `tools/emulate-platforms.mjs`.
+  **188-test suite**, `tools/check-catalog.mjs` and the 7-desktop `tools/emulate-platforms.mjs`.
 
 ## What the operator is confirming
 
@@ -227,7 +227,7 @@ proves it. Two things have to be true before upload and only a person can confir
 | Must not collect private information without authorisation | Nothing acts before the shopper ticks an empty box and agrees: the panel stays on its notice, the ad-blocking ruleset is declared off and only the worker turns it on for an agreed profile, the ad-slot script reads the same record before it hides or counts, and ad credit is refused without it | `src/lib/terms.js`, `src/content/consent.js`, `src/background/service-worker.js` `syncAdBlock()`, `manifest.json` ruleset, `test/policies.test.mjs`, `test/security.test.mjs` | Met |
 | Must not send private data to an external store through XHR | Outbound calls go only to addresses the operator or shopper configured, over HTTPS or to a loopback listener, and only for the feature that was used | `src/partners/*`, `guard.endpoint()` in `src/lib/guard.js`, `test/security.test.mjs` | Met |
 | Code must not be obfuscated or minified | Plain ES modules and classic scripts, comments included, no build step beyond the manifest; asserted with no line over 500 characters and no `eval` | `dist/opera` is a copy of `extension/`; `test/manifest-compliance.test.mjs` | Met |
-| No obvious bugs | 185 Node tests cover the trust boundary, accounts, wallet, age check, the savings list and its hourly pass, the tour, the platform matrix, the gate's hold on blocking and credits, the disclosure pages, the packaged manifest and the package itself; catalog check passes | `cd extension && node --test test/*.test.mjs` → 185 pass; `node tools/emulate-platforms.mjs` → 7/7; `node tools/check-catalog.mjs` → agree | Met in Node; see "Not verified here" |
+| No obvious bugs | 188 Node tests cover the trust boundary, accounts, wallet, age check, the savings list and its hourly pass, the tour, the platform matrix, the gate's hold on blocking and credits, the disclosure pages, the packaged manifest and the package itself; catalog check passes | `cd extension && node --test test/*.test.mjs` → 188 pass; `node tools/emulate-platforms.mjs` → 7/7; `node tools/check-catalog.mjs` → agree | Met in Node; see "Not verified here" |
 | Icons similar in style, not words on a colour | Five PNG sizes from one mark — the four the manifest declares (16/32/48/128) and the 96px sidebar icon — all RGBA and non-interlaced, none a wordmark | `extension/icons/`; sizes and PNG headers asserted in `test/manifest-compliance.test.mjs`; decoded and inspected at 16 and 32px | Met |
 | Testing on Windows, Mac and Linux | The shipped modules are driven under emulated Windows, macOS, Linux and ChromeOS browser signals — detection, shortcut, tour copy, close-up face scan and store resolution all agree — but this is not a run on physical hardware | `tools/emulate-platforms.mjs` (7/7), `test/platform.test.mjs` | Met by emulation; a physical-device pass is **Operator** |
 | Screenshots 612×408, white background, default UI | — | — | **Operator** |
@@ -357,7 +357,7 @@ Entered in the submission form, so the form and the package describe the same pr
 ## Submission checklist
 
 - [ ] `cd extension && node tools/build.mjs --target opera` on the commit being submitted
-- [ ] `cd extension && node --test test/*.test.mjs` — all 185 pass
+- [ ] `cd extension && node --test test/*.test.mjs` — all 188 pass
 - [ ] `cd extension && node tools/check-catalog.mjs` — catalog and manifest agree, and it reports no
       content script outside the catalog and no all-sites host permission
 - [ ] Load `dist/opera` unpacked in Opera and confirm the panel opens from the sidebar rail and from
