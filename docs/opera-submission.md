@@ -134,6 +134,24 @@ would ask about it:
   package still passes the 94-test suite, `tools/check-catalog.mjs` and the 7-desktop
   `tools/emulate-platforms.mjs` run; the numbers below are from that rebuild.
 
+**Revision 7 — 12 November 2026.** Catalogue expansion for 0.9.0:
+
+- **20 more shops** are in `src/lib/stores.js` (Pandora, Swarovski, Aesop, TULA, Versed, Briogeo,
+  Drunk Elephant, Birchbox, FabFitFun, L'Occitane, Cotopaxi, Fringe Sport, American Girl, JetBrains,
+  Bodybuilding.com, Red Wing, Dickies, Sennheiser, Rugs USA, Cratejoy), taking the catalogue from
+  794 to **814 stores / 831 host patterns**. Every new entry is a specific shop origin, added to the
+  same single `content_scripts` entry by `tools/check-catalog.mjs --write`; the standing
+  `host_permissions` list and `optional_host_permissions` are unchanged.
+- **The bundled savings list grew from 247 to 379 rows**, covering 359 shops instead of 240. Each
+  row describes a programme the shop itself runs (a member scheme, an outlet, price matching, a
+  first-box offer); no code is invented, and a code still only ever arrives from the page or from an
+  operator's published list.
+- **`catalog.test.mjs` now refuses a row for a shop the panel cannot open, a duplicate row, or a kind
+  the panel cannot draw**, so the expansion cannot drift out of the merchant catalogue.
+- The package version is **0.9.0** (`manifest.json`, and the privacy policy's "applies to version"
+  line). The Terms version stays 1.4: nothing about what is collected changed. The rebuilt package
+  passes the **120-test suite**, `tools/check-catalog.mjs` and the packaged-page checks.
+
 **Revision 8 — 12 November 2026.** Second catalogue expansion:
 
 - **111 more shops** are in `src/lib/stores.js` (among them Google Store, Framework, iFixit, MUJI,
@@ -154,25 +172,7 @@ would ask about it:
 - **The All stores directory prints each shop's ways to save** (`storeSavingsCount()`), counted once
   from the shipped list, so the expanded catalogue stays browsable rather than just longer.
 
-**Revision 7 — 12 November 2026.** Catalogue expansion for 0.9.0:
-
-- **20 more shops** are in `src/lib/stores.js` (Pandora, Swarovski, Aesop, TULA, Versed, Briogeo,
-  Drunk Elephant, Birchbox, FabFitFun, L'Occitane, Cotopaxi, Fringe Sport, American Girl, JetBrains,
-  Bodybuilding.com, Red Wing, Dickies, Sennheiser, Rugs USA, Cratejoy), taking the catalogue from
-  794 to **814 stores / 831 host patterns**. Every new entry is a specific shop origin, added to the
-  same single `content_scripts` entry by `tools/check-catalog.mjs --write`; the standing
-  `host_permissions` list and `optional_host_permissions` are unchanged.
-- **The bundled savings list grew from 247 to 379 rows**, covering 359 shops instead of 240. Each
-  row describes a programme the shop itself runs (a member scheme, an outlet, price matching, a
-  first-box offer); no code is invented, and a code still only ever arrives from the page or from an
-  operator's published list.
-- **`catalog.test.mjs` now refuses a row for a shop the panel cannot open, a duplicate row, or a kind
-  the panel cannot draw**, so the expansion cannot drift out of the merchant catalogue.
-- The package version is **0.9.0** (`manifest.json`, and the privacy policy's "applies to version"
-  line). The Terms version stays 1.4: nothing about what is collected changed. The rebuilt package
-  passes the **120-test suite**, `tools/check-catalog.mjs` and the packaged-page checks.
-
-**Revision 8 — 12 November 2026.** Page-scan precision pass, no new permissions:
+**Revision 9 — 12 November 2026.** Page-scan precision pass, no new permissions:
 
 - **The scanner reads only what a shopper can see.** Text from a hidden element, an unused template
   or an `aria-hidden` copy is no longer evidence, so last season's banner in the markup cannot
@@ -190,6 +190,16 @@ would ask about it:
   page names the extension version beside the Terms version instead of only the latter.
 - The rebuilt package passes the **121-test suite** and `tools/check-catalog.mjs`.
 
+**Revision 10 — 19 November 2026.** Panel clarity pass:
+
+- **The wallet and ad value stopped looking like the same card.** The cashback wallet is the tinted
+  one (a violet-to-apricot wash, frosted pending and paid-out figures, an ink-dark cash out), and
+  ad value is a white ledger strip with an apricot edge and its figure beside the label. The figures
+  are unchanged; only the hierarchy and the surface are.
+- **Ad counts print with thousands separators**, so a four-digit count reads as a number.
+- No permission, host, collection or copy claim changed. The rebuilt package passes the
+  **181-test suite**, `tools/check-catalog.mjs` and the 7-desktop `tools/emulate-platforms.mjs`.
+
 ## What the operator is confirming
 
 The review below maps each criterion to what the package actually does, and names the file that
@@ -206,7 +216,7 @@ proves it. Two things have to be true before upload and only a person can confir
 | --- | --- | --- | --- |
 | One clearly stated purpose | One purpose: help a shopper save money in the store they are already in — codes, cashback, price history, sponsored offers, ad slots hidden in the shops it covers | `extension/manifest.json` (name, description), `README.md` "What works" | **Attention** — see finding 1 |
 | Name must not suggest a non-affiliated company | "Luma Pay Shopping Agent" is our own brand; no browser vendor's name appears in the title | `extension/manifest.json` `name`; `extension/terms.html` §2 | Met |
-| Summary answers what the extension does | Description: "Luma Pay Shopping Agent finds coupons, cashback and price history while you shop, and hides ad slots in the shops it covers." — two complete sentences, 124 characters | `extension/manifest.json` `description`; `test/manifest-compliance.test.mjs` | Met |
+| Summary answers what the extension does | Description: "Finds coupons, cashback and price history while you shop, hides ad slots in covered shops, and fills a card you saved here." — one complete sentence, 123 characters | `extension/manifest.json` `description`; `test/manifest-compliance.test.mjs` | Met |
 | Background actions described | Ad-slot hiding is named in the summary; the network-level ad blocking, what it does to a page's ads and how it is switched off are in terms §5 and §6, and the panel's first screen explains them before anything runs | `extension/manifest.json`, `extension/terms.html`, `extension/sidepanel.html` terms card | Met |
 | No external JavaScript | Every script ships in the package; no page loads a remote script | `manifest.json` CSP `script-src 'self'`; `test/manifest-compliance.test.mjs` | Met |
 | Third-party libraries genuine and unchanged | None are bundled; the extension has no dependencies at runtime | `extension/test/*.test.mjs` run on plain Node with no packages | Met |
@@ -217,7 +227,7 @@ proves it. Two things have to be true before upload and only a person can confir
 | Must not collect private information without authorisation | Nothing acts before the shopper ticks an empty box and agrees: the panel stays on its notice, the ad-blocking ruleset is declared off and only the worker turns it on for an agreed profile, the ad-slot script reads the same record before it hides or counts, and ad credit is refused without it | `src/lib/terms.js`, `src/content/consent.js`, `src/background/service-worker.js` `syncAdBlock()`, `manifest.json` ruleset, `test/policies.test.mjs`, `test/security.test.mjs` | Met |
 | Must not send private data to an external store through XHR | Outbound calls go only to addresses the operator or shopper configured, over HTTPS or to a loopback listener, and only for the feature that was used | `src/partners/*`, `guard.endpoint()` in `src/lib/guard.js`, `test/security.test.mjs` | Met |
 | Code must not be obfuscated or minified | Plain ES modules and classic scripts, comments included, no build step beyond the manifest; asserted with no line over 500 characters and no `eval` | `dist/opera` is a copy of `extension/`; `test/manifest-compliance.test.mjs` | Met |
-| No obvious bugs | 94 Node tests cover the trust boundary, accounts, wallet, age check, the savings list and its hourly pass, the tour, the platform matrix, the gate's hold on blocking and credits, the disclosure pages, the packaged manifest and the package itself; catalog check passes | `cd extension && node --test test/*.test.mjs` → 94 pass; `node tools/emulate-platforms.mjs` → 7/7; `node tools/check-catalog.mjs` → agree | Met in Node; see "Not verified here" |
+| No obvious bugs | 181 Node tests cover the trust boundary, accounts, wallet, age check, the savings list and its hourly pass, the tour, the platform matrix, the gate's hold on blocking and credits, the disclosure pages, the packaged manifest and the package itself; catalog check passes | `cd extension && node --test test/*.test.mjs` → 181 pass; `node tools/emulate-platforms.mjs` → 7/7; `node tools/check-catalog.mjs` → agree | Met in Node; see "Not verified here" |
 | Icons similar in style, not words on a colour | Five PNG sizes from one mark — the four the manifest declares (16/32/48/128) and the 96px sidebar icon — all RGBA and non-interlaced, none a wordmark | `extension/icons/`; sizes and PNG headers asserted in `test/manifest-compliance.test.mjs`; decoded and inspected at 16 and 32px | Met |
 | Testing on Windows, Mac and Linux | The shipped modules are driven under emulated Windows, macOS, Linux and ChromeOS browser signals — detection, shortcut, tour copy, close-up face scan and store resolution all agree — but this is not a run on physical hardware | `tools/emulate-platforms.mjs` (7/7), `test/platform.test.mjs` | Met by emulation; a physical-device pass is **Operator** |
 | Screenshots 612×408, white background, default UI | — | — | **Operator** |
@@ -233,7 +243,7 @@ proves it. Two things have to be true before upload and only a person can confir
 | `declarativeNetRequest` | Stop requests to advertising and tracker domains for the ad-value feature | `rules/ads.json` |
 | `alarms` | Run the hourly savings-list pass: re-read the list, drop rows whose end date passed, refresh the optional feed. Reads no page and can be switched off | `src/background/service-worker.js` `scheduleRefresh()`, `refreshCatalog()` |
 | `sidePanel` (Chromium only) | Puts the panel in the Chromium side panel; **not** in the Opera package | removed by the `opera` row in `tools/targets.mjs` |
-| Host access via `content_scripts` | The 942 shop host patterns across 925 stores in the catalog: recognise the shop the shopper opened, read the codes and prices that page publishes, fill the store's own promo field, hide and count empty ad slots | `manifest.json` `content_scripts` (one entry, six files); kept in step with `src/lib/stores.js` by `tools/check-catalog.mjs` |
+| Host access via `content_scripts` | The 998 shop host patterns across 981 stores in the catalog: recognise the shop the shopper opened, read the codes and prices that page publishes, fill the store's own promo field, hide and count empty ad slots | `manifest.json` `content_scripts` (one entry, six files); kept in step with `src/lib/stores.js` by `tools/check-catalog.mjs` |
 | `optional_host_permissions` `*://*/*` | Granted **one origin at a time**, only on a click: a shop the shopper adds themselves, or a partner endpoint the operator saves (feed, payout proxy, sponsor service, age relay) | `sidepanel.js` `checkSite()`, `options.js` `ensureHost()` |
 | Host `https://api.keepa.com/*` | Optional 90-day price low, only when a product API key is entered | `src/partners/price-history.js` |
 
@@ -347,7 +357,7 @@ Entered in the submission form, so the form and the package describe the same pr
 ## Submission checklist
 
 - [ ] `cd extension && node tools/build.mjs --target opera` on the commit being submitted
-- [ ] `cd extension && node --test test/*.test.mjs` — all 94 pass
+- [ ] `cd extension && node --test test/*.test.mjs` — all 181 pass
 - [ ] `cd extension && node tools/check-catalog.mjs` — catalog and manifest agree, and it reports no
       content script outside the catalog and no all-sites host permission
 - [ ] Load `dist/opera` unpacked in Opera and confirm the panel opens from the sidebar rail and from
