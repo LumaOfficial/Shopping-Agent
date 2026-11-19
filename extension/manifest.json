@@ -55,6 +55,13 @@
         "mac": "Alt+Shift+S"
       },
       "description": "Open the Savings side panel"
+    },
+    "open-settings": {
+      "suggested_key": {
+        "default": "Alt+Shift+O",
+        "mac": "Alt+Shift+O"
+      },
+      "description": "Open Luma Pay settings"
     }
   },
   "side_panel": {

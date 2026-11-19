@@ -451,8 +451,12 @@ opens an address it has not checked.
   - **pinned stores** (up to six) as one-tap launchers and the **last six store
     searches** the directory was used for (`src/lib/bookmarks.js`);
   - **keyboard shortcuts** — `/` opens the directory, `g` opens the monthly goal
-    on Settings, `w` watches the product on the page, `p` pins the store, `?`
-    lists them, `Esc` clears (`src/lib/shortcuts.js`);
+    on Settings, `w` watches the product on the page, `p` pins the store, `d`
+    jumps to the store's deals, `c` to its categories, `s` opens Settings, `k`
+    the savings toolkit, `?` lists them, `Esc` clears
+    (`src/lib/shortcuts.js`); the browser's own commands open the panel
+    (`Alt + Shift + S`, `⌥ + ⇧ + S` on a Mac) and Settings (`Alt + Shift + O`),
+    and are rebindable on the browser's shortcuts page;
   - **the jump row** under those actions — every view one tap away: the panel's
     own sections, the eight fullest store categories (each opens the directory
     filtered to that aisle), and two small views of its own: **price movers**

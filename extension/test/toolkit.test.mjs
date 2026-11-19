@@ -270,7 +270,14 @@ test("shortcuts fire on a key press, not while typing or with a modifier", () =>
   assert.equal(actionFor({ key: "p", ctrlKey: true }), null);
   assert.equal(actionFor({ key: "Escape", target: { tagName: "INPUT" } }), "escape");
   assert.equal(actionFor({ key: "q" }), null);
-  assert.ok(SHORTCUTS.length >= 5);
+  // The section and settings keys, and no firing while a note is being typed.
+  assert.equal(actionFor({ key: "d" }), "deals");
+  assert.equal(actionFor({ key: "c" }), "categories");
+  assert.equal(actionFor({ key: "s" }), "settings");
+  assert.equal(actionFor({ key: "k" }), "toolkit");
+  assert.equal(actionFor({ key: "d", target: { tagName: "INPUT" } }), null);
+  assert.equal(actionFor({ key: "s", altKey: true }), null);
+  assert.ok(SHORTCUTS.length >= 10);
 });
 
 // ---- expiring codes ----------------------------------------------------

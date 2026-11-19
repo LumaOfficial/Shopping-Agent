@@ -1519,8 +1519,11 @@ if (chrome.tabs && chrome.tabs.onUpdated) {
 }
 
 chrome.commands.onCommand.addListener(function (command) {
-  if (command !== "open-panel") return;
-  openPanel();
+  if (command === "open-panel") {
+    openPanel();
+    return;
+  }
+  if (command === "open-settings") chrome.runtime.openOptionsPage();
 });
 
 chrome.runtime.onInstalled.addListener(function () {

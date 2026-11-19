@@ -124,6 +124,17 @@ export function startPanelShortcuts(handlers) {
 
   // One place for what a shortcut does, whether it came from a key or from the
   // row under the brand.
+  // A section shortcut scrolls to the card when the panel has it, and says why
+  // nothing moved when the store or the feed has not filled it in yet.
+  function jumpToBlock(id, emptyMessage) {
+    const block = byId(id);
+    if (!block || block.hidden) {
+      status(emptyMessage, "wait");
+      return;
+    }
+    block.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
   function runAction(action) {
     if (action === "focus-search") {
       openSearch();
@@ -139,6 +150,22 @@ export function startPanelShortcuts(handlers) {
     }
     if (action === "pin-store") {
       pinCurrent();
+      return;
+    }
+    if (action === "deals") {
+      jumpToBlock("deals-block", "No deals for this store yet.");
+      return;
+    }
+    if (action === "categories") {
+      jumpToBlock("category-block", "Open a store to see its categories.");
+      return;
+    }
+    if (action === "settings") {
+      chrome.tabs.create({ url: chrome.runtime.getURL("options.html") });
+      return;
+    }
+    if (action === "toolkit") {
+      openToolkit();
       return;
     }
     if (action === "help") toggleKeys();

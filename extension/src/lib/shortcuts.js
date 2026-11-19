@@ -8,6 +8,10 @@ export const SHORTCUTS = [
   { keys: "g", what: "Open the monthly goal in Settings" },
   { keys: "w", what: "Watch the product on this page" },
   { keys: "p", what: "Pin the store you are on" },
+  { keys: "d", what: "Jump to the deals for this store" },
+  { keys: "c", what: "Jump to the store categories" },
+  { keys: "s", what: "Open Settings" },
+  { keys: "k", what: "Open your savings toolkit" },
   { keys: "?", what: "Show or hide this list" },
   { keys: "Esc", what: "Clear the search, or close this list" },
 ];
@@ -28,6 +32,14 @@ export function actionFor(event) {
       return "watch-product";
     case "p":
       return "pin-store";
+    case "d":
+      return "deals";
+    case "c":
+      return "categories";
+    case "s":
+      return "settings";
+    case "k":
+      return "toolkit";
     case "?":
       return "help";
     default:
