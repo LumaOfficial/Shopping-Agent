@@ -1873,8 +1873,13 @@ startPanelExtras({
 // it, so nothing on it is hand-written for one store.
 startDealsFeed({
   feed: byId("deals-feed"),
+  featured: byId("deals-featured"),
+  filters: byId("deals-filters"),
   shuffleButton: byId("deals-shuffle"),
   count: byId("deals-count"),
+  // The worker ranks the feed against the shops this profile uses, so the panel
+  // opens on the same picks whether or not it was open while the shopper browsed.
+  load: () => sendWorker({ type: "deals:feed" }),
   shop: (url) => {
     const safe = webUrl(url);
     if (safe) chrome.tabs.create({ url: safe });

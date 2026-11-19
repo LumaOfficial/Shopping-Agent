@@ -16,8 +16,8 @@ import { money } from "./format.js";
 import { hostsOf, storeById } from "./stores.js";
 import { EXTRA_DEALS, EXTRA_PRODUCTS } from "./deals-partners.js";
 
-export const DEALS_VERSION = 4;
-export const DEALS_UPDATED = "2026-11-18";
+export const DEALS_VERSION = 5;
+export const DEALS_UPDATED = "2026-11-19";
 
 const deal = (id, store, label, category, note, extra) =>
   Object.assign({ id, store, label, category, note, minSpend: 0, percent: null, ends: null }, extra);
@@ -151,9 +151,15 @@ const BUNDLED_DEALS = [
   deal("target-shipping", "target", "Free shipping", null, "Ships free at Target's own free-shipping bar.", { minSpend: 3500 }),
 
   deal("amazon-renewed", "amazon", "Renewed laptops", "laptop", "Amazon Renewed lists this model below its new price."),
+  deal("amazon-warehouse", "amazon", "Warehouse deal", "audio", "Amazon Warehouse lists open-box units below their new price."),
   deal("apple-refurbished", "apple", "Certified refurbished", "laptop", "Apple's refurbished stock carries the same one-year warranty."),
+  deal("apple-tradein", "apple", "Trade-in credit", "phone", "A working older phone lowers the price of this one at checkout."),
+  deal("bestbuy-tradein", "bestbuy", "Trade-in credit", "phone", "Best Buy's trade-in lowers the price of this phone at checkout."),
   deal("dell-outlet", "dell", "Dell Outlet", "laptop", "Dell Outlet lists returned and refurbished machines here."),
   deal("costco-member", "costco", "Member savings", "tv", "Costco instant savings on this set come off at the register."),
+  deal("samsung-tradein", "samsung", "Trade-in credit", "phone", "Samsung's trade-in lowers the price of this phone at checkout."),
+  deal("sony-refurbished", "sony", "Certified refurbished", "audio", "Sony's refurbished earbuds carry the same warranty at a lower price."),
+  deal("williamssonoma-sale", "williamssonoma", "Sale pricing", "kitchen", "Williams Sonoma's own sale prices selected appliances below their usual price."),
 
   deal("sephora-insider", "sephora", "Beauty Insider offers", "beauty", "Beauty Insider points and member sets apply on this order."),
   deal("ulta-rewards", "ulta", "Ultamate Rewards", "beauty", "Ultamate Rewards points apply on this order."),
@@ -313,6 +319,36 @@ export function matchDeals(deals = PARTNER_DEALS, products = POPULAR_PRODUCTS, n
   );
 }
 
+// Ranking, for the panel's own order. A shop this profile already uses comes
+// first, then the size of the published saving, then how well known the product
+// is: an offer at a shop the shopper never opens is worth nothing, however big
+// the number beside it. `signals` is store-affinity.js's weights; with none, the
+// order is the saving itself.
+export function rankDeals(offers, signals) {
+  const stores = (signals && signals.stores) || {};
+  const categories = (signals && signals.categories) || {};
+  return (Array.isArray(offers) ? offers : [])
+    .map((offer) => {
+      const store = Number(stores[offer.deal.store]) || 0;
+      const key = String((offer.product && offer.product.category) || "").toLowerCase();
+      const category = Number(categories[key]) || 0;
+      const rate = offer.savings == null || !offer.price ? 0 : (offer.savings / offer.price) * 100;
+      const dollars = offer.savings == null ? 0 : Math.min(50, offer.savings / 100);
+      const known = Number(offer.product && offer.product.popularity) || 0;
+      // A shop the shopper uses outweighs a saving; a category nudges rather
+      // than floods, so a single visited shop does not fill the rail with one
+      // kind of product.
+      const score = store * 400 + category * 60 + rate * 4 + dollars * 3 + known;
+      return Object.assign({}, offer, { score: Math.round(score), affinity: { store, category } });
+    })
+    .sort(
+      (a, b) =>
+        b.score - a.score ||
+        (b.savings || 0) - (a.savings || 0) ||
+        (b.product.popularity || 0) - (a.product.popularity || 0)
+    );
+}
+
 // What the card prints. The threshold is deliberately absent: the product named
 // here is the thing that clears it, so restating the bar would only invite the
 // shopper to go around the extension to meet it themselves.
@@ -322,6 +358,9 @@ export function offerLines(offer) {
     label: offer.deal.label,
     title: offer.product.name,
     price: money(offer.price),
+    // Only a published rate yields a second figure; the card then shows what the
+    // shopper actually pays instead of making them do the arithmetic.
+    pay: offer.pay == null ? null : money(offer.pay),
     savings: offer.savings == null ? null : money(offer.savings),
     note: offer.deal.note,
     terms: "Store terms apply at checkout.",

@@ -41,6 +41,16 @@ import {
 import { decideSite } from "../lib/site-add.js";
 import { mergeCodes, cleanCode, isExpired } from "../lib/codes.js";
 import { autopilotQueue, looksLikeCheckout } from "../lib/autopilot.js";
+import { DEALS_UPDATED, matchDeals, rankDeals } from "../lib/deals.js";
+import {
+  AFFINITY_KEY,
+  buildSignals,
+  noteVisit,
+  readAffinity,
+  saveAffinity,
+} from "../lib/store-affinity.js";
+import { readBookmarks } from "../lib/bookmarks.js";
+import { readWatch } from "../lib/watchlist.js";
 import { readConsent } from "../lib/terms.js";
 import {
   creditAds,
@@ -467,6 +477,34 @@ async function runAutopilot(url, tabId) {
   const outcome = { status: "rejected", tried: queue.length };
   rememberAutopilot(key, outcome);
   return outcome;
+}
+
+// Which shops this profile actually uses, for the deals ranking. Only the fact
+// that a shop was opened is kept — never a page, a product or an address — and a
+// repeat visit inside the gap is ignored, so the record stays a short list.
+let affinityCache = null;
+
+async function noteStoreTab(url) {
+  const store = resolveStore(url, []);
+  if (!store || store.custom) return;
+  if (!affinityCache) affinityCache = await readAffinity();
+  const step = noteVisit(affinityCache, store.id);
+  if (!step.changed) return;
+  affinityCache = step.affinity;
+  await saveAffinity(affinityCache);
+}
+
+// The deals the panel leads with: the bundled feed, ranked by the shops this
+// profile uses and the categories it keeps coming back to.
+async function dealsFeed() {
+  const [affinity, bookmarks, watch] = await Promise.all([readAffinity(), readBookmarks(), readWatch()]);
+  const signals = buildSignals({ affinity, pins: bookmarks.pins, watch: watch.items });
+  return {
+    ok: true,
+    updated: DEALS_UPDATED,
+    offers: rankDeals(matchDeals(), signals),
+    personalized: Object.keys(signals.stores).length > 0,
+  };
 }
 
 // A covered page is read once it has finished loading: the product's own price
@@ -1172,6 +1210,9 @@ async function clearData() {
   const all = (await chrome.storage.local.get(null)) || {};
   const mine = Object.keys(all).filter((key) => key.indexOf(prefix) === 0);
   if (mine.length) await chrome.storage.local.remove(mine);
+  // The shop list is not account-scoped, but a confirmed clear empties it too.
+  await chrome.storage.local.remove(AFFINITY_KEY);
+  affinityCache = null;
   feedCache.clear();
   return { ok: true };
 }
@@ -1393,6 +1434,8 @@ async function handle(message, sender) {
       return refreshCatalog(await readSettings(), true);
     case "stats:get":
       return stats();
+    case "deals:feed":
+      return dealsFeed();
     case "cards:status":
       return vaultStatus();
     case "cards:list":
@@ -1470,6 +1513,7 @@ if (chrome.tabs && chrome.tabs.onUpdated) {
     if (!info || info.status !== "complete") return;
     const url = (tab && tab.url) || info.url || "";
     if (!webUrl(url)) return;
+    noteStoreTab(url).catch(function () {});
     autopilotTab(tabId, url).catch(function () {});
   });
 }

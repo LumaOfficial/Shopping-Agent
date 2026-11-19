@@ -1887,6 +1887,94 @@ body.sidepanel .deals {
   margin-top: 16px;
 }
 
+/* A display rule outranks the hidden attribute, so each container that the
+   panel can hide says so itself. */
+body.sidepanel .deals[hidden],
+body.sidepanel #deals-featured[hidden],
+body.sidepanel .deal-filters[hidden] {
+  display: none;
+}
+
+body.sidepanel #deals-featured {
+  margin-top: 14px;
+}
+
+body.sidepanel .deal-filters {
+  margin: 14px 0 0;
+}
+
+/* The lead card: the best-ranked offer, so it reads as a pick rather than the
+   first of a list. */
+body.sidepanel .deal-lead {
+  padding: 18px 18px 16px;
+  border-color: #d9ccff;
+  background: linear-gradient(160deg, #f6f1ff 0%, #fff8ee 100%);
+  box-shadow: 0 14px 30px rgba(94, 74, 190, 0.12);
+}
+
+body.sidepanel .deal-eyebrow {
+  margin: 0;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #5b4bd6;
+}
+
+body.sidepanel .deal-lead .deal-name {
+  font-size: 17px;
+}
+
+body.sidepanel .deal-lead .deal-price {
+  font-size: 21px;
+}
+
+/* The store's own mark, with its initials underneath while the image loads or
+   when it cannot be fetched. */
+body.sidepanel .deal-mark {
+  position: relative;
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 26px;
+  height: 26px;
+  border-radius: 9px;
+  overflow: hidden;
+  background: hsl(var(--hue, 260) 68% 93%);
+  color: hsl(var(--hue, 260) 42% 34%);
+}
+
+body.sidepanel .deal-mark img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  padding: 4px;
+  background: #fff;
+}
+
+body.sidepanel .deal-mark-fallback {
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+body.sidepanel .deal-own {
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: #eef0ff;
+  color: #4b3fc4;
+  font-size: 10.5px;
+  font-weight: 600;
+}
+
+body.sidepanel .deal-was {
+  font-size: 13px;
+  color: #9a93b5;
+  text-decoration: line-through;
+}
+
 body.sidepanel .deal {
   display: grid;
   gap: 8px;

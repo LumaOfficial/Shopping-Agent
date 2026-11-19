@@ -265,6 +265,13 @@ popular products per store with a list price in minor units
   guessing one. Nothing is "refreshed" by inventing a value.
 - **Ended offers drop out** on their own (`ends`), the same rule the savings list
   follows.
+- **The order is the shopper's own.** `rankDeals()` puts the shops this profile
+  uses first — a pinned shop, then one it has visited, then a category it keeps
+  watching — and only then the size of the published saving. The worker answers
+  `deals:feed` from that ranking, so the panel opens on the same picks whether or
+  not it was open while the shopper browsed. `store-affinity.js` keeps the list
+  to 40 shop ids with a visit count and a last-seen time, in this browser profile
+  only: no page, product or address is ever recorded.
 
 What the card says comes from `offerLines()` alone, which is also why the bar
 never reaches the page: the product on offer is the thing that already meets it,
@@ -311,12 +318,16 @@ opens an address it has not checked.
 - **Deals for you** — partner offers (a store's laptop deals, its open-box stock,
   its RedCard rate) are paired automatically with the most popular product at
   that store whose price clears the offer, so the shopper is shown the product
-  that qualifies rather than the fine print behind it. The card leads with the
-  product and its price; a saving appears beside it only where the store
-  publishes the rate. The rail turns itself over every few seconds — held while
-  a card is hovered or focused, still under a reduced-motion preference — and
-  *Shuffle* turns it immediately. *Shop it at …* opens the store's own search
-  for that product.
+  that qualifies rather than the fine print behind it. The worker ranks the feed
+  against the shops this profile actually uses, so the best-ranked offer leads in
+  a larger *Top pick* card and a shop the shopper visits is labelled *You shop
+  here*. Each card carries the store's own mark, the product, and — where the
+  store publishes a rate — what the shopper would pay beside the crossed-out list
+  price and the saving. Category chips filter the rail without leaving the panel.
+  The rest of the rail turns itself over every few seconds — held while a card is
+  hovered or focused, still under a reduced-motion preference — and *Shuffle*
+  turns it immediately. *Shop it at …* opens the store's own search for that
+  product.
 - **Animate** — a cinematic trailer of the 50 best-known storefronts, cut like a
   film: letterbox bars, grain and a light leak over a pre-roll slate that counts
   the marks in as they cache and decode. Then the title cards: an orbit pushing
@@ -756,8 +767,9 @@ user from themselves.
 | `src/lib/tour-panel.js` | The tour card: steps, resume, replay, progress in device storage |
 | `src/lib/panel-extras.js` | Popular-store rail and category tiles, both from the catalog |
 | `src/lib/panel-jumps.js` | The jump row: panel sections, store categories, the price movers and headlines views, and the *All shortcuts* sheet |
-| `src/lib/deals.js` | Partner offers, the popular products they pair with, the pairing rules, and the card's copy |
-| `src/lib/deals-panel.js` | The *Deals for you* rail: four cards at a time from that feed, turning over on its own |
+| `src/lib/deals.js` | Partner offers, the popular products they pair with, the pairing rules, the ranking, and the card's copy |
+| `src/lib/deals-panel.js` | The *Deals for you* card: a *Top pick*, category chips, and four more cards turning over on their own |
+| `src/lib/store-affinity.js` | Which shops this profile uses, kept local and bounded, and the weights the deals ranking reads |
 | `tools/emulate-platforms.mjs` | Runs the shipped code under Windows, macOS, Linux and ChromeOS signals and prints a pass/fail table |
 | `src/lib/logo-show.js` | The *Animate* trailer: cache, decode, build, then orbit → wall → tagline → wordmark |
 | `src/lib/brand-marks.js` | The popular storefronts the trailer leads with, and their brand inks |
@@ -973,7 +985,13 @@ cd extension && node tools/emulate-platforms.mjs
   store that clears its bar, the most popular eligible product wins, no product
   is offered twice, a saving appears only from a published rate, an ended offer
   drops out, the bar never appears in the card copy, and every offered product
-  opens on an https address at the store it belongs to.
+  opens on an https address at the store it belongs to. Ranking moves the order
+  and nothing else: a pinned or visited shop leads, a watched category lifts its
+  offers, and no pairing or figure changes.
+- **Store affinity** (`test/store-affinity.test.mjs`) — only a bounded list of
+  real shop ids is kept, a reload inside the gap is not a new trip, junk in
+  storage reads as empty, and a pinned shop outweighs a visited one while both
+  lift their product categories.
 - **Autopilot** (`test/autopilot.test.mjs`) — a cart, basket, checkout, order or
   payment path counts as a checkout and a product slug or query string does not;
   a pass takes live codes best-source-first, collapses duplicates, skips the ones

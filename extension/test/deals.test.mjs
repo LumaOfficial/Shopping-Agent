@@ -14,7 +14,9 @@ import {
   offerLines,
   productUrl,
   qualifies,
+  rankDeals,
 } from "../src/lib/deals.js";
+import { buildSignals } from "../src/lib/store-affinity.js";
 import { STORES, hostsOf } from "../src/lib/stores.js";
 import { money } from "../src/lib/format.js";
 
@@ -106,11 +108,53 @@ test("a saving appears only where the store publishes a rate", () => {
   assert.equal(rated.savings, 2995, "5% of $599.00 in whole cents");
   assert.equal(rated.pay, 56905, "the price after the rate");
   assert.equal(offerLines(rated).savings, "$29.95");
+  assert.equal(offerLines(rated).pay, "$569.05", "the card shows what is actually paid");
 
   const unrated = offerFor({ id: "d", store: "target", percent: null }, item);
   assert.equal(unrated.savings, null, "no published rate, no figure");
   assert.equal(unrated.pay, null);
   assert.equal(offerLines(unrated).savings, null);
+  assert.equal(offerLines(unrated).pay, null, "and no second price either");
+});
+
+test("a shop the shopper uses leads the feed, and the card knows why", () => {
+  const offers = matchDeals();
+  const plain = rankDeals(offers, null);
+  assert.equal(plain.length, offers.length);
+
+  const ranked = rankDeals(offers, buildSignals({ pins: ["nike"] }));
+  assert.equal(ranked[0].deal.store, "nike", "a pinned shop comes first");
+  assert.ok(ranked[0].affinity.store >= 2, "the card can say it is a shop they use");
+  assert.notEqual(plain[0].deal.store, "nike", "without the signal it does not lead");
+});
+
+test("ranking changes the order and nothing else", () => {
+  const offers = matchDeals();
+  const ranked = rankDeals(offers, buildSignals({ pins: ["target"] }));
+  const before = new Map(offers.map((offer) => [offer.id, offer]));
+
+  assert.deepEqual(
+    offers.map((offer) => offer.id),
+    matchDeals().map((offer) => offer.id),
+    "the input list is not reordered in place"
+  );
+  ranked.forEach((offer) => {
+    const original = before.get(offer.id);
+    assert.ok(original, "the ranked feed is the same set of offers: " + offer.id);
+    assert.equal(offer.product.id, original.product.id, "the pairing is untouched");
+    assert.equal(offer.savings, original.savings, "no figure is invented by ranking");
+    assert.equal(offer.pay, original.pay);
+  });
+});
+
+test("a category the shopper keeps buying lifts its offers", () => {
+  const offers = matchDeals();
+  const plain = rankDeals(offers, null);
+  const ranked = rankDeals(offers, buildSignals({ watch: [{ storeId: "sephora" }] }));
+  const beauty = (list) => list.find((offer) => offer.product.category === "beauty");
+  const rankOf = (list) => list.findIndex((offer) => offer.product.category === "beauty");
+  assert.ok(beauty(ranked).score > beauty(plain).score, "beauty offers move up");
+  assert.ok(rankOf(ranked) < rankOf(plain), "and sit higher in the feed");
 });
 
 test("an ended deal drops out on its own", () => {
