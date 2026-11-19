@@ -236,6 +236,17 @@ still covered:
   at most, stopping the moment one is accepted. The store's answer is what is
   recorded: an accepted code becomes `works`, a refused one is never offered
   again. `src/lib/autopilot.js` holds those rules, and the panel reads them too.
+- **Clip-to-save first.** On a cart or checkout page the worker presses the
+  store's own clip-to-save controls before any code is tried, so the basket
+  already carries every offer the page publishes. This follows the
+  *clip offers* switch and never runs outside a basket.
+- **A late promo box.** A checkout that renders its coupon field after the page
+  loads is looked at once more a few seconds later, so a box that appears late
+  still gets a pass. A page with no box at all is re-read once and never polled.
+- **The watch list keeps itself current.** The same page read that records a
+  product's price updates the watch list row when the price has moved, so a
+  watched product's move is measured against the price it was saved at without
+  anyone re-adding it.
 - **One pass, one place.** The panel asks the worker for the pass rather than
   running its own, so a checkout is never entered twice and the status line under
   the codes is the worker's own answer.
@@ -293,7 +304,7 @@ opens an address it has not checked.
   signed in, so opening the panel does not ask for the password again; signing
   out is a second, deliberate tap on the account chip.
 - **Codes only for the store you are on.** The panel resolves the tab's host
-  against a catalog of **981 stores / 998 host patterns** (including regional
+  against a catalog of **1057 stores / 1068 host patterns** (including regional
   Amazon, eBay and other domains). Any other page shows an empty state, plus a
   one-tap check that adds the site when the page proves it is a shop.
 - **A tour on the first run.** The panel opens with a seven-step tour — codes,

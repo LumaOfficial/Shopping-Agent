@@ -50,7 +50,7 @@ import {
   saveAffinity,
 } from "../lib/store-affinity.js";
 import { readBookmarks } from "../lib/bookmarks.js";
-import { readWatch } from "../lib/watchlist.js";
+import { readWatch, saveWatch, watchId } from "../lib/watchlist.js";
 import { readConsent } from "../lib/terms.js";
 import {
   creditAds,
@@ -418,6 +418,9 @@ const AUTOPILOT_REMEMBERED = 200;
 // the panel never enter a code the store has just taken — whoever asks second
 // is handed the same answer.
 const autopilotRuns = new Map();
+// Checkouts whose promo box had not rendered yet when the page loaded. Each is
+// re-read once after a short wait, so a box that appears late still gets a pass.
+const autopilotRetries = new Set();
 
 function rememberAutopilot(key, outcome) {
   autopilotRuns.set(key, outcome);
@@ -449,7 +452,25 @@ async function runAutopilot(url, tabId) {
   if (already) return already;
 
   const probe = await sendToTab(tabId, { type: "coupon:probe" });
-  if (!probe || !probe.hasField) return { status: "no-field" };
+  if (!probe || !probe.hasField) {
+    // A checkout that renders its promo box after the page loads is looked at
+    // once more a few seconds later. The retry is remembered, so a page with no
+    // box at all is re-read once and never polled.
+    if (!autopilotRetries.has(key)) {
+      autopilotRetries.add(key);
+      setTimeout(function () {
+        autopilotRetries.delete(key);
+        // The worker can be torn down between the pass and this retry, and a
+        // browser that has gone away has no tab to look at.
+        if (typeof chrome === "undefined" || !chrome.tabs || !chrome.tabs.get) return;
+        chrome.tabs.get(tabId, function (tab) {
+          if (!tab || tab.url !== url) return;
+          autopilotTab(tabId, url).catch(function () {});
+        });
+      }, 6000);
+    }
+    return { status: "no-field" };
+  }
 
   const data = await resolveSite(url);
   const queue = autopilotQueue(data && data.codes, data && data.dead);
@@ -516,14 +537,25 @@ async function autopilotTab(tabId, url) {
   const store = resolveStore(url, settings.enabledSites);
   if (!store) return;
 
-  if (settings.enabled.priceTracking !== false) {
+  const checkout = looksLikeCheckout(url);
+  const wantPrice = settings.enabled.priceTracking !== false;
+  // Clip-to-save controls belong to the basket, so they are only pressed on a
+  // cart or checkout page and only while the shopper has offers switched on.
+  const wantClip = checkout && settings.enabled.clipOffers !== false;
+
+  if (wantPrice || wantClip) {
     const scan = await sendToTab(tabId, { type: "page:scan" }, { frameId: 0 });
-    if (scan && scan.product) {
+    if (wantPrice && scan && scan.product) {
       await recordPrice(Object.assign({ storeId: store.id }, scan.product));
+    }
+    // The store's own clip controls are pressed before any code is tried, so a
+    // basket already carries every offer the page publishes.
+    if (wantClip && scan && scan.clipCount > 0) {
+      await sendToTab(tabId, { type: "page:clip" });
     }
   }
 
-  if (!looksLikeCheckout(url)) return;
+  if (!checkout) return;
   await runAutopilot(url, tabId);
 }
 
@@ -616,7 +648,25 @@ async function recordPrice(product) {
   }
 
   await writeMap("prices", prices);
+  await syncWatchedPrice(product);
   return summarizePrice(entry);
+}
+
+// A watched product is kept current by the same page read that records its
+// price: the row shows the price seen most recently, while the price it was
+// saved at stays untouched, so the move is still measured against the shopper's
+// own decision. Nothing is written when the product is not watched or the price
+// has not moved.
+async function syncWatchedPrice(product) {
+  const id = watchId({ storeId: product.storeId, title: product.title });
+  const price = Math.round(Number(product.price));
+  if (!id || !isFinite(price) || price <= 0) return;
+  const watch = await readWatch();
+  const at = watch.items.findIndex((item) => item.id === id);
+  if (at === -1 || watch.items[at].price === price) return;
+  watch.items = watch.items.slice();
+  watch.items[at] = Object.assign({}, watch.items[at], { price });
+  await saveWatch(watch);
 }
 
 function summarizePrice(entry) {

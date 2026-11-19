@@ -2,7 +2,7 @@
 // be imported and driven from Node. Storage is a plain in-memory map, and the
 // messages the panel would send are delivered through the real onMessage
 // listener the worker registers.
-const LISTENERS = ["onMessage", "onInstalled", "onStartup", "onAlarm"];
+const LISTENERS = ["onMessage", "onInstalled", "onStartup", "onAlarm", "onUpdated"];
 
 function storageArea(store, changed) {
   function names(key) {
@@ -49,6 +49,7 @@ export function createFakeChrome(seed) {
   const opened = [];
   const rulesets = [];
   const alarms = [];
+  let responder = null;
 
   const chrome = {
     storage: {
@@ -72,9 +73,12 @@ export function createFakeChrome(seed) {
       async query() {
         return [];
       },
-      async sendMessage() {
-        return null;
+      // A test that drives the page pass says what a tab answers; with nothing
+      // set, a tab answers nothing, as it does before a content script loads.
+      async sendMessage(tabId, message) {
+        return responder ? responder(message, tabId) : null;
       },
+      onUpdated: { addListener(fn) { listeners.onUpdated.push(fn); } },
     },
     scripting: {
       async getRegisteredContentScripts() {
@@ -155,7 +159,17 @@ export function createFakeChrome(seed) {
     await new Promise((resolve) => setTimeout(resolve, 0));
   }
 
-  return { chrome, store, send, opened, listeners, rulesets, alarms, fireAlarm };
+  // What a tab's content script answers while this test drives the worker.
+  function answerWith(fn) {
+    responder = fn;
+  }
+
+  // Finishes a page load the way the browser would.
+  function fireTabUpdate(tabId, info, tab) {
+    listeners.onUpdated.forEach((fn) => fn(tabId, info, tab));
+  }
+
+  return { chrome, store, send, opened, listeners, rulesets, alarms, fireAlarm, answerWith, fireTabUpdate };
 }
 
 // Every test needs its own copy of the worker: its module state (the offer
