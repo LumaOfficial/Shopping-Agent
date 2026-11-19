@@ -907,8 +907,8 @@ async function renderAds() {
 
   byId("ads-block").hidden = false;
   byId("ads-value").textContent = money(stats.value || 0);
-  byId("ads-today").textContent = String(stats.today || 0);
-  byId("ads-total").textContent = String(stats.total || 0);
+  byId("ads-today").textContent = Number(stats.today || 0).toLocaleString("en-US");
+  byId("ads-total").textContent = Number(stats.total || 0).toLocaleString("en-US");
 
   const onPage = probe && typeof probe.count === "number" ? probe.count : null;
   byId("ads-note").textContent =
